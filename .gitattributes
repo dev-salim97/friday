@@ -1,2 +1,3 @@
 web/monaco/** linguist-vendored -whitespace
 web/vscode-web/** linguist-vendored -whitespace
+deploy/bind-cli.sh text eol=lf
