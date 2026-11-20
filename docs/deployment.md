@@ -17,6 +17,17 @@ Ensure the service can find `codebuddy` and Node.js on its PATH, or set `AGENTFL
 
 A conversation workspace on a custom Dockerfile without Node.js, npm or Python 3 uses the platform's own copies. On first use the platform copies its Node.js, npm and a relocatable Python into `$LOOPFORGE_DATA_DIR/cli/toolchain/<build>/`, plus each bundled CLI (CodeBuddy, Codex, DeepSeek Harness) the first time a sandbox needs it, and mounts the directory read-only at the end of the sandbox `PATH`. Tools the image ships take precedence. Only glibc images of the platform's architecture use it; Alpine (musl) images need their own Node.js, npm and Python 3. A new platform build creates a new directory and leaves the previous ones in place: after an upgrade, delete the other `cli/toolchain/<build>/` directories (about 200 MB each plus the CLIs copied into them).
 
+WeCom notifications require the official `wecom-cli` on the API service's `PATH`. For native installations, install and verify it on the API host as the service user or in a system directory on its `PATH`:
+
+```bash
+npm install --global @wecom/cli@1.3.4
+wecom-cli --version
+```
+
+The platform Docker build bundles `wecom-cli`. For an older image that lacks it, upgrade to an image that includes it, or rebuild this checkout with `./start.sh dev`.
+
+To enable WeCom account binding and links in notifications, set `AGENTFLOW_PUBLIC_URL` in the API service environment (or in `.env` for `scripts/dev.sh` and Docker Compose). Use the HTTP(S) address that users can open from the device where they receive the link, for example `https://loopforge.example.com`. For Compose, run `docker compose --profile platform up -d platform` after changing `.env`; for a native service, restart the API. `LOOPFORGE_PUBLIC_URL` only changes the installer's printed address.
+
 Stop the foreground service with Ctrl-C. Start it again with the same command. MySQL data stays in its Compose volume. `docker compose stop mysql` stops the database without deleting it.
 
 Use `AGENTFLOW_MYSQL_DSN` for your own MySQL deployment. A fresh account command or server connection creates missing schema objects. Apply existing-installation data migrations individually after reviewing their prerequisites; do not blindly replay all historical migrations against a new database.
