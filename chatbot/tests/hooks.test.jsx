@@ -20,6 +20,8 @@ const { apiMock, writeMock } = vi.hoisted(() => {
     if (path === "/api/assistant/models?executor=codex") return { default: "default", models: [{ id: "default", name: "CLI default", family: "gpt" }, { id: "gpt-5", name: "GPT-5", family: "gpt", efforts: ["high", "xhigh"] }] };
     if (path === "/api/assistant/models") return { default: "m1", sponsoredModel: "m1", models: [{ id: "m1", name: "模型一", effort: true }] };
     if (path === "/api/users") return [{ id: 1, loginName: "tester", codeBuddyApiKeyConfigured: true }];
+    if (path === "/api/runners?mine=1") return [{ id: "mac", status: "online" }];
+    if (path === "/api/runners/default") return { runnerId: "mac" };
     if (path === "/api/assistant/sessions") return [baseSession];
     if (path.includes("/generation")) return { id: "g1", status: "completed", events: [] };
     if (path.startsWith("/api/assistant/sessions/")) return structuredClone(baseSession);
@@ -437,6 +439,21 @@ describe("conversation hooks", () => {
     await act(() => result.current.send({text:"开始"}));
     expect(writeMock).toHaveBeenCalledWith("/api/assistant/generations",expect.objectContaining({executionTarget:{pool:"runner",runnerId:"mac"}}));
     await act(async () => expect(await result.current.selectMachine("")).toBe(false));
+  });
+
+  test("keeps a draft unsent when there is no personal execution machine", async () => {
+    const original = apiMock.getMockImplementation();
+    apiMock.mockImplementation((path, options) => path === "/api/runners/default"
+      ? Promise.resolve({ runnerId: "" }) : original(path, options));
+    try {
+      const { result } = renderHook(() => useChat());
+      await waitFor(() => expect(result.current.machinesReady).toBe(true));
+      await act(async () => expect(await result.current.send({ text: "开始" })).toBe(false));
+      expect(result.current.error).toBe("请先绑定并选择个人执行机器。");
+      expect(writeMock).not.toHaveBeenCalled();
+    } finally {
+      apiMock.mockImplementation(original);
+    }
   });
 
   test("waits for the personal machine default before allowing the first send", async () => {

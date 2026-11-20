@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,10 +37,10 @@ func TestConversationDraftMachineSelectionAndFirstTurnBinding(t *testing.T) {
 		}
 	}
 	cloud := &domain.AssistantExecutionTarget{Pool: domain.ExecutionModeCloud}
-	put(cloud, 200)
+	put(cloud, 400)
 	put(&domain.AssistantExecutionTarget{Pool: domain.ExecutionModeRunner, RunnerID: "other"}, 400)
 	put(&domain.AssistantExecutionTarget{Pool: domain.ExecutionModeRunner, RunnerID: "mine"}, 200)
-	put(cloud, 200)
+	put(cloud, 400)
 	old, _ := h.repo.AssistantSession(user.ID, "machine-draft")
 	if old.ExecutionLocked() {
 		t.Fatal("selection locked an empty conversation")
@@ -53,7 +54,7 @@ func TestConversationDraftMachineSelectionAndFirstTurnBinding(t *testing.T) {
 	}
 	body, _ := json.Marshal(assistantRequest{SessionID: old.ID, ProjectID: old.ProjectID, ExecutionTarget: &domain.AssistantExecutionTarget{Pool: domain.ExecutionModeRunner, RunnerID: "mine"}, Messages: []assistantMessage{{Role: "user", Content: "hello"}}})
 	c, rec := workbenchContext(user, "POST", "/api/assistant/generations", bytes.NewBuffer(body))
-	h.startGeneration(c)
+	h.startWorkbenchGeneration(c)
 	if rec.Code != 202 {
 		t.Fatalf("start: %d %s", rec.Code, rec.Body.String())
 	}
@@ -75,6 +76,39 @@ func TestConversationDraftMachineSelectionAndFirstTurnBinding(t *testing.T) {
 		t.Fatal("generation did not stop")
 	}
 	put(cloud, 409)
+}
+
+func TestWorkbenchGenerationRejectsCloudExecution(t *testing.T) {
+	h, user := workbenchFixture(t)
+	old := domain.AssistantSession{ID: "old-cloud", ProjectID: "workbench",
+		Messages: []domain.AssistantMessage{{Role: "user", Content: "earlier turn"}}}
+	if err := h.repo.PutAssistantSession(user.ID, old); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name, session string
+		target        *domain.AssistantExecutionTarget
+		want          int
+	}{
+		{name: "explicit cloud", target: &domain.AssistantExecutionTarget{Pool: domain.ExecutionModeCloud}, want: 400},
+		{name: "implicit cloud fallback", want: 400},
+		{name: "space field cannot enable cloud", want: 400},
+		{name: "historical cloud", session: old.ID, want: 409},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := assistantRequest{ProjectID: "workbench", SessionID: tc.session, ExecutionTarget: tc.target,
+				Messages: []assistantMessage{{Role: "user", Content: "hello"}}}
+			if tc.name == "space field cannot enable cloud" {
+				req.SpaceID = "any-room"
+			}
+			body, _ := json.Marshal(req)
+			c, rec := workbenchContext(user, "POST", "/api/assistant/generations", bytes.NewBuffer(body))
+			h.startWorkbenchGeneration(c)
+			if rec.Code != tc.want || !strings.Contains(rec.Body.String(), "个人执行机器") {
+				t.Fatalf("start: %d %s", rec.Code, rec.Body.String())
+			}
+		})
+	}
 }
 
 func TestDraftCloudAllocationIsServerOwned(t *testing.T) {

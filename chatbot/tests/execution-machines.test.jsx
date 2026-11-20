@@ -9,7 +9,10 @@ vi.mock("../src/api.js", () => ({ api: apiMock, write: writeMock }));
 import { useExecutionMachines } from "../src/useExecutionMachines";
 
 const bindMock = vi.fn();
-const machines = [{ id: "mac", name: "Mac", status: "online" }];
+const machines = [
+  { id: "mac", name: "Mac", status: "online" },
+  { id: "linux", name: "Linux", status: "online" },
+];
 function pending() {
   let resolve, reject;
   const promise = new Promise((yes, no) => {
@@ -40,10 +43,10 @@ describe("personal execution machine selection", () => {
     expect(result.current.machines).toEqual(machines);
     expect(result.current.defaultRunnerId).toBe("mac");
     expect(apiMock).toHaveBeenCalledWith("/api/runners?mine=1");
-    await act(() => result.current.selectMachine(""));
-    expect(bindMock).toHaveBeenCalledWith("");
+    await act(() => result.current.selectMachine("linux"));
+    expect(bindMock).toHaveBeenCalledWith("linux");
     expect(writeMock).not.toHaveBeenCalled();
-    expect(result.current.defaultRunnerId).toBe("");
+    expect(result.current.defaultRunnerId).toBe("linux");
   });
 
   test("holds the selection during saving, rejects overlapping saves and preserves the default on failure", async () => {
@@ -56,13 +59,13 @@ describe("personal execution machine selection", () => {
     bindMock.mockReturnValueOnce(save.promise);
     let saving;
     act(() => {
-      saving = result.current.selectMachine("");
+      saving = result.current.selectMachine("linux");
     });
     expect(result.current.machineSaving).toBe(true);
     expect(result.current.machineSavingRef.current).toBe(true);
     expect(result.current.defaultRunnerId).toBe("mac");
     await act(async () =>
-      expect(await result.current.selectMachine("other")).toBe(false),
+      expect(await result.current.selectMachine("mac")).toBe(false),
     );
     expect(bindMock).toHaveBeenCalledTimes(1);
     await act(async () => {
@@ -87,12 +90,12 @@ describe("personal execution machine selection", () => {
     act(() => {
       refreshing = result.current.refreshMachines();
     });
-    await act(() => result.current.selectMachine(""));
+    await act(() => result.current.selectMachine("linux"));
     await act(async () => {
       stale.resolve({ runnerId: "mac" });
       await refreshing;
     });
-    expect(result.current.defaultRunnerId).toBe("");
+    expect(result.current.defaultRunnerId).toBe("linux");
   });
 
   test("refreshes the default after returning from settings", async () => {
@@ -115,14 +118,14 @@ describe("personal execution machine selection", () => {
     await waitFor(() => expect(result.current.defaultRunnerId).toBe(""));
   });
 
-  test("keeps an explicit cloud choice through refresh, and resets only for a new draft", async () => {
+  test("keeps a personal machine through refresh and rejects an empty choice", async () => {
     const { result } = renderHook(() => useExecutionMachines(1, false, false, vi.fn(), bindMock));
     await waitFor(() => expect(result.current.machinesReady).toBe(true));
-    await act(() => result.current.selectMachine(""));
+    await act(() => result.current.selectMachine("linux"));
     await act(() => result.current.refreshMachines());
-    expect(result.current.defaultRunnerId).toBe("");
-    await act(() => result.current.selectMachine("mac"));
-    await act(() => result.current.selectMachine(""));
+    expect(result.current.defaultRunnerId).toBe("linux");
+    await act(async () => expect(await result.current.selectMachine("")).toBe(false));
+    expect(result.current.defaultRunnerId).toBe("linux");
     expect(writeMock).not.toHaveBeenCalled();
     act(() => result.current.resetMachine());
     expect(result.current.defaultRunnerId).toBe("mac");

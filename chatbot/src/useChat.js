@@ -14,7 +14,7 @@ import { reviewedOperation, operationError } from "./operations.js";
 import { credentialHint } from "./credentials.js";
 import { cliFailureSettles } from "./cli-install.jsx";
 import { useExecutionMachines } from "./useExecutionMachines.js";
-import { executionLocked } from "./execution-target.js";
+import { executionLocked, retiredCloudSession } from "./execution-target.js";
 import { modelEffort } from "./effort.js";
 import { concreteModel, conversationEngine, engineModels } from "./engines.js";
 import { readComposerPreference, writeComposerPreference } from "./composer-preferences.js";
@@ -941,9 +941,19 @@ export function useChat() {
     }
     if (sandboxBusyRef.current) { setError("运行环境仍在保存，请稍后发送。"); return false; }
     if (executionMachines.machineSavingRef.current) { setError("执行机器仍在保存，请稍后发送。"); return false; }
-    if (!executionLocked(sessionRef.current) && !executionMachines.machinesReady) {
-      setError(executionMachines.machineError || "执行机器仍在加载，请稍后发送。");
+    if (retiredCloudSession(sessionRef.current)) {
+      setError("请新建对话并选择个人执行机器。");
       return false;
+    }
+    let executionTarget = sessionRef.current?.executionTarget;
+    if (!executionLocked(sessionRef.current)) {
+      if (!executionMachines.machinesReady || !executionMachines.defaultRunnerId) {
+        setError(executionMachines.machineError || (executionMachines.machinesReady
+          ? "请先绑定并选择个人执行机器。"
+          : "执行机器仍在加载，请稍后发送。"));
+        return false;
+      }
+      executionTarget = { pool: "runner", runnerId: executionMachines.defaultRunnerId };
     }
     // Without a key (and no sponsored model) the server rejects every message.
     // Say so before creating an empty conversation that would swallow the
@@ -981,7 +991,7 @@ export function useChat() {
             projectId: projectRef.current,
             issueId: draftIssueId,
             sandboxProfileId,
-            executionTarget: {pool: executionMachines.defaultRunnerId ? "runner" : "cloud", runnerId: executionMachines.defaultRunnerId || ""},
+            executionTarget,
             model: activeModel,
             effort: activeEffort,
             executor,
@@ -1019,10 +1029,6 @@ export function useChat() {
             : s.participants,
       });
       setLive({ answer: "", thinking: "", tools: [] });
-      const executionTarget = executionLocked(s) ? s.executionTarget : {
-        pool: executionMachines.defaultRunnerId ? "runner" : "cloud",
-        runnerId: executionMachines.defaultRunnerId || "",
-      };
       const g = await write("/api/assistant/generations", {
         sessionId: s.id,
         projectId: s.projectId || "",

@@ -154,8 +154,9 @@ describe("App", () => {
       expect(trigger.closest(".composer-context")).not.toBeNull();
       trigger.getBoundingClientRect = () => ({ top: 500, bottom: 528, left: 200, right: 400, width: 200, height: 28 });
       await user.click(trigger);
-      await user.click(screen.getByRole("option", { name: /LoopForge 云端/ }));
-      expect(selectMachine).toHaveBeenCalledWith("");
+      expect(screen.queryByRole("option", { name: /LoopForge 云端/ })).not.toBeInTheDocument();
+      await user.click(screen.getByRole("option", { name: /开发 Mac/ }));
+      expect(selectMachine).toHaveBeenCalledWith("mac");
       Object.assign(chat, { activeId: "s1", session: { id: "s1", messages: [] } });
       view.rerender(<App />);
       expect(screen.getAllByRole("button", { name: "执行机器：开发 Mac" })).toHaveLength(1);

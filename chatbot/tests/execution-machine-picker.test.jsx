@@ -66,14 +66,14 @@ describe("execution machine picker", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
-  test("switches back to cloud and exposes machine management", async () => {
-    const chat = fixture(),
+  test("offers machine management when the user has no bound runner", async () => {
+    const chat = fixture({ machines: [], defaultRunnerId: "" }),
       manage = vi.fn();
     render(<ExecutionMachinePicker chat={chat} onManage={manage} />);
-    const { user } = await openPicker();
-    await user.click(screen.getByRole("option", { name: /LoopForge 云端/ }));
-    expect(chat.selectMachine).toHaveBeenCalledWith("");
-    await openPicker();
+    const { user, trigger } = await openPicker();
+    expect(trigger).toHaveTextContent("选择执行机器");
+    expect(screen.getByText("请先绑定个人执行机器")).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /LoopForge 云端/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("option", { name: "管理执行机器" }));
     expect(manage).toHaveBeenCalledOnce();
   });
@@ -111,7 +111,7 @@ describe("execution machine picker", () => {
         })}
       />,
     );
-    expect(screen.getByText("LoopForge 云端")).toBeInTheDocument();
+    expect(screen.getByText("任务执行环境")).toBeInTheDocument();
     expect(screen.queryByText("开发 Mac")).not.toBeInTheDocument();
   });
 

@@ -70,26 +70,25 @@ test('home starters prepare a question or open quick access without calling a mo
   expect(generations).toBe(0);
 });
 
-test('sending without a model key is refused before any request, with a way to configure it',async({page})=>{
+test('sending without an execution machine preserves the draft and exposes machine settings',async({page})=>{
   let writes=0;
   page.on('request',r=>{if(r.method()!=='GET'&&new URL(r.url()).pathname.startsWith('/api/assistant/'))writes++});
   await signInUnconfigured(page);
   const input=await openHome(page);
   const frame=chat(page);
-  const text='No key yet: this must be refused before any model runs.';
+  const text='No personal runner yet: keep this draft.';
   await input.fill(text);
   await frame.locator('.send-button').click();
-  const configure=frame.getByRole('button',{name:'去配置 CodeBuddy API Key'});
-  await expect(configure).toBeVisible();
+  await expect(frame.getByText('请先绑定并选择个人执行机器。')).toBeVisible();
   await expect(input).toHaveValue(text);
   expect(writes).toBe(0);
-  await configure.click();
-  await expect(page).toHaveURL(/#\/settings/);
-  await expect(page.locator('#credentialWizard .credential-pane:not(.is-leaving) input[name="secret"]')).toBeFocused();
-  await page.keyboard.press('Escape');
+  await frame.getByRole('button',{name:'执行机器：选择执行机器'}).click();
+  await expect(frame.getByRole('option',{name:'LoopForge 云端'})).toHaveCount(0);
+  await frame.getByRole('option',{name:'管理执行机器'}).click();
+  await expect(page).toHaveURL(/#\/runners/);
 });
 
-test('the home composer asks a real model with one click',async({page})=>{
+test('the home composer asks a real model on the default personal runner',async({page})=>{
   test.skip(process.env.AGENTFLOW_E2E_MODEL!=='1','Requires a configured model key and AGENTFLOW_E2E_MODEL=1');
   test.setTimeout(300_000);
   const {password}=await import('./helpers.mjs');
@@ -98,6 +97,9 @@ test('the home composer asks a real model with one click',async({page})=>{
   await page.locator('[name="password"]').fill(password());
   await page.locator('#loginSubmit').click();
   await appReady(page);
+  const {runnerId}=await page.request.get('/api/runners/default').then(r=>r.json());
+  const runners=await page.request.get('/api/runners?mine=1').then(r=>r.json());
+  test.skip(!runners.some(runner=>runner.id===runnerId&&runner.status==='online'),'Requires an online default personal runner');
   await switchProject(page,'welcome');
   const input=await openHome(page);
   const frame=chat(page);

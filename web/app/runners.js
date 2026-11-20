@@ -153,12 +153,12 @@ function renderRunnersView(){
     let text='',warn=false;
     if(def){
       warn=def.status!=='online';
-      text=warn?'默认机器已离线，新任务会失败。请启动它或切回云端':`在 ${def.name||def.id} 上执行`;
+      text=warn?'默认机器已离线，请启动它或选择其他机器':`默认机器 · ${def.name||def.id}`;
     }else if(pool?.configured){
       warn=!pool.online;
-      text=pool.online?`云端执行 · ${pool.online} 台在线`:'云端暂无在线机器，新任务最多等待 10 分钟';
+      text=pool.online?`SOP 执行池 · ${pool.online} 台在线`:'SOP 执行池暂无在线机器';
     }else{
-      text='在平台云端执行';
+      text='未设置默认机器';
     }
     poolStatus.textContent=text;poolStatus.classList.toggle('warn',warn);
   }
@@ -190,7 +190,7 @@ function renderRunnersView(){
       <div class="runner-card-action">
         ${runnerRunLimitHTML(r)}
         <span class="runner-card-spacer"></span>
-        ${isDefault?'<button class="button ghost small runner-text-button" type="button" data-set-default="">切回云端</button>':''}
+        ${isDefault?'<button class="button ghost small runner-text-button" type="button" data-set-default="">取消默认</button>':''}
         ${r.status==='online'?'':`<button class="button ghost small runner-text-button" type="button" data-remove-runner="${escapeHTML(r.id)}" title="机器已不再使用时移除绑定">移除</button>`}
         ${isDefault?'':`<button class="button hui-btn-soft small" type="button" ${defaultBlocker?`disabled title="${escapeHTML(defaultBlocker)}"`:''} data-set-default="${escapeHTML(r.id)}">设为默认</button>`}
       </div>

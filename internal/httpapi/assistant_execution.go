@@ -51,6 +51,16 @@ func (h *assistantHandlers) newExecutionTarget(userID int64, projectID string, r
 	return &target, nil
 }
 
+func (h *assistantHandlers) newWorkbenchExecutionTarget(userID int64, requested *domain.AssistantExecutionTarget) (*domain.AssistantExecutionTarget, error) {
+	if requested == nil {
+		requested = &domain.AssistantExecutionTarget{Pool: domain.ExecutionModeRunner, RunnerID: h.repo.DefaultRunner(userID)}
+	}
+	if requested.Pool != domain.ExecutionModeRunner || requested.RunnerID == "" {
+		return nil, fmt.Errorf("请先绑定并选择个人执行机器")
+	}
+	return h.newExecutionTarget(userID, "", requested)
+}
+
 // Use a machine's login only for its owner on a personal execution target.
 func (h *assistantHandlers) assistantUsesRunnerLogin(userID int64, target *domain.AssistantExecutionTarget, engine string) bool {
 	return h.assistantLoginRunner(userID, target, engine).ID != ""

@@ -62,8 +62,15 @@ test('real assistant scheduled prompt: manual trigger completes and saves the ac
   assert.match(JSON.stringify((await get(`/api/assistant/sessions/${done.sessionId}`)).messages),new RegExp(marker));
 });
 
-test('real durable generation: cancel persists, unlocks session and permits a fresh turn', {skip:!cfg.model,timeout:300_000},async()=>{
-  const started=await post('/api/assistant/generations',{projectId:cfg.projectId,messages:[{role:'user',content:'自动化取消测试。请只用文字解释归并排序，不调用工具。'}]});
+test('real durable generation: cancel persists, unlocks session and permits a fresh turn', {skip:!cfg.model,timeout:300_000},async(t)=>{
+  const {runnerId}=await get('/api/runners/default');
+  const machines=list(await get('/api/runners?mine=1'));
+  if(!machines.some(runner=>runner.id===runnerId&&runner.status==='online')){
+    t.skip('Requires an online default personal runner');
+    return;
+  }
+  const executionTarget={pool:'runner',runnerId};
+  const started=await post('/api/assistant/generations',{projectId:cfg.projectId,executionTarget,messages:[{role:'user',content:'自动化取消测试。请只用文字解释归并排序，不调用工具。'}]});
   const id=started.sessionId;
   track(`generation session ${id}`,async()=>{
     await post(`/api/assistant/sessions/${id}/generation/cancel`,{}, {expect:[200,404,409]});

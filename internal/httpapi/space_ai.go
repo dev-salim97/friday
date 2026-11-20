@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -41,7 +42,11 @@ func spaceDeliverableSuffix(session *AgentToolSession) string {
 // credentials, so the target endpoint applies its own auth and validation.
 func (h *spacesHandlers) internalCall(c *gin.Context, method, path string, body any) (int, []byte) {
 	raw, _ := json.Marshal(body)
-	req, err := http.NewRequestWithContext(c.Request.Context(), method, path, bytes.NewReader(raw))
+	ctx := c.Request.Context()
+	if path == "/api/assistant/generations" {
+		ctx = context.WithValue(ctx, spaceAssistantGenerationKey{}, struct{}{})
+	}
+	req, err := http.NewRequestWithContext(ctx, method, path, bytes.NewReader(raw))
 	if err != nil {
 		return http.StatusInternalServerError, []byte(`{"error":"内部请求失败"}`)
 	}

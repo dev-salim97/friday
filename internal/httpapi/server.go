@@ -308,7 +308,7 @@ func newWithNotifications(s *repo.Store, e *engine.Engine, syncSvc *tracker.Serv
 	g.GET("/api/bot-bindings", api.botIdentities.list)
 	g.DELETE("/api/bot-bindings/:id", api.botIdentities.remove)
 	g.POST("/api/assistant/chat", asst.chat)
-	g.POST("/api/assistant/generations", asst.startGeneration)
+	g.POST("/api/assistant/generations", asst.startWorkbenchGeneration)
 	g.GET("/api/assistant/sessions/:id/generation", asst.generation)
 	g.GET("/api/assistant/sessions/:id/generations/:generationId/diagnostics", asst.generationDiagnostics)
 	g.POST("/api/assistant/sessions/:id/generation/cancel", asst.generation)

@@ -19,8 +19,21 @@ import (
 
 type assistantGenerationSinkKey struct{}
 type assistantFreshCLIKey struct{}
+type spaceAssistantGenerationKey struct{}
 
 func (h *assistantHandlers) startGeneration(c *gin.Context) {
+	h.startGenerationWithTarget(c, false)
+}
+
+func (h *assistantHandlers) startWorkbenchGeneration(c *gin.Context) {
+	if c.Request.Context().Value(spaceAssistantGenerationKey{}) != nil {
+		h.startGeneration(c)
+		return
+	}
+	h.startGenerationWithTarget(c, true)
+}
+
+func (h *assistantHandlers) startGenerationWithTarget(c *gin.Context, workbench bool) {
 	current, ok := h.requestUser(c.Request, true)
 	if !ok {
 		c.JSON(401, gin.H{"error": "请先登录"})
@@ -68,10 +81,22 @@ func (h *assistantHandlers) startGeneration(c *gin.Context) {
 			return
 		}
 		target := old.Execution()
+		if workbench && target.Pool == domain.ExecutionModeCloud && old.RunID == "" && old.TaskID == "" && old.Source != domain.AssistantSourceScheduled {
+			c.JSON(409, gin.H{"error": "请新建对话并选择个人执行机器"})
+			return
+		}
 		req.ExecutionTarget = &target
 	} else {
+		requested := draftExecutionTarget(old, req.ExecutionTarget)
 		var targetErr error
-		req.ExecutionTarget, targetErr = h.newExecutionTarget(stored.ID, req.ProjectID, draftExecutionTarget(old, req.ExecutionTarget))
+		if workbench {
+			if req.ExecutionTarget == nil && requested != nil && requested.Pool == domain.ExecutionModeCloud {
+				requested = nil
+			}
+			req.ExecutionTarget, targetErr = h.newWorkbenchExecutionTarget(stored.ID, requested)
+		} else {
+			req.ExecutionTarget, targetErr = h.newExecutionTarget(stored.ID, req.ProjectID, requested)
+		}
 		if targetErr != nil {
 			c.JSON(400, gin.H{"error": targetErr.Error()})
 			return

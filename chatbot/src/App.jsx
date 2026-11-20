@@ -82,6 +82,7 @@ import QuickAccessWizard from "./QuickAccessWizard";
 import HarnessSelect from "./HarnessSelect";
 import SandboxPicker from "./SandboxPicker";
 import ExecutionMachinePicker from "./ExecutionMachinePicker";
+import { retiredCloudSession } from "./execution-target.js";
 import { shouldRevealTitle, titleRevealTiming } from "./title-reveal.js";
 import {
   THEME_KEY,
@@ -306,6 +307,7 @@ function readIssueMention() {
 export default function App() {
   const realChat = useChat();
   const chat = useLocalConversations(realChat);
+  const retiredSession = retiredCloudSession(chat.session);
   const sessionTitle = chat.session?.displayTitle || chat.session?.title || "新对话";
   const titleReveal = useTitleReveal(
     chat.session?.id,
@@ -1641,7 +1643,7 @@ export default function App() {
                             </div>
                           ) : null}
                           <div className="user-actions">
-                            {!chat.readOnly ? (
+                            {!chat.readOnly && !retiredSession ? (
                               <>
                                 <IconButton
                                   label="编辑消息"
@@ -1829,6 +1831,11 @@ export default function App() {
                   你不是「{projectName}
                   」的成员，只能查看这个会话。加入项目后可以继续聊。
                 </span>
+              </div>
+            ) : retiredSession && !chat.busy ? (
+              <div className="readonly-notice" role="status">
+                <HarnessIcon name="eye" size={16} aria-hidden="true" />
+                <span>历史会话仅供查看。请新建对话并选择个人执行机器。</span>
               </div>
             ) : (
               <div

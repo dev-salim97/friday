@@ -307,9 +307,9 @@ func (h *assistantHandlers) session(c *gin.Context) {
 				return
 			}
 			conv.ExecutionTarget = existing.ExecutionTarget
-		} else {
+		} else if conv.ExecutionTarget != nil {
 			var targetErr error
-			conv.ExecutionTarget, targetErr = h.newExecutionTarget(current.ID, conv.ProjectID, draftExecutionTarget(existing, conv.ExecutionTarget))
+			conv.ExecutionTarget, targetErr = h.newWorkbenchExecutionTarget(current.ID, conv.ExecutionTarget)
 			if targetErr != nil {
 				c.JSON(400, gin.H{"error": targetErr.Error()})
 				return

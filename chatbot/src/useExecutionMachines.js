@@ -5,7 +5,6 @@ import { api } from "./api";
 export function useExecutionMachines(userId, busy, readOnly, onError, bindMachine, draftTarget) {
   const [machines, setMachines] = useState([]);
   const [defaultRunnerId, setDefaultRunnerId] = useState("");
-  const [cloudPool, setCloudPool] = useState(null);
   const [machinesReady, setMachinesReady] = useState(false);
   const [machineError, setMachineError] = useState("");
   const [machineSaving, setMachineSaving] = useState(false);
@@ -21,7 +20,7 @@ export function useExecutionMachines(userId, busy, readOnly, onError, bindMachin
   }, []);
   useEffect(() => {
     if (draftTarget && !chosen.current)
-      setDefaultRunnerId(draftTarget.pool === "runner" ? draftTarget.runnerId || "" : "");
+      setDefaultRunnerId(draftTarget.pool === "runner" ? draftTarget.runnerId || "" : suggestedRunner.current);
   }, [draftTarget]);
 
   const refreshMachines = useCallback(async () => {
@@ -37,9 +36,8 @@ export function useExecutionMachines(userId, busy, readOnly, onError, bindMachin
       suggestedRunner.current = selected.runnerId || "";
       if (!chosen.current) {
         const target = targetRef.current;
-        setDefaultRunnerId(target ? target.pool === "runner" ? target.runnerId || "" : "" : suggestedRunner.current);
+        setDefaultRunnerId(target?.pool === "runner" ? target.runnerId || "" : suggestedRunner.current);
       }
-      setCloudPool(selected.cloudPool || null);
       setMachinesReady(true);
       setMachineError("");
     } catch (e) {
@@ -53,7 +51,6 @@ export function useExecutionMachines(userId, busy, readOnly, onError, bindMachin
     setDefaultRunnerId("");
     chosen.current = false;
     suggestedRunner.current = "";
-    setCloudPool(null);
     setMachineError("");
     void refreshMachines();
     window.addEventListener("focus", refreshMachines);
@@ -76,6 +73,7 @@ export function useExecutionMachines(userId, busy, readOnly, onError, bindMachin
   async function selectMachine(runnerId) {
     if (
       !userId ||
+      !machines.some((machine) => machine.id === runnerId) ||
       busy ||
       readOnly ||
       !machinesReady ||
@@ -105,7 +103,6 @@ export function useExecutionMachines(userId, busy, readOnly, onError, bindMachin
   return {
     machines,
     defaultRunnerId,
-    cloudPool,
     machinesReady,
     machineError,
     machineSaving,

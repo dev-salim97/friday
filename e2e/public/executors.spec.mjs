@@ -66,10 +66,10 @@ test('executor selection has independent models, credentials and a persistent ch
   for(const [id,label] of [['codex','Codex'],['claude','Claude Code'],['codebuddy','CodeBuddy']]){
     await choose(label);
     await expect(input).toHaveValue(draft);
-    // Only CodeBuddy has the inline key reminder; every executor is still checked server-side.
+    // Only CodeBuddy has the inline key reminder. All executors require a personal runner.
     await expect(frame.locator('.credential-notice')).toHaveCount(id==='codebuddy'?1:0);
-    const response=await page.request.post('/api/assistant/generations',{data:{executor:id,model:'default',projectId:'welcome',messages:[{role:'user',content:'No key: reject before executing.'}]}});
-    expect(response.status()).toBe(400);expect((await response.json()).error).toContain(label);
+    const response=await page.request.post('/api/assistant/generations',{data:{executor:id,model:'default',projectId:'welcome',messages:[{role:'user',content:'No runner: reject before executing.'}]}});
+    expect(response.status()).toBe(400);expect((await response.json()).error).toContain('个人执行机器');
     const models=await page.request.get('/api/assistant/models?executor='+id);
     expect(models.ok()).toBe(true);
     const catalog=await models.json();
