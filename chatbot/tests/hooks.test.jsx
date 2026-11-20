@@ -415,6 +415,52 @@ describe("conversation hooks", () => {
     }
   });
 
+  test("lists configured models only and points an empty list at 个人配置", async () => {
+    localStorage.removeItem("loopforge.assistant.executor");
+    const original = apiMock.getMockImplementation();
+    let codeBuddyConfigured = true;
+    apiMock.mockImplementation(async (path, options) =>
+      path === "/api/assistant/models"
+        ? {
+            default: "m1",
+            models: [{ id: "m1", name: "模型一" }],
+            engines: [
+              { id: "codebuddy", name: "CodeBuddy", configured: codeBuddyConfigured, credential: "codeBuddyApiKey" },
+              { id: "codex", name: "Codex", configured: false, credential: "codexApiKey" },
+              { id: "kimi", name: "Kimi Code", configured: false, credential: "agentCli.kimi" },
+            ],
+          }
+        : original(path, options));
+    try {
+      const { result } = renderHook(() => useChat());
+      await waitFor(() => expect(result.current.ready).toBe(true));
+      expect(result.current.models.map((model) => model.id)).toEqual(["m1"]);
+      expect(result.current.modelSetup).toBeNull();
+      expect(result.current.executors.find((item) => item.id === "codex").detail).toMatch(/未配置 Codex API Key/);
+
+      const calls = apiMock.mock.calls.length;
+      act(() => result.current.setExecutor("codex"));
+      await act(async () => {});
+      expect(result.current.models).toEqual([]);
+      expect(result.current.modelSetup).toEqual({ credential: "codexApiKey", name: "Codex", configured: false });
+      // The built-in Codex list is not fetched for a CLI the user cannot run.
+      expect(apiMock.mock.calls.slice(calls).map(([path]) => path)).not.toContain("/api/assistant/models?executor=codex");
+
+      act(() => result.current.setExecutor("kimi"));
+      await act(async () => {});
+      expect(result.current.modelSetup?.credential).toBe("agentCli.kimi");
+
+      codeBuddyConfigured = false;
+      act(() => result.current.setExecutor("codebuddy"));
+      window.dispatchEvent(new MessageEvent("message", { data: { type: "agentflow-credentials-changed" }, origin: location.origin, source: window.parent }));
+      await waitFor(() => expect(result.current.modelSetup?.credential).toBe("codeBuddyApiKey"));
+      expect(result.current.models).toEqual([]);
+    } finally {
+      apiMock.mockImplementation(original);
+      localStorage.removeItem("loopforge.assistant.executor");
+    }
+  });
+
   test("persists the draft sandbox selection when creating a conversation", async () => {
     history.replaceState({}, "", "/?projectId=p1");
     const { result } = renderHook(() => useChat());

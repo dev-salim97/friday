@@ -16,7 +16,7 @@ import { cliFailureSettles } from "./cli-install.jsx";
 import { useExecutionMachines } from "./useExecutionMachines.js";
 import { executionLocked, retiredCloudSession } from "./execution-target.js";
 import { modelEffort } from "./effort.js";
-import { concreteModel, conversationEngine, engineModels } from "./engines.js";
+import { concreteModel, conversationEngine, engineCredentialField, engineModels, machineLoginEngines } from "./engines.js";
 import { readComposerPreference, writeComposerPreference } from "./composer-preferences.js";
 import {
   enqueue,
@@ -117,6 +117,9 @@ export function useChat() {
       new URLSearchParams(location.search).get("issueId") || "",
     ),
     [models, setModels] = useState([]),
+    // The CLIs of the model catalog with whether the caller configured them;
+    // empty for guests and until the catalog loads.
+    [engines, setEngines] = useState([]),
     [modelCatalogRefresh, requestModelCatalogRefresh] = useState(0),
     [sessions, setSessions] = useState([]),
     [session, setSession] = useState(null),
@@ -232,6 +235,7 @@ export function useChat() {
   }, [open]);
   const applyModelCatalog = useCallback((catalog) => {
     setModels(catalog.models || []);
+    setEngines(Array.isArray(catalog.engines) ? catalog.engines : []);
     setCodeBuddyDefault({ id: catalog.default || "default", name: "默认", efforts: catalog.defaultEfforts });
     setSponsoredModels(sponsoredModelList(catalog));
   }, []);
@@ -602,9 +606,30 @@ export function useChat() {
     ? `agy-account:${user.id}:${personalMachine.id}` : "";
   const agyAccountCatalog = providerCatalogs[agyAccountKey];
   const codeBuddy = executor === "codebuddy";
+  // A CLI is usable with the caller's key (for CodeBuddy also the platform's
+  // shared key) or, on the bound personal machine, with that machine's own
+  // login (domain.Runner.RuntimeAuthMode). Without the catalog's CLI list
+  // (guests, older servers) every CLI counts as usable.
+  const engineOption = (id) => engines.find((engine) => engine.id === id);
+  const machineLogin = (id) => !!personalMachine && machineLoginEngines.has(id) &&
+    personalMachine.runtimes?.find((runtime) => runtime.provider === id)?.authMode !== "personal";
+  const executorConfigured = (id) => !engines.length || !!engineOption(id)?.configured || machineLogin(id);
+  const configured = executorConfigured(executor);
   const listedForEngine = engineModels(models, executor);
   const executorModels = agyAccountKey ? agyAccountCatalog?.models || [] :
     executorModelList(models, executor, providerCatalogs);
+  // The composer offers configured models only. An empty list becomes a
+  // "去配置" link to the CLI's 个人配置 card, unless its list is still loading.
+  const visibleModels = configured ? executorModels : [];
+  const modelsPending = configured && !codeBuddy && !executorModels.length &&
+    !providerCatalogs[agyAccountKey || executor];
+  const modelSetup = ready && !!user && !user.isGuest && !visibleModels.length && !modelsPending
+    ? {
+        credential: engineOption(executor)?.credential || engineCredentialField(executor),
+        name: engineOption(executor)?.name || EXECUTORS.find((item) => item.id === executor)?.label || executor,
+        configured,
+      }
+    : null;
   const missingKey = !!user && !user.codeBuddyApiKeyConfigured;
   // Without their own key users chat on the platform's shared key, limited to
   // the models the administrator allowed (the first is the default).
@@ -634,7 +659,8 @@ export function useChat() {
   const activeEffort = modelEffort(activeModelEntry, preferredEffort || legacyEffort);
   useEffect(() => {
     const key = agyAccountKey || executor;
-    if (codeBuddy || providerCatalogs[key] || (!agyAccountKey && listedForEngine.length)) return;
+    // An unconfigured CLI shows "去配置" instead of its built-in list.
+    if (codeBuddy || !configured || providerCatalogs[key] || (!agyAccountKey && listedForEngine.length)) return;
     let current = true;
     const request = agyAccountKey
       ? write(`/api/runners/${encodeURIComponent(personalMachineId)}/models/probe`, { provider: "agy", useSaved: true })
@@ -661,7 +687,7 @@ export function useChat() {
     return () => {
       current = false;
     };
-  }, [agyAccountKey, codeBuddy, executor, listedForEngine.length, personalMachineId, providerCatalogs]);
+  }, [agyAccountKey, codeBuddy, configured, executor, listedForEngine.length, personalMachineId, providerCatalogs]);
   const chooseExecutor = useCallback(
     (id) => {
       if (id === "claude") id = "claude-code";
@@ -1442,12 +1468,13 @@ export function useChat() {
     workspaceExecutionError,
     ...executionMachines,
     selectSandbox,
-    models: executorModels,
+    models: visibleModels,
+    modelSetup,
     executor,
     executors: EXECUTORS.map((item) => {
-      if (!personalMachine || !["codex", "claude-code", "agy"].includes(item.id)) return item;
-      const runtime = personalMachine.runtimes?.find((runtime) => runtime.provider === item.id);
-      return runtime?.authMode === "personal" ? item : { ...item, detail: "使用执行机器上的本机登录态。" };
+      if (machineLogin(item.id)) return { ...item, detail: "使用执行机器上的本机登录态。" };
+      if (!executorConfigured(item.id)) return { ...item, detail: `未配置 ${item.label} API Key，选择后去个人配置填写。` };
+      return item;
     }),
     setExecutor: chooseExecutor,
     sessions,

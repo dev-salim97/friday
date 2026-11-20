@@ -25,6 +25,19 @@ export const concreteModel = (model, engine = modelEngine(model)) =>
 export const engineModels = (models, engine) =>
   (models || []).filter((m) => modelEngine(m) === engine && concreteModel(m, engine));
 
+// The 个人配置 field that enables a CLI. Mirrors assistantEngineCredentialField
+// in internal/httpapi/assistant_engines.go.
+export function engineCredentialField(id) {
+  if (id === defaultEngine) return "codeBuddyApiKey";
+  if (id === "codex") return "codexApiKey";
+  if (id === "claude-code") return "claudeCodeApiKey";
+  return `agentCli.${id}`;
+}
+
+// CLIs a personal execution machine can run with its own login instead of a
+// key. Mirrors domain.SupportsRunnerLogin.
+export const machineLoginEngines = new Set(["codex", "claude-code", "agy"]);
+
 // Mirrors assistantEngineMissingKey in internal/httpapi/assistant_engines.go;
 // credentialHint turns it into a "去配置" button.
 export function engineMissingKeyMessage(engine) {

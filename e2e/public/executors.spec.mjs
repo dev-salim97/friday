@@ -25,24 +25,38 @@ for(const viewport of [{width:1280,height:400},{width:390,height:600}]){
     await fits(cliMenu);
     await page.keyboard.press('Escape');
     await expect(cliMenu).toBeHidden();
-    // Codex offers a built-in catalog on installations without any configured models.
+    // A CLI without a key lists no models; the picker links to 个人配置 instead.
     await cli.click();
     await cliMenu.getByRole('menuitemradio',{name:'Codex',exact:true}).click();
-    const model=frame.getByRole('button',{name:'选择模型',exact:true}),modelMenu=frame.locator('.grasp-model-menu');
-    await model.click();
-    await fits(modelMenu);
-    await page.keyboard.press('Escape');
-    await expect(modelMenu).toBeHidden();
-    // Long catalogs are searched inside the menu.
-    await model.click();
-    const search=modelMenu.locator('input[aria-label="搜索模型"]');
-    await expect(search).toBeVisible();
-    const first=(await modelMenu.locator('[role^="menuitem"]').first().innerText()).split('\n')[0].trim();
-    await search.fill('zz-no-such-model');
-    await expect(modelMenu).not.toContainText(first);
-    await search.fill(first);
-    await expect(modelMenu).toContainText(first);
-    await page.keyboard.press('Escape');
+    await expect(frame.getByRole('button',{name:/未配置 Codex API Key/})).toHaveText('去配置');
+    await expect(frame.getByRole('button',{name:'选择模型',exact:true})).toHaveCount(0);
+    // With a key, Codex lists its catalog (the built-in one when discovery fails).
+    const {user}=await page.request.get('/api/auth/current').then(r=>r.json());
+    const credentials=`/api/users/${user.id}/credentials`;
+    expect((await page.request.put(credentials,{data:{codexApiKey:'e2e-inert-key-for-model-menu'}})).ok()).toBe(true);
+    try{
+      await page.reload();
+      const configured=chat(page);
+      await expect(configured.locator('.composer-column textarea')).toBeEditable();
+      await expect(executorButton(configured)).toContainText('Codex');
+      const model=configured.getByRole('button',{name:'选择模型',exact:true}),modelMenu=configured.locator('.grasp-model-menu');
+      await model.click();
+      await fits(modelMenu);
+      await page.keyboard.press('Escape');
+      await expect(modelMenu).toBeHidden();
+      // Long catalogs are searched inside the menu.
+      await model.click();
+      const search=modelMenu.locator('input[aria-label="搜索模型"]');
+      await expect(search).toBeVisible();
+      const first=(await modelMenu.locator('[role^="menuitem"]').first().innerText()).split('\n')[0].trim();
+      await search.fill('zz-no-such-model');
+      await expect(modelMenu).not.toContainText(first);
+      await search.fill(first);
+      await expect(modelMenu).toContainText(first);
+      await page.keyboard.press('Escape');
+    }finally{
+      expect((await page.request.put(credentials,{data:{codexApiKeyClear:true}})).ok()).toBe(true);
+    }
     expect(errors).toEqual([]);
   });
 }

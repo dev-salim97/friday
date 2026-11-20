@@ -37,9 +37,15 @@ function accessPublicBaseURL(configured, page){
 }
 function accessViewActive(){return !!$('#guideView')?.classList.contains('active')}
 let credentialFocusRequest=0;
+// A credential card the chat can open: the fields below, or an agent CLI key
+// (agentCli.<cli>) listed in CREDENTIAL_KINDS.
+function credentialTarget(name){
+  if(CREDENTIAL_FIELDS[name])return true;
+  return /^agentCli\.[a-z][a-z0-9-]*$/.test(name||'')&&typeof credentialKind==='function'&&!!credentialKind(name);
+}
 function gotoCredential(name,sshRemote){
   const request=++credentialFocusRequest;
-  if(!CREDENTIAL_FIELDS[name]){switchView('settings');return}
+  if(!credentialTarget(name)){switchView('settings');return}
   if(name==='gitSshKey')return openGitSSHKeys(sshRemote);
   if(name==='gitHttpCredentials')return openGitHTTPCredentials();
   switchView('settings');

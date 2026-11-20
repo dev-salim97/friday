@@ -8,7 +8,9 @@ import "./model-picker.css";
 const unavailable = (model) => !!(model.disabled || model.unavailable);
 const menuWidth = 240;
 
-export default function ModelPicker({ models, value, label, open, onOpenChange, onSelect }) {
+// setup ({name, configured}) replaces the picker with a link to 个人配置 when
+// the CLI offers no configured model.
+export default function ModelPicker({ models, value, label, open, onOpenChange, onSelect, setup, onSetup }) {
   const trigger = useRef(null);
   const panel = useRef(null);
   const search = useRef(null);
@@ -149,6 +151,26 @@ export default function ModelPicker({ models, value, label, open, onOpenChange, 
       (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
     items[next].focus({ preventScroll: true });
     items[next].scrollIntoView({ block: "nearest" });
+  }
+
+  if (setup) {
+    const hint = setup.configured
+      ? `${setup.name} 暂无可用模型，去个人配置添加模型`
+      : `未配置 ${setup.name} API Key，去个人配置填写后即可选择模型`;
+    return (
+      <div className="menu-anchor model-picker-anchor">
+        <button
+          type="button"
+          className="model-picker grasp-model-picker model-picker-setup"
+          aria-label={hint}
+          title={hint}
+          onClick={onSetup}
+        >
+          <HarnessIcon name="key" size={14} />
+          <span className="model-picker-label">去配置</span>
+        </button>
+      </div>
+    );
   }
 
   return (

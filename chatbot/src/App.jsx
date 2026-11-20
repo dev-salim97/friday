@@ -2160,6 +2160,8 @@ export default function App() {
                     ) : null}
                     <ModelPicker
                       models={chat.models}
+                      setup={chat.modelSetup}
+                      onSetup={() => openCredentialSettings(chat.modelSetup?.credential)}
                       value={chat.model}
                       label={modelLabel}
                       open={menu?.type === "model"}

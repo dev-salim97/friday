@@ -81,6 +81,29 @@ describe("pickers and activity", () => {
     expect(selectPermission).toHaveBeenCalledWith("auto");
   });
 
+  test("offers 去配置 instead of a menu when no model is configured", async () => {
+    const user = userEvent.setup();
+    const setup = vi.fn();
+    const openChange = vi.fn();
+    render(
+      <ModelPicker
+        models={[]}
+        setup={{ name: "Codex", configured: false }}
+        onSetup={setup}
+        value=""
+        open={false}
+        onOpenChange={openChange}
+        onSelect={vi.fn()}
+      />,
+    );
+    const button = screen.getByRole("button", { name: /未配置 Codex API Key/ });
+    expect(button).toHaveTextContent("去配置");
+    expect(screen.queryByRole("menu")).toBeNull();
+    await user.click(button);
+    expect(setup).toHaveBeenCalledTimes(1);
+    expect(openChange).not.toHaveBeenCalled();
+  });
+
   test("remembers the approval mode and ignores unknown values", () => {
     expect(storedApprovalMode(1)).toBe("confirm");
     rememberApprovalMode(1, "assisted");

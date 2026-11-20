@@ -706,13 +706,14 @@ let configured = {gitToken: true}, visible = true;
 const panel = {
   getClientRects: () => visible ? [{}] : [],
   querySelector(selector) {
-    const name = /data-credential-row="(\w+)"/.exec(selector)[1];
+    const name = /data-credential-row="([\w.]+)"/.exec(selector)[1];
     return {classList: {contains: cls => cls === 'is-configured' && !!configured[name]}};
   }
 };
 const document = {querySelector: selector => selector === '#personalSettingsContent #credentialPanel' ? panel : null};
 const opened = [], revealed = [];
 const openCredentialWizard = key => opened.push(key), revealCredentialRow = key => revealed.push(key);
+const credentialKind = key => key === 'agentCli.kimi' ? {key} : null;
 eval(code.slice(code.indexOf('let credentialFocusRequest=0;'), code.indexOf('const CREDENTIAL_RULES=')));
 gotoCredential('gitToken');
 assert.deepEqual(revealed, ['gitToken'], 'configured credentials expand in place');
@@ -724,6 +725,11 @@ view = 'issues'; visible = true;
 gotoCredential('codexApiKey');
 assert.deepEqual(opened, ['codeBuddyApiKey'], 'hidden panel or a different route does nothing');
 assert.deepEqual(revealed, ['gitToken']);
+view = 'settings';
+gotoCredential('agentCli.kimi');
+assert.deepEqual(opened, ['codeBuddyApiKey', 'agentCli.kimi'], 'agent CLI keys open their own card');
+gotoCredential('agentCli.unknown');
+assert.deepEqual(opened, ['codeBuddyApiKey', 'agentCli.kimi'], 'unknown agent CLI keys only open settings');
 `
 	out, err := exec.Command(node, "-e", script).CombinedOutput()
 	if err != nil {

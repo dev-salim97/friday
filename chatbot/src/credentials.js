@@ -178,8 +178,12 @@ export function credentialHint(text) {
   return null;
 }
 
+// Agent CLI keys (OpenCode, Kimi Code, …) have their own 个人配置 card,
+// named like assistantEngineCredentialField: agentCli.<cli>.
+const AGENT_CLI_CREDENTIAL = /^agentCli\.[a-z][a-z0-9-]*$/;
+
 export function openCredentialSettings(field, sshRemote) {
-  const credential = CREDENTIALS[field] ? field : "";
+  const credential = CREDENTIALS[field] || AGENT_CLI_CREDENTIAL.test(field || "") ? field : "";
   if (window.parent !== window)
     window.parent.postMessage(
       { type: "agentflow-chat-open-view", view: "settings", credential, ...(credential === "gitSshKey" && sshRemote ? { sshRemote } : {}) },

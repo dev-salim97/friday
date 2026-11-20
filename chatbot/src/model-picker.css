@@ -47,6 +47,12 @@
   text-overflow: ellipsis;
 }
 
+/* No configured model: the trigger links to 个人配置 instead of opening a menu. */
+.chat-shell .model-picker.grasp-model-picker.model-picker-setup {
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .chat-shell .model-picker.grasp-model-picker svg {
   flex: none;
   opacity: 1;
