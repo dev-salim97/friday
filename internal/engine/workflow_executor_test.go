@@ -40,8 +40,8 @@ func TestResolveWorkflowNodeExecutorAppliesSOPCLI(t *testing.T) {
 	}
 
 	previewNode := domain.WorkflowNode{ID: domain.PreviewBuildNodeID, Type: "agent", AgentID: domain.PreviewBuildAgentID}
-	preview, err := resolveWorkflowNodeExecutor(s, domain.WorkflowDefinition{ExecutorID: "claude"}, previewNode, domain.PreviewBuildAgent(nil))
-	if err != nil || preview.Kind != "claude" {
+	preview, err := resolveWorkflowNodeExecutor(s, domain.WorkflowDefinition{ExecutorID: "codex"}, previewNode, domain.PreviewBuildAgent(nil))
+	if err != nil || preview.Kind != "claude-code" {
 		t.Fatalf("preview build node must stay on Claude Code: %+v err=%v", preview, err)
 	}
 

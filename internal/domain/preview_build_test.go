@@ -87,11 +87,11 @@ func TestPreviewContractClampsRetentionTo30Days(t *testing.T) {
 }
 
 func TestPreviewContractRejectsNonDefaultExecutor(t *testing.T) {
-	c := &PreviewContract{Enabled: true, ExecutorID: "claude", Model: "x"}
+	c := &PreviewContract{Enabled: true, ExecutorID: "codex", Model: "x"}
 	if err := c.Validate(); err == nil {
 		t.Fatal("expected executor-only error")
 	}
-	disabled := &PreviewContract{Enabled: false, ExecutorID: "claude"}
+	disabled := &PreviewContract{Enabled: false, ExecutorID: "codex"}
 	if err := disabled.Validate(); err != nil {
 		t.Fatalf("disabled preview must skip executor checks: %v", err)
 	}

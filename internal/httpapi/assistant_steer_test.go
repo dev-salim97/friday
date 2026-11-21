@@ -283,7 +283,7 @@ func TestSteerKeepsConversationCLI(t *testing.T) {
 		{"cursor prefixed", "cursor", "cursor:old", "cursor:selected", "cursor:selected", false, false, 200},
 		{"cursor unprefixed", "cursor", "cursor:old", "selected", "cursor:selected", false, false, 200},
 		{"cursor legacy", "cursor", "old", "selected", "cursor:selected", false, false, 200},
-		{"claude-code", "claude-code", "default", "default", "default", false, false, 200},
+		{"claude-code", "claude-code", "default", "default", "claude-code:default", false, false, 200},
 		{"codex missing key", "codex", "codex:gpt-old", "gpt-selected", "", false, true, 400},
 		{"cursor missing key", "cursor", "cursor:old", "selected", "", false, true, 400},
 		{"codex to cursor", "codex", "codex:gpt-old", "cursor:selected", "", true, false, 409},

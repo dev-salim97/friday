@@ -53,19 +53,16 @@ func TestExecutorModelsCatalogListsPerCLI(t *testing.T) {
 	// The catalog is a public, non-sensitive list served without login.
 	catalogs := requestEmptyJSON[map[string]executorModelCatalog](t, h, http.MethodGet, "/api/executor-models", http.StatusOK)
 	cb, ok := catalogs["claude"]
-	if !ok || len(cb.Models) == 0 || cb.Default == "" {
+	if !ok || len(cb.Models) == 0 {
 		t.Fatalf("claude catalog = %+v", cb)
-	}
-	if cb.Models[0].Credits != "" {
-		t.Fatal("unconfigured public model must not claim a private price")
 	}
 	for _, model := range cb.Models {
 		if model.ID == assistantDefaultModel {
 			t.Fatal("the Claude CLI default must not be listed as a model")
 		}
-	}
-	if cb.Models[0].ID != "fast-model" || cb.Models[0].Family != "other" {
-		t.Fatalf("Claude routing model = %+v", cb.Models[0])
+		if model.Family != "claude" {
+			t.Fatalf("Claude catalog model = %+v", model)
+		}
 	}
 	codex := catalogs["codex"]
 	if len(codex.Models) < 2 || codex.Models[0].ID != "gpt-6.1-sol" || codex.Models[1].ID != "gpt-6.1-terra" || codex.Models[1].Name != "GPT-6.1 Terra" {

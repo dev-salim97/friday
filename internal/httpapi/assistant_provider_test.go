@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"agentflow/internal/domain"
+	"agentflow/internal/repo"
 )
 
 func TestAssistantGenerationWithOnlySelectedProviderCredentials(t *testing.T) {
@@ -36,7 +37,7 @@ func TestAssistantGenerationWithOnlySelectedProviderCredentials(t *testing.T) {
 				t.Fatal(err)
 			}
 			h.generate = func(_ context.Context, _ string, actor domain.User) (string, error) {
-				if actor.ID != user.ID || actor.ClaudeCodeAPIKey != "" {
+				if actor.ID != user.ID || (provider == "codex" && actor.ClaudeCodeAPIKey != "") || (provider == "claude" && actor.CodexAPIKey != "") {
 					return "", fmt.Errorf("wrong actor credentials")
 				}
 				return `{"message":"provider reply","drafts":[]}`, nil
@@ -312,6 +313,11 @@ func TestAssistantUsesBoundRunnerLoginWithoutPersonalKey(t *testing.T) {
 	// Keep reply-asset discovery inside the test's temporary directory.
 	t.Setenv("TMPDIR", t.TempDir())
 	h, user := workbenchFixture(t)
+	// The fixture user's Claude Code key must not mask the runner-login rule.
+	user, err := h.repo.UpdateUserCredentials(user.ID, repo.UserCredentialUpdate{ClaudeCodeAPIKeyClear: true})
+	if err != nil {
+		t.Fatal(err)
+	}
 	runner := domain.Runner{
 		ID: "local-login", OwnerUserID: user.ID, Status: domain.RunnerStatusOnline,
 		RunnerVersion: domain.RunnerVersionCLISettings,
@@ -324,7 +330,7 @@ func TestAssistantUsesBoundRunnerLoginWithoutPersonalKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.generate = func(_ context.Context, _ string, actor domain.User) (string, error) {
-		if actor.CodexAPIKey != "" || actor.ClaudeCodeAPIKey != "" {
+		if actor.CodexAPIKey != "" {
 			return "", fmt.Errorf("fixture unexpectedly has personal provider credentials")
 		}
 		return "runner reply", nil

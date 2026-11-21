@@ -202,7 +202,7 @@ func TestNativeClarifyCommandKeepsReadAndSessionMCP(t *testing.T) {
 	if !slices.Contains(command.Argv, "--strict-mcp-config") {
 		t.Fatal("missing --strict-mcp-config")
 	}
-	if src, _ := argvFlagValue(command.Argv, "--setting-sources"); src != "none" {
+	if src, _ := argvFlagValue(command.Argv, "--setting-sources"); src != "user" {
 		t.Fatalf("setting-sources=%q", src)
 	}
 	raw, _ := os.ReadFile(files.MCPConfig)

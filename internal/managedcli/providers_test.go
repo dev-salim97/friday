@@ -29,7 +29,7 @@ func TestDefaultProvidersIgnoreLegacyConfiguration(t *testing.T) {
 					report, err = f.manager.Update(context.Background())
 				}
 				must(t, err)
-				if len(report.Results) != 3 || len(f.state(t).Current) != 3 || len(f.installs) != 3 {
+				if len(report.Results) != 2 || len(f.state(t).Current) != 2 || len(f.installs) != 2 {
 					t.Fatalf("default providers missing: %+v", report)
 				}
 				for _, result := range report.Results {

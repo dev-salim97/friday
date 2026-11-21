@@ -116,6 +116,10 @@ func (h *runsHandlers) startRunEval(c *gin.Context) {
 	if c.Request.ContentLength > 0 && !decode(c, &req) {
 		return
 	}
+	if engine, _ := assistantModelEngine(req.Model); engine != assistantEngineClaude {
+		c.JSON(http.StatusBadRequest, map[string]string{"error": "运行评测目前只支持 Claude Code 模型，请改选 Claude Code 模型"})
+		return
+	}
 	if !assistantModelCredentialConfigured(user, req.Model) {
 		engine, _ := assistantModelEngine(req.Model)
 		c.JSON(http.StatusBadRequest, map[string]string{"error": assistantEngineMissingKey(engine)})

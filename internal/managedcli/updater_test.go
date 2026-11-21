@@ -278,7 +278,7 @@ func TestUpdateFailuresAndCandidateReuse(t *testing.T) {
 					t.Fatal("complete candidate was downloaded again")
 				}
 			}
-			if mode == "integrity-before-hook" && f.rebuildCalls != 3 {
+			if mode == "integrity-before-hook" && f.rebuildCalls != 2 {
 				t.Fatal("hooks executed before integrity check")
 			}
 		})
@@ -295,7 +295,7 @@ func TestActivationCancellationBeforePublication(t *testing.T) {
 	err := WithUpdateLock(ctx, f.manager.Root, func() error {
 		return f.manager.activate(ctx, State{Current: Inventory{}})
 	})
-	if !errors.Is(err, context.Canceled) || len(f.state(t).Current) != 3 {
+	if !errors.Is(err, context.Canceled) || len(f.state(t).Current) != 2 {
 		t.Fatalf("canceled activation published state: %v", err)
 	}
 }

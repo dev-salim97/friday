@@ -55,7 +55,11 @@ func TestAssistantClaudeOversizedPromptUsesStdin(t *testing.T) {
 
 func TestClarifyOversizedPromptUsesStdin(t *testing.T) {
 	prompt := oversizedAssistantPrompt()
-	command, err := prepareClarifyCommandWith(clarifyCommandOpts{Bin: "claude", Prompt: prompt, SessionID: "s", Native: true, MCPConfig: "/tmp/mcp.json", SubmitOnly: true})
+	mcp := filepath.Join(t.TempDir(), "mcp.json")
+	if err := os.WriteFile(mcp, []byte(`{"mcpServers":{}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	command, err := prepareClarifyCommandWith(clarifyCommandOpts{Bin: "claude", Prompt: prompt, SessionID: "s", Native: true, MCPConfig: mcp, SubmitOnly: true})
 	if err != nil {
 		t.Fatal(err)
 	}

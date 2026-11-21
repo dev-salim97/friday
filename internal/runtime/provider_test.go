@@ -77,7 +77,7 @@ func TestProvidersResumeExistingCLISession(t *testing.T) {
 		want   []string
 	}{
 		{kind: "codex", binary: "codex", args: []string{"exec", "--json"}, want: []string{"resume", "session-123", "continue"}},
-		{kind: "claude-code", binary: "claude", args: []string{"-p", "--resume", "stale"}, want: []string{"--resume", "session-123", "continue"}},
+		{kind: "claude-code", binary: "claude", args: []string{"-p", "--resume", "stale"}, want: []string{"--resume", "session-123", "--", "continue"}},
 	}
 	for _, test := range tests {
 		t.Run(test.kind, func(t *testing.T) {

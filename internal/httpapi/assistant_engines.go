@@ -271,6 +271,16 @@ func assistantAllowedUserModel(id string, catalog assistantModelCatalog, user do
 	if key, _ := assistantEngineCredential(user, engine); key == "" || !assistantValidEngineModel(model) {
 		return catalog.Default
 	}
+	return assistantModelRef(id, engine, model)
+}
+
+// assistantModelRef keeps an unprefixed id of the default engine unprefixed,
+// so records saved without an engine prefix stay valid; other engines (and an
+// explicit prefix) are returned as engine:model.
+func assistantModelRef(id, engine, model string) string {
+	if engine == assistantDefaultEngine && !strings.HasPrefix(strings.TrimSpace(id), engine+":") {
+		return model
+	}
 	return engine + ":" + model
 }
 
@@ -281,7 +291,7 @@ func assistantAllowedUserModel(id string, catalog assistantModelCatalog, user do
 func assistantScheduledModel(id string, catalog assistantModelCatalog) string {
 	engine, model := assistantModelEngine(id)
 	if assistantValidEngineModel(model) {
-		return engine + ":" + model
+		return assistantModelRef(id, engine, model)
 	}
 	return assistantAllowedModel(id, catalog)
 }

@@ -18,7 +18,7 @@ func TestClarifyAllowedModelFallsBackToCatalog(t *testing.T) {
 	if got := clarifyAllowedModel(""); got != clarifyDefaultModel {
 		t.Fatalf("empty model = %q", got)
 	}
-	if got := clarifyAllowedModel("not-a-model"); got != clarifyDefaultModel {
+	if got := clarifyAllowedModel("not a model"); got != clarifyDefaultModel {
 		t.Fatalf("unknown model = %q", got)
 	}
 	if got := clarifyAllowedModel("public-model"); got != "public-model" {
@@ -39,7 +39,7 @@ func TestClarifyCommandKeepsReadGrepGlob(t *testing.T) {
 				t.Fatalf("--tools %q hides MCP", tools)
 			}
 		}
-		if arg == "--session-id" && i+1 < len(command.Argv) && command.Argv[i+1] == "af1" {
+		if arg == "--session-id" && i+1 < len(command.Argv) && command.Argv[i+1] == claudeSessionUUID("af1") {
 			foundSession = true
 		}
 		if arg == "--resume" {
@@ -53,7 +53,7 @@ func TestClarifyCommandKeepsReadGrepGlob(t *testing.T) {
 		}
 	}
 	if !foundSession {
-		t.Fatalf("missing --session-id af1: %v", command.Argv)
+		t.Fatalf("missing --session-id: %v", command.Argv)
 	}
 	if foundResume {
 		t.Fatalf("first turn should not --resume: %v", command.Argv)
@@ -84,7 +84,7 @@ func TestPrepareClarifyCommandResumeUsesResumeFlag(t *testing.T) {
 	}
 	foundResume, foundSession := false, false
 	for i, arg := range command.Argv {
-		if arg == "--resume" && i+1 < len(command.Argv) && command.Argv[i+1] == "af1" {
+		if arg == "--resume" && i+1 < len(command.Argv) && command.Argv[i+1] == claudeSessionUUID("af1") {
 			foundResume = true
 		}
 		if arg == "--session-id" {
@@ -95,7 +95,7 @@ func TestPrepareClarifyCommandResumeUsesResumeFlag(t *testing.T) {
 		}
 	}
 	if !foundResume {
-		t.Fatalf("missing --resume af1: %v", command.Argv)
+		t.Fatalf("missing --resume: %v", command.Argv)
 	}
 	if foundSession {
 		t.Fatalf("resume turn should not also pass --session-id: %v", command.Argv)

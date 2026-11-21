@@ -24,8 +24,8 @@ func TestAssistantCLIReportsTerminalFailuresWithoutResult(t *testing.T) {
 	}{
 		{"max turns in assistant text", `{"type":"assistant","message":{"content":[{"type":"text","text":"Max turns (30) exceeded"}]}}`, "执行轮数上限"},
 		{"max turns result", `{"type":"result","is_error":true,"result":"Max turns (30) exceeded"}`, "执行轮数上限"},
-		{"auth event", `{"type":"error","error":"Unauthorized: test-private-key"}`, "凭据无效或已过期"},
-		{"structured auth event", `{"type":"error","error":{"message":"Invalid API key: test-private-key"}}`, "凭据无效或已过期"},
+		{"auth event", `{"type":"error","error":"Unauthorized: test-private-key"}`, "拒绝了你的 API Key"},
+		{"structured auth event", `{"type":"error","error":{"message":"Invalid API key: test-private-key"}}`, "拒绝了你的 API Key"},
 		{"auth result", `{"type":"result","is_error":true,"result":"Unauthorized: test-private-key"}`, "凭据无效或已过期"},
 		{"missing result", `{"type":"assistant","message":{"content":[{"type":"text","text":"正在检查代码"}]}}`, "未返回完整回答"},
 		{"other event", `{"type":"error","error":"upstream unavailable: test-private-key"}`, "模型服务暂时不可用"},

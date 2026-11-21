@@ -134,7 +134,7 @@ func TestNotificationBotAPIAuthBindingAndSecrets(t *testing.T) {
 	if bot.Model != "public-model" || bot.Target == nil {
 		t.Fatal("model update lost target")
 	}
-	if rsp = request("owner", "PUT", "/bots/"+bot.ID, `{"name":"Bot","botId":"wecom","enabled":true,"model":"unknown-model"}`); rsp.Code != 400 {
+	if rsp = request("owner", "PUT", "/bots/"+bot.ID, `{"name":"Bot","botId":"wecom","enabled":true,"model":"bad model"}`); rsp.Code != 400 {
 		t.Fatal("invalid model accepted")
 	}
 	rsp = request("owner", "POST", "/bots/"+bot.ID+"/test", "")

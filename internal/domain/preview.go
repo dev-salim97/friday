@@ -35,7 +35,7 @@ const (
 
 	PreviewBuildNodeID     = "af-preview-build"
 	PreviewBuildAgentID    = "af-preview-builder"
-	PreviewBuildExecutor   = "claude-code"
+	PreviewBuildExecutor   = "claude"
 	PreviewDefaultModel    = "default"
 	PreviewDefaultSource   = "dist"
 	PreviewBuildEdgeID     = "af-preview-build-edge"

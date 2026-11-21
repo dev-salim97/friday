@@ -116,7 +116,7 @@ func TestCanResumeClarifySessionUsesResponsibleUserHome(t *testing.T) {
 	root := t.TempDir()
 	ownerHome := filepath.Join(root, "1", "home")
 	newHome := filepath.Join(root, "13", "home")
-	mustWriteClarifyFile(t, filepath.Join(ownerHome, ".claude", "projects", "repo", "old-session.jsonl"), "conversation\n")
+	mustWriteClarifyFile(t, filepath.Join(ownerHome, ".claude", "projects", "repo", claudeSessionUUID("old-session")+".jsonl"), "conversation\n")
 	for _, tc := range []struct {
 		name        string
 		home        string
@@ -190,7 +190,7 @@ func TestExecuteClarifyRebuildsSessionFromHistory(t *testing.T) {
 				t.Fatal(err)
 			}
 			if tc.localFile {
-				mustWriteClarifyFile(t, filepath.Join(clarifyCLIHome(13), ".claude", "projects", "old-workspace", "old-session.jsonl"), "old conversation")
+				mustWriteClarifyFile(t, filepath.Join(clarifyCLIHome(13), ".claude", "projects", "old-workspace", claudeSessionUUID("old-session")+".jsonl"), "old conversation")
 			}
 			bin := filepath.Join(root, "claude")
 			t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)

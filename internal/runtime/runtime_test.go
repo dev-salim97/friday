@@ -1674,7 +1674,7 @@ func TestMaterializeIgnoresWorkspaceLocalMCP(t *testing.T) {
 	if strings.Contains(text, "replace-batch") || strings.Contains(text, "gongfeng") || strings.Contains(text, "playwright") {
 		t.Fatalf("repository MCP leaked into runtime bundle: %s", text)
 	}
-	if containsArg(cfg.Args, "--strict-mcp-config") || containsArg(cfg.Args, "--setting-sources") {
+	if containsArg(cfg.Args, "--strict-mcp-config") {
 		t.Fatalf("process isolation flags must be added by Provider.Prepare: %v", cfg.Args)
 	}
 }

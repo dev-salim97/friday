@@ -122,7 +122,7 @@ func TestModelEffortsKeepLegacyCatalogsAndCLIConstraints(t *testing.T) {
 		{"claude-code:claude-fable-5-2", domain.CLIModel{ID: "claude-fable-5-2", ReasoningEfforts: &custom, DiscoveredReasoningEfforts: &discovered}, []string{"low", "xhigh"}},
 		{"claude-code:claude-fable-5-2", domain.CLIModel{ID: "claude-fable-5-2", ReasoningEfforts: &explicitDefault, DiscoveredReasoningEfforts: &discovered}, nil},
 		{"claude-code:claude-opus-5.5", domain.CLIModel{ID: "claude-opus-5.5"}, []string{"low", "medium", "high", "xhigh", "max"}},
-		{"claude-fable-5-2", domain.CLIModel{ID: "claude-fable-5-2"}, []string{"low", "medium", "high"}},
+		{"claude-fable-5-2", domain.CLIModel{ID: "claude-fable-5-2"}, []string{"low", "medium", "high", "xhigh", "max"}},
 		{"gpt-5.5", domain.CLIModel{ID: "gpt-5.5"}, []string{"low", "medium", "high"}},
 		{"opencode:custom", domain.CLIModel{ID: "custom", ReasoningEfforts: &custom}, []string{"low"}},
 		{"agy:claude-custom", domain.CLIModel{ID: "claude-custom", ReasoningEfforts: &custom}, nil},

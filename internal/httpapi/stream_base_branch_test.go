@@ -163,7 +163,7 @@ func TestClarifyLocalGitUsesConfiguredMainBranchWithoutToken(t *testing.T) {
 	}
 	cliRoot := t.TempDir()
 	t.Setenv("AGENTFLOW_CLARIFY_SESSION_DIR", filepath.Join(cliRoot, "sessions"))
-	mustWriteClarifyFile(t, filepath.Join(clarifyCLIHome(23), ".claude", "projects", "old-workspace", "old-session.jsonl"), "old conversation")
+	mustWriteClarifyFile(t, filepath.Join(clarifyCLIHome(23), ".claude", "projects", "old-workspace", claudeSessionUUID("old-session")+".jsonl"), "old conversation")
 	bin := filepath.Join(cliRoot, "claude")
 	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	script := `#!/bin/sh
