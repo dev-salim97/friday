@@ -165,6 +165,12 @@ type WorkflowDefinition struct {
 	Tags              []string              `json:"tags,omitempty"`
 	Description       string                `json:"description"`
 	SandboxProfileID  string                `json:"sandboxProfileId"`
+	// ExecutorID is the SOP-wide agent CLI (执行 CLI). Empty keeps every
+	// role on its own CLI; a built-in executor id runs every role node of
+	// this SOP on that CLI instead, without editing the shared roles. It is
+	// frozen into Run.WorkflowSnapshot, where a manual run may also set it
+	// for that run only. The preview build node always stays on its own CLI.
+	ExecutorID string `json:"executorId,omitempty"`
 	// MetricCategory 是受控的统计标签（需求开发/Bug 修复/…），用于交付指标归类。
 	// Run 创建时随 WorkflowSnapshot 冻结，历史执行不受后续编辑影响。
 	MetricCategory string `json:"metricCategory,omitempty"`

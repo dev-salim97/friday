@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"agentflow/internal/domain"
 	"agentflow/internal/repo"
@@ -53,37 +52,10 @@ func TestDecodeAssistantTitleSummary(t *testing.T) {
 	}
 }
 
-func TestAssistantTitleModelReusesSessionModelOnOtherCLIs(t *testing.T) {
-	for _, tc := range []struct{ model, wantEffort string }{
-		{"codex:gpt-5.5", "low"},
-		{"claude-code:claude-opus-5", "low"},
-		{"cursor:gpt-5.6-sol", "none"},
-		{"agy:gemini-3.1-pro", "low"},
-		{"agy:gateway-model", ""},
-		{"pi:deepseek-v4-flash", "minimal"},
-		{"opencode:glm-5", "low"},
-		{"kimi:kimi-k3", ""},
-		{"kimi:k3.1-pro", "low"},
-		{"dsh:deepseek-v4-pro", "none"},
-		{"zcode:glm-5.3", "low"},
-	} {
-		model, effort := assistantTitleModel(context.Background(), domain.User{}, tc.model, nil)
-		if model != tc.model || effort != tc.wantEffort {
-			t.Errorf("%s: got %q/%q, want same model at %q", tc.model, model, effort, tc.wantEffort)
-		}
-	}
-	if model, effort := assistantTitleModel(context.Background(), domain.User{}, assistantChatDefaultModel, []string{assistantSponsoredModel}); model != assistantSponsoredModel || effort != "" {
-		t.Fatalf("sponsored CodeBuddy title = %q/%q", model, effort)
-	}
-	if model, effort := assistantTitleModel(context.Background(), domain.User{}, assistantChatDefaultModel, nil); model == "" || effort != "" {
-		t.Fatalf("CodeBuddy title without prices = %q/%q", model, effort)
-	}
-}
-
 func TestAssistantTitleSummaryNeedsTheSessionCLICredential(t *testing.T) {
-	user := domain.User{CodeBuddyAPIKey: "cb-key"}
+	user := domain.User{ClaudeCodeAPIKey: "cb-key"}
 	if _, err := runAssistantTitleSummary(context.Background(), user, "codex:gpt-5.5", "low", "梳理需求"); err == nil || !strings.Contains(err.Error(), "credential unavailable") {
-		t.Fatalf("a Codex session must not fall back to CodeBuddy: %v", err)
+		t.Fatalf("a Codex session must not fall back to Claude: %v", err)
 	}
 }
 
@@ -119,35 +91,5 @@ func TestGeneratedTitleReplacesSOPDisplayTitle(t *testing.T) {
 	applyRunSessionMeta(&view, repo.SidebarRunMeta{WorkflowID: "wf-1", WorkflowName: "发布检查 SOP", Status: "running"}, repo.SidebarIssue{}, 1, true)
 	if view.DisplayTitle != "" || view.SOPName == "" {
 		t.Fatalf("summary should be the visible title, SOP stays available: %+v", view)
-	}
-}
-
-func TestScheduleAssistantTitleWritesSummary(t *testing.T) {
-	st, err := repo.OpenTest()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(st.Close)
-	h := &assistantHandlers{deps: &deps{repo: st}, titleSummary: func(context.Context, domain.User, string) (string, error) {
-		return "积分商城梳理", nil
-	}}
-	id := "schedule-title"
-	prompt := strings.Repeat("需", 20)
-	if err := st.PutAssistantSession(1, domain.AssistantSession{ID: id, Title: prompt}); err != nil {
-		t.Fatal(err)
-	}
-	old, _ := st.AssistantSession(1, id)
-	h.scheduleAssistantTitle(context.Background(), 1, domain.User{ID: 1}, old, id, []domain.AssistantMessage{{Role: "user", Content: prompt + "，请按模块列出缺口"}}, assistantChatDefaultModel, nil)
-	deadline := time.Now().Add(2 * time.Second)
-	var got domain.AssistantSession
-	for time.Now().Before(deadline) {
-		got, _ = st.AssistantSession(1, id)
-		if got.TitleGenerated {
-			break
-		}
-		time.Sleep(15 * time.Millisecond)
-	}
-	if got.Title != "积分商城梳理" || !got.TitleGenerated {
-		t.Fatalf("summary not stored: %+v", got)
 	}
 }

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CODEBUDDY_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh session-start",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh session-start",
             "timeout": 5
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CODEBUDDY_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh user-prompt-submit",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh user-prompt-submit",
             "timeout": 5
           }
         ]
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CODEBUDDY_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh pre",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh pre",
             "timeout": 5
           }
         ]
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CODEBUDDY_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh post",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh post",
             "timeout": 30
           }
         ]
@@ -52,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CODEBUDDY_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh stop",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/skills/agent-observability/scripts/run_hook.sh stop",
             "timeout": 30
           }
         ]

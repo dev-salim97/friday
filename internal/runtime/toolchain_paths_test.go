@@ -14,7 +14,7 @@ import (
 )
 
 // The CLIs the platform image bundles are scoped npm packages
-// (@openai/codex, @tencent-ai/codebuddy-code, @deepseek-ai/dsh), so the
+// (@openai/codex, @anthropic-ai/claude-code, @deepseek-ai/dsh), so the
 // launcher parser must keep the scope, and npm itself stays in the base copy.
 func TestToolchainPackageParsesLauncherTargets(t *testing.T) {
 	for _, tc := range []struct {
@@ -23,7 +23,7 @@ func TestToolchainPackageParsesLauncherTargets(t *testing.T) {
 		ok   bool
 	}{
 		{"../lib/node_modules/@openai/codex/bin/codex.js", "@openai/codex", true},
-		{"../lib/node_modules/@tencent-ai/codebuddy-code/bin/codebuddy", "@tencent-ai/codebuddy-code", true},
+		{"../lib/node_modules/@anthropic-ai/claude-code/bin/claude", "@anthropic-ai/claude-code", true},
 		{"../lib/node_modules/fakepkg/bin/fake.js", "fakepkg", true},
 		{"../lib/node_modules/npm/bin/npm-cli.js", "", false},
 		{"../lib/node_modules/@scope/only", "", false},
@@ -375,7 +375,7 @@ func TestToolchainCLIExecEnvOnlyForCustomImages(t *testing.T) {
 	prefix := writeToolchainFixture(t)
 	cliDir := t.TempDir()
 	useToolchainFixture(t, prefix, cliDir)
-	t.Setenv("AGENTFLOW_ISOLATED_IMAGE", "loopforge-runtime:test")
+	t.Setenv("AGENTFLOW_ISOLATED_IMAGE", "friday-runtime:test")
 
 	platform := &dockerSandbox{dockerfile: domain.DockerfileDefinition{Content: IsolatedDockerfile}}
 	if env, err := platform.toolchainCLIExecEnv("fakecli"); err != nil || env != nil {

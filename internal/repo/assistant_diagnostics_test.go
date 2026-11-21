@@ -25,7 +25,7 @@ func TestAssistantDiagnosticsSurviveRetryAndDeleteWithSession(t *testing.T) {
 	g.Failure = &domain.AssistantFailure{Code: "NETWORK_ERROR", Message: "网络连接中断"}
 	report := initialAssistantDiagnostics(g)
 	report.Error = "connection reset"
-	report.Attempts = []domain.AssistantCLIAttempt{{ID: "first/1", Engine: "codebuddy"}}
+	report.Attempts = []domain.AssistantCLIAttempt{{ID: "first/1", Engine: "claude-code"}}
 	if err := s.CheckpointAssistantGeneration(g, report); err != nil {
 		t.Fatal(err)
 	}

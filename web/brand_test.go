@@ -9,12 +9,12 @@ import (
 	"testing"
 )
 
-// The product is LoopForge. "AgentFlow" survives only in internal identifiers
+// The product is Friday. "AgentFlow" survives only in internal identifiers
 // (AgentFlowHarnessIcons, agentflow-* message types, cookies), never as a word
 // a user can read in the console or chat UI.
 var visibleOldBrand = regexp.MustCompile(`AgentFlow([^A-Za-z0-9_]|$)`)
 
-func TestUserFacingFrontendSaysLoopForge(t *testing.T) {
+func TestUserFacingFrontendSaysFriday(t *testing.T) {
 	roots := []string{"app", "extensions", "../chatbot/src", "../chatbot/public"}
 	files := []string{"../chatbot/index.html", "mcp-setup.txt"}
 	for _, pattern := range []string{"*.js", "*.html"} {

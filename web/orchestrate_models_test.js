@@ -6,13 +6,12 @@ const {createDOM} = require('./hui_fake_dom');
 const dom = createDOM();
 const html = fs.readFileSync('index.html', 'utf8');
 dom.html(html.slice(html.indexOf('<aside id="aiOrchestrator"'), html.indexOf('</aside>', html.indexOf('<aside id="aiOrchestrator"')) + 8));
-const store = new Map([['agentflow.assistantModel', 'cb-model']]);
+const store = new Map([['agentflow.assistantModel', 'claude-code:sonnet-test']]);
 const requests = [];
 const catalog = {
-  default: 'cb-model',
-  engines: [{id: 'codebuddy', name: 'CodeBuddy', configured: true}, {id: 'codex', name: 'Codex', configured: true}, {id: 'claude-code', name: 'Claude Code', configured: true}, {id: 'pi', name: 'Pi', configured: true}, {id: 'opencode', name: 'OpenCode', configured: false}],
+  default: 'claude-code:sonnet-test',
+  engines: [{id: 'codex', name: 'Codex', configured: true}, {id: 'claude-code', name: 'Claude Code', configured: true}, {id: 'pi', name: 'Pi', configured: true}, {id: 'opencode', name: 'OpenCode', configured: false}],
   models: [
-    {id: 'cb-model', name: 'CB model', family: 'glm'},
     {id: 'codex:gpt-test', name: 'GPT test', engine: 'codex', family: 'gpt'},
     {id: 'codex:gpt-other', name: 'GPT other', engine: 'codex', family: 'gpt'},
     {id: 'claude-code:sonnet-test', name: 'Sonnet test', engine: 'claude-code', family: 'claude'},
@@ -56,8 +55,8 @@ dom.run(`
   }
   const cli = picker('#aiOrchestratorCLIPicker');
   const model = picker('#aiOrchestratorModelPicker');
-  assert.equal(cli.host.querySelector('[data-model-label]').textContent, 'CodeBuddy');
-  assert.equal(model.host.querySelector('[data-model-label]').textContent, 'CB model');
+  assert.equal(cli.host.querySelector('[data-model-label]').textContent, 'Claude Code');
+  assert.equal(model.host.querySelector('[data-model-label]').textContent, 'Sonnet test');
 
   function open(picker) { if (picker.menu.hidden) picker.toggle.onclick(); assert.equal(picker.menu.hidden, false); }
   function choose(picker, id) {
@@ -69,7 +68,7 @@ dom.run(`
     assert.equal(picker.menu.hidden, true);
   }
   function pick(id) {
-    const engine = id.includes(':') ? id.split(':')[0] : 'codebuddy';
+    const engine = id.includes(':') ? id.split(':')[0] : 'claude-code';
     if (cli.host.querySelector('[data-model-label]').textContent !== catalog.engines.find(item => item.id === engine).name) choose(cli, engine);
     choose(model, id);
   }
@@ -77,8 +76,8 @@ dom.run(`
   assert.equal(model.list.children.length, 1, 'model picker only shows selected CLI models');
   open(cli);
   assert.equal(model.menu.hidden, true, 'CLI and model menus are mutually exclusive');
-  assert.equal(cli.list.children.length, 5);
-  assert.equal(cli.list.children[4].disabled, true, 'unconfigured CLIs are visible and disabled');
+  assert.equal(cli.list.children.length, 4);
+  assert.equal(cli.list.children[3].disabled, true, 'unconfigured CLIs are visible and disabled');
   cli.search.value = 'Codex'; cli.search.oninput();
   assert.equal(cli.list.children.length, 1, 'CLI search is independent of models');
   cli.search.dispatchEvent(dom.event('keydown', {key: 'Escape', bubbles: true}));
@@ -99,7 +98,7 @@ dom.run(`
   model.search.dispatchEvent(dom.event('keydown', {key: 'ArrowUp', bubbles: true}));
   assert.equal(dom.document.activeElement, model.list.children[1], 'up from search focuses last option');
   choose(model, 'codex:gpt-test');
-  assert.equal(store.get('agentflow.assistantModel'), 'cb-model', 'orchestration has its own preference');
+  assert.equal(store.get('agentflow.assistantModel'), 'claude-code:sonnet-test', 'orchestration has its own preference');
 
   async function send() {
     dom.document.querySelector('#aiOrchestratorInput').value = 'Build workflow';
@@ -128,12 +127,10 @@ dom.run(`
   assert.equal(request.model, 'claude-code:sonnet-test');
   pick('pi:custom-test');
   assert.equal((await send()).model, 'pi:custom-test', 'additional CLIs use the same path');
-  pick('cb-model');
-  assert.equal((await send()).model, 'cb-model', 'CodeBuddy keeps its unprefixed model ID');
 
   choose(cli, 'codex');
   assert.equal(store.get('agentflow.orchestratorModel'), 'codex:gpt-other', 'switching back restores the last model for that CLI');
-  choose(cli, 'codebuddy');
+  choose(cli, 'claude-code');
 
   // Another project's older session must also be isolated after a CLI change.
   dom.window.state.projectFilter = 'project-b';
@@ -146,10 +143,10 @@ dom.run(`
 
   catalog.default = 'default';
   await dom.run('AgentFlowAssistantModels.load()');
-  store.delete('agentflow.orchestratorModel.codebuddy');
-  choose(cli, 'codebuddy');
-  assert.equal((await send()).model, 'cb-model', 'switching to CodeBuddy picks the first offered model');
+  store.delete('agentflow.orchestratorModel.claude-code');
+  choose(cli, 'claude-code');
+  assert.equal((await send()).model, 'claude-code:sonnet-test', 'switching to Claude Code picks the first offered model');
   open(model);
-  assert.deepEqual([...model.list.querySelectorAll('[role="option"]')].map(option => option.dataset.id), ['cb-model']);
+  assert.deepEqual([...model.list.querySelectorAll('[role="option"]')].map(option => option.dataset.id), ['claude-code:sonnet-test']);
   console.log('orchestrator multi-CLI models ok');
 })().catch(error => { console.error(error); process.exit(1); });

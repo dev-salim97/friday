@@ -1,4 +1,4 @@
-LoopForge Go dependency license bundle
+Friday Go dependency license bundle
 Generated from go.mod; retain with binary distributions.
 
 ==============================================================================

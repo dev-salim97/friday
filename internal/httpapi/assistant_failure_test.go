@@ -32,13 +32,13 @@ func TestAssistantCLIReportsTerminalFailuresWithoutResult(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
-			bin := filepath.Join(dir, "codebuddy")
+			bin := filepath.Join(dir, "claude")
 			script := "#!/bin/sh\ncat <<'RESULT'\n" + tc.output + "\nRESULT\n"
 			if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
 				t.Fatal(err)
 			}
-			t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
-			raw, _, err := runAssistantCLI(context.Background(), assistantCLIRequest{Prompt: "检查实现", SessionRoot: dir}, domain.User{ID: 1, CodeBuddyAPIKey: "test-private-key"}, nil)
+			t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
+			raw, _, err := runAssistantCLI(context.Background(), assistantCLIRequest{Prompt: "检查实现", SessionRoot: dir}, domain.User{ID: 1, ClaudeCodeAPIKey: "test-private-key"}, nil)
 			if err == nil || raw != "" {
 				t.Fatalf("failed CLI was accepted as a reply: raw=%q err=%v", raw, err)
 			}

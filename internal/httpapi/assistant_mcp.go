@@ -110,7 +110,7 @@ func (h *assistantHandlers) callAssistantPlatform(ctx context.Context, user doma
 		sort.Strings(names)
 		sort.Strings(reads)
 		sort.Strings(writes)
-		raw, _ := json.Marshal(ginH{"server": "agentflow", "name": "LoopForge", "tools": names, "readOnly": reads, "write": writes})
+		raw, _ := json.Marshal(ginH{"server": "agentflow", "name": "Friday", "tools": names, "readOnly": reads, "write": writes})
 		return string(raw), nil
 	}
 	op, ok := assistantPublicOperations[tool]
@@ -414,7 +414,7 @@ func bindAssistantMCP(st *repo.Store, server domain.MCPServerDefinition, user do
 }
 
 func redactAssistantSecrets(text string, user domain.User) string {
-	for _, secret := range []string{user.CodeBuddyAPIKey, user.CodexAPIKey, user.ClaudeCodeAPIKey, user.GitToken} {
+	for _, secret := range []string{user.CodexAPIKey, user.ClaudeCodeAPIKey, user.GitToken} {
 		secret = strings.TrimSpace(secret)
 		if secret != "" {
 			text = strings.ReplaceAll(text, secret, "[redacted]")

@@ -163,7 +163,7 @@ test('runner management: register, heartbeat, runtime status, run limit, unknown
   const beat = await post('/api/runners/heartbeat', {}, session);
   assert.equal(beat.ok, true);
   await status('POST', '/api/runners/runtimes', {}, [400]);
-  await status('PUT', '/api/runners/runtimes', { runnerId, provider: 'codebuddy' }, [400]);
+  await status('PUT', '/api/runners/runtimes', { runnerId, provider: 'unknown-cli' }, [400]);
   await status('PUT', `/api/runners/${runnerId}/run-limit`, { runLimit: 500 }, [400]);
   await status('PUT', `/api/runners/${runnerId}/run-limit`, { runLimit: 2 }, [200, 403]);
   assert.ok(Array.isArray(await get('/api/runners/tasks')));

@@ -408,9 +408,6 @@ func (h *assistantHandlers) session(c *gin.Context) {
 		// Metadata edits can keep historical settings after the model catalog changes.
 		if engine != oldEngine || modelID != oldModelID || conv.Effort != existing.Effort {
 			editor, _ := h.repo.User(current.ID)
-			if engine == assistantEngineCodeBuddy {
-				editor, _, _ = h.assistantChatUser(editor)
-			}
 			loginRunner := h.assistantLoginRunner(current.ID, conv.ExecutionTarget, engine)
 			if _, err := h.resolveAssistantTurnModel(c.Request.Context(), editor, model, conv.Effort, loginRunner); err != nil {
 				c.JSON(400, gin.H{"error": err.Error()})
@@ -585,8 +582,7 @@ func deleteAssistantCLISession(userID int64, id string) {
 	}
 	_ = os.RemoveAll(assistantConversationRoot(userID, id))
 	for _, root := range []string{
-		filepath.Join(assistantCLIHome(userID), ".codebuddy", "projects"),
-		filepath.Join(assistantCLIHome(userID), ".codebuddy", "sessions"),
+		filepath.Join(assistantCLIHome(userID), ".claude", "projects"),
 	} {
 		_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {

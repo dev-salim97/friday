@@ -19,7 +19,7 @@ devflow 项目完全不受影响：
 
 - `tool` / `usage` / `stop` 事件上会附带 `task_slug`（devflow 需求标识，用于把
   main + 最多 7 个常驻角色跨事件串成"同一次运行"；⚠️ `/resume-devflow` 中断恢复
-  可能发生在新的 CodeBuddy 顶层 session 里，因此**聚合一次 devflow 运行要按
+  可能发生在新的 Claude Code 顶层 session 里，因此**聚合一次 devflow 运行要按
   `task_slug` 分组，不能按 `sid` 分组**）与 `stage`（`workflow-state.json` 的
   `current_stage`，如 `TASK-03`/`CODE-REVIEW`）。
 - `tool` 事件在能从 subagent transcript 文件名识别出并行 sub-developer 轨道时

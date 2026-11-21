@@ -32,7 +32,7 @@ The supported access model is explicit: signed-in users can read project data ac
 ## Limits of the evidence
 
 - External knowledge retrieval/write-back, enterprise notifications and paid Codex/Claude services lack live credentials. Their protocol/adapter tests do not count as live service verification.
-- Real model results use the supplied CodeBuddy environment. The four-role Python delivery case checks actual tests, artifacts, approval and code hashes; it does not guarantee success for arbitrary tasks.
+- Real model results use the supplied model credentials. The four-role Python delivery case checks actual tests, artifacts, approval and code hashes; it does not guarantee success for arbitrary tasks.
 - The earlier 47-minute run used the frontend SOP template on a Python test repository and required explicit human clarification/acceptance. It demonstrates orchestration and recovery, not verification of every frontend framework or fully autonomous delivery. No PR was created by that run.
 - Linux container/native acceptance is the primary deployed environment checked here. Cross-compilation of macOS/arm64 helpers is not runtime testing on every supported host.
 - GitHub-hosted CI must validate the submitted PR. A package, image, tag or GitHub Release is not published by this review.
@@ -45,5 +45,5 @@ An additional full-suite run exposed a preview-test race: the preview becomes re
 
 ### Existing pull requests
 
-- [PR #46](https://github.com/Tencent/LoopForge/pull/46) was closed as superseded by [PR #48](https://github.com/Tencent/LoopForge/pull/48). The replacement uses the audited master export, public adapters, MIT packaging and the existing workflow under `local/`; closure does not imply its commits were merged.
-- [PR #47](https://github.com/Tencent/LoopForge/pull/47) was closed after the owner explicitly retired its separate workspace redesign and room-crew proposal. Only its language/theme mechanism is reused. Closure records that product decision; it does not claim parity with its room mentions, quoted replies, crew planning or crew-to-draft-SOP features, and those features need no follow-up port.
+- [PR #46](https://github.com/Tencent/Friday/pull/46) was closed as superseded by [PR #48](https://github.com/Tencent/Friday/pull/48). The replacement uses the audited master export, public adapters, MIT packaging and the existing workflow under `local/`; closure does not imply its commits were merged.
+- [PR #47](https://github.com/Tencent/Friday/pull/47) was closed after the owner explicitly retired its separate workspace redesign and room-crew proposal. Only its language/theme mechanism is reused. Closure records that product decision; it does not claim parity with its room mentions, quoted replies, crew planning or crew-to-draft-SOP features, and those features need no follow-up port.

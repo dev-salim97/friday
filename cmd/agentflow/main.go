@@ -92,7 +92,7 @@ func main() {
 	mysqlDSN := flag.String("mysql-dsn", "", "MySQL DSN; overrides AGENTFLOW_MYSQL_DSN. MySQL is the only data source.")
 	roleFlag := flag.String("role", "", "process role: api, worker, or all (default all)")
 	cliAction := flag.String("cli-action", "", "local managed CLI administration: status, update, or rollback; exits without starting services")
-	cliProvider := flag.String("cli-provider", "", "provider for CLI rollback: codex, codebuddy, or claude-code")
+	cliProvider := flag.String("cli-provider", "", "provider for CLI rollback: codex or claude-code")
 	cliTimeout := flag.Duration("cli-timeout", 80*time.Minute, "total managed CLI operation timeout")
 	browserImage := flag.Bool("browser-image", false, "build or pull the agent browser sidecar image, print its name and exit")
 	flag.Parse()
@@ -329,10 +329,10 @@ func main() {
 	}
 	serve := func() error { return srv.Serve(mainLn) }
 	if role != "worker" && *tlsCert != "" && *tlsKey != "" {
-		log.Printf("LoopForge %s listening on https://%s", role, displayAddr)
+		log.Printf("Friday %s listening on https://%s", role, displayAddr)
 		serve = func() error { return srv.ServeTLS(mainLn, *tlsCert, *tlsKey) }
 	} else {
-		log.Printf("LoopForge %s listening on http://%s", role, displayAddr)
+		log.Printf("Friday %s listening on http://%s", role, displayAddr)
 	}
 	signalReady(readyStatus)
 	if err := serve(); err != nil && err != http.ErrServerClosed && !handedOver.Load() {

@@ -9,11 +9,11 @@ test('token management renders client specs, revealed prompts, and credential hi
   app.router.delete('/api/users/1/git-http-credentials/github', []);
   app.router.put('/api/users/1/credentials', {
     id: 1, loginName: 'alice', chineseName: 'Alice', isGuest: false,
-    gitHubCredentialConfigured: true, codeBuddyApiKeyConfigured: true,
+    gitHubCredentialConfigured: true, claudeCodeApiKeyConfigured: true,
   });
   app.router.get('/api/users', [{
     id: 1, loginName: 'alice', chineseName: 'Alice', isGuest: false,
-    gitHubCredentialConfigured: true, gitTokenOAuth: true, codeBuddyApiKeyConfigured: true,
+    gitHubCredentialConfigured: true, gitTokenOAuth: true, claudeCodeApiKeyConfigured: true,
   }]);
   app.router.post('/api/users/1/git-token/verify', {
     valid: false, missing: ['write_repository'],
@@ -38,7 +38,7 @@ test('token management renders client specs, revealed prompts, and credential hi
   assert.match(spec.code, /Bearer abc/);
   assert.match(app.evaluate(`accessMcpAgentPrompt(accessMcpClientSpec('cursor','http://x','abc'),'http://x','abc')`), /禁止使用 fetch/);
   assert.equal(app.evaluate(`credentialHint('工蜂 Authentication failed，需由责任人处理').field`), 'gitToken');
-  assert.match(app.evaluate(`credentialActionHTML('CodeBuddy API Key 被拒绝')`), /codeBuddyApiKey/);
+  assert.match(app.evaluate(`credentialActionHTML('Claude Code API Key 被拒绝')`), /claudeCodeApiKey/);
 
   body.querySelector('[data-revealed-client="codex"]').click();
   assert.equal(app.evaluate(`state.accessClient`), 'codex');
@@ -47,37 +47,37 @@ test('token management renders client specs, revealed prompts, and credential hi
   const credential = app.evaluate(`({
     pat:credentialSecretError(credentialKind('codexApiKey'),'any-key'),
     url:credentialExtraError(credentialKind('codexApiKey'),'ftp://bad'),
-    save:credentialSavePayload(credentialKind('codeBuddyApiKey'),{secret:' ck_x ',extra:'ioa'}),
+    save:credentialSavePayload(credentialKind('claudeCodeApiKey'),{secret:' ck_x ',extra:'ioa'}),
     clear:credentialClearPayload(credentialKind('codexApiKey')),
     next:credentialNextKind({gitHubCredentialConfigured:true}).key,
     badge:credentialBadgeHTML('err')
   })`);
   assert.equal(credential.pat, '');
   assert.match(credential.url, /http/);
-  assert.equal(credential.save.codeBuddyApiKey, 'ck_x');
+  assert.equal(credential.save.claudeCodeApiKey, 'ck_x');
   assert.equal(credential.clear.codexApiKeyClear, true);
-  assert.equal(credential.next, 'codeBuddyApiKey');
+  assert.equal(credential.next, 'claudeCodeApiKey');
   assert.match(credential.badge, /有错误/);
 
   app.evaluate(`
-    state.data.users=[{...state.currentUser,id:1,gitHubCredentialConfigured:true,codeBuddyApiKeyConfigured:true}];
+    state.data.users=[{...state.currentUser,id:1,gitHubCredentialConfigured:true,claudeCodeApiKeyConfigured:true}];
     state.currentUser=state.data.users[0];
     renderPersonalSettings();
   `);
   await settle(4);
   const panel = app.document.querySelector('#credentialPanel');
-  panel.querySelector('[data-credential-row="codeBuddyApiKey"] .credential-row-main').click();
-  const secret = panel.querySelector('[data-credential-row="codeBuddyApiKey"] input[name="secret"]');
+  panel.querySelector('[data-credential-row="claudeCodeApiKey"] .credential-row-main').click();
+  const secret = panel.querySelector('[data-credential-row="claudeCodeApiKey"] input[name="secret"]');
   secret.value = 'ck_replacement';
   secret.dispatchEvent(new app.window.Event('input', { bubbles: true }));
-  panel.querySelector('[data-credential-row="codeBuddyApiKey"] [data-credential-eye]').click();
+  panel.querySelector('[data-credential-row="claudeCodeApiKey"] [data-credential-eye]').click();
   assert.equal(secret.type, 'text');
-  const save = panel.querySelector('[data-credential-row="codeBuddyApiKey"] [data-credential-act="save"]');
+  const save = panel.querySelector('[data-credential-row="claudeCodeApiKey"] [data-credential-act="save"]');
   assert.equal(save.disabled, false);
   save.click();
   await settle(6);
-  assert.equal(app.router.calls.find(c => c.path === '/api/users/1/credentials').body.codeBuddyApiKey, 'ck_replacement');
-  const configuredRow = app.document.querySelector('[data-credential-row="codeBuddyApiKey"]');
+  assert.equal(app.router.calls.find(c => c.path === '/api/users/1/credentials').body.claudeCodeApiKey, 'ck_replacement');
+  const configuredRow = app.document.querySelector('[data-credential-row="claudeCodeApiKey"]');
   configuredRow.querySelector('.credential-row-main').click();
   configuredRow.querySelector('[data-credential-act="delete"]').click();
   assert.equal(configuredRow.querySelector('[data-credential-pane="confirm"]').classList.contains('is-off'), false);
@@ -113,7 +113,7 @@ test('token management renders client specs, revealed prompts, and credential hi
 
   app.evaluate(`
     state.currentUser={id:1,loginName:'alice',chineseName:'Alice',isGuest:false};
-    state.data.users=[{...state.currentUser,gitHubCredentialConfigured:true,codeBuddyApiKeyConfigured:false}];
+    state.data.users=[{...state.currentUser,gitHubCredentialConfigured:true,claudeCodeApiKeyConfigured:false}];
     renderPersonalSettings();openCredentialWizard('codexApiKey');
   `);
   await settle(3);
@@ -212,7 +212,7 @@ test('access snippets copied from an https studio use https endpoints', async (t
   form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await settle(8);
   assert.equal(app.evaluate(`state.revealedToken`), 'af_live_secret');
-  for (const client of ['cursor', 'claude', 'codebuddy', 'codex']) {
+  for (const client of ['cursor', 'claude', 'codex']) {
     app.evaluate(`state.accessClient='${client}';renderAccessTokens()`);
     const button = app.document.querySelector('#accessBody [data-copy-revealed-prompt]');
     assert.ok(button, `${client} reveal offers the client prompt`);

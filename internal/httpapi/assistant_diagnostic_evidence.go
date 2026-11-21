@@ -341,7 +341,7 @@ func (a *assistantDiagnosticAttempt) nativeMetadata(raw map[string]any) {
 	params, _ := raw["params"].(map[string]any)
 	result, _ := raw["result"].(map[string]any)
 	version := ""
-	for _, key := range []string{"claude_code_version", "codebuddy_version", "cliVersion"} {
+	for _, key := range []string{"claude_code_version", "cliVersion"} {
 		if value := get(raw, key); diagnosticVersion.MatchString(value) {
 			version = value
 		}

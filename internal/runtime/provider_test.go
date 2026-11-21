@@ -14,7 +14,6 @@ func TestProvidersBuildFinalArgvWithoutDuplicateManagedFlags(t *testing.T) {
 		key    string
 	}{
 		{kind: "claude-code", driver: "local", key: "--system-prompt-file"},
-		{kind: "codebuddy", driver: "local", key: "--permission-mode"},
 		{kind: "codex", driver: "docker", key: "--sandbox"},
 	}
 	for _, test := range tests {
@@ -48,29 +47,10 @@ func TestProvidersBuildFinalArgvWithoutDuplicateManagedFlags(t *testing.T) {
 			if argv[len(argv)-1] != "probe" {
 				t.Fatalf("prompt is not the final argument: %v", argv)
 			}
-			if test.kind == "codebuddy" && (len(argv) < 2 || argv[len(argv)-2] != "--") {
-				t.Fatalf("CodeBuddy prompt is not separated from variadic options: %v", argv)
+			if test.kind == "claude-code" && (len(argv) < 2 || argv[len(argv)-2] != "--") {
+				t.Fatalf("Claude prompt is not separated from variadic options: %v", argv)
 			}
 		})
-	}
-}
-
-func TestCodeBuddyPluginDirectoryCannotConsumePrompt(t *testing.T) {
-	command, err := providerForKind("codebuddy").Prepare(providerInvocation{
-		Executor: domain.ExecutorDefinition{Kind: "codebuddy", Binary: "codebuddy"},
-		Compiled: compiledConfig{
-			AgentRoot: ".agentflow/probe",
-			HasSkills: true,
-		},
-		Prompt: "create fix-plan.md",
-		Driver: "local",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	argv := command.Argv
-	if len(argv) < 5 || argv[len(argv)-4] != "--plugin-dir" || argv[len(argv)-3] != ".agentflow/probe" || argv[len(argv)-2] != "--" || argv[len(argv)-1] != "create fix-plan.md" {
-		t.Fatalf("CodeBuddy plugin and prompt boundary is unsafe: %v", argv)
 	}
 }
 
@@ -98,7 +78,6 @@ func TestProvidersResumeExistingCLISession(t *testing.T) {
 	}{
 		{kind: "codex", binary: "codex", args: []string{"exec", "--json"}, want: []string{"resume", "session-123", "continue"}},
 		{kind: "claude-code", binary: "claude", args: []string{"-p", "--resume", "stale"}, want: []string{"--resume", "session-123", "continue"}},
-		{kind: "codebuddy", binary: "codebuddy", args: []string{"-p", "--resume=stale"}, want: []string{"--resume", "session-123", "--", "continue"}},
 	}
 	for _, test := range tests {
 		t.Run(test.kind, func(t *testing.T) {
@@ -138,8 +117,8 @@ func hasContiguousArgs(argv, wanted []string) bool {
 }
 
 func TestPositionalPromptKeepsShortTaskOnArgv(t *testing.T) {
-	command, err := providerForKind("codebuddy").Prepare(providerInvocation{
-		Executor:   domain.ExecutorDefinition{Kind: "codebuddy", Binary: "codebuddy"},
+	command, err := providerForKind("claude-code").Prepare(providerInvocation{
+		Executor:   domain.ExecutorDefinition{Kind: "claude-code", Binary: "claude"},
 		Compiled:   compiledConfig{AgentRoot: ".agentflow/probe"},
 		Prompt:     "create fix-plan.md",
 		PromptFile: ".agentflow/runtime/x/task-prompt.md",
@@ -155,8 +134,8 @@ func TestPositionalPromptKeepsShortTaskOnArgv(t *testing.T) {
 
 func TestPositionalPromptPrefersTaskFileOverInlineBody(t *testing.T) {
 	long := strings.Repeat("上游产物", 20_000)
-	command, err := providerForKind("codebuddy").Prepare(providerInvocation{
-		Executor:   domain.ExecutorDefinition{Kind: "codebuddy", Binary: "codebuddy"},
+	command, err := providerForKind("claude-code").Prepare(providerInvocation{
+		Executor:   domain.ExecutorDefinition{Kind: "claude-code", Binary: "claude"},
 		Compiled:   compiledConfig{AgentRoot: ".agentflow/closer"},
 		Prompt:     long,
 		PromptFile: ".agentflow/runtime/close-3-1/task-prompt.md",
@@ -184,7 +163,6 @@ func TestProvidersDeclareSandboxRequirements(t *testing.T) {
 		bunFS       bool
 	}{
 		{kind: "claude-code", bunFS: true},
-		{kind: "codebuddy", bunFS: true},
 		{kind: "codex"},
 		{kind: "mock"},
 	}
@@ -206,7 +184,6 @@ func TestEffortFlagInjectedPerProvider(t *testing.T) {
 		want []string
 	}{
 		{kind: "claude-code", want: []string{"--effort", "high"}},
-		{kind: "codebuddy", want: []string{"--effort", "high"}},
 		{kind: "codex", want: []string{"-c", `model_reasoning_effort="high"`}},
 	}
 	for _, test := range tests {
@@ -256,8 +233,8 @@ func TestEffortFlagPlacementBeforeCodexResume(t *testing.T) {
 }
 
 func TestEffortFlagOmittedWithoutEffortAndNotDuplicated(t *testing.T) {
-	command, err := providerForKind("codebuddy").Prepare(providerInvocation{
-		Executor: domain.ExecutorDefinition{Kind: "codebuddy", Binary: "codebuddy", Args: []string{"--effort", "medium"}},
+	command, err := providerForKind("claude-code").Prepare(providerInvocation{
+		Executor: domain.ExecutorDefinition{Kind: "claude-code", Binary: "claude", Args: []string{"--effort", "medium"}},
 		Compiled: compiledConfig{AgentRoot: ".agentflow/probe"},
 		Prompt:   "probe",
 		Driver:   "local",

@@ -108,8 +108,6 @@ func liveRunCredentials(kind string, item liveCLIConfig) RunCredentials {
 	cred := ProviderCredential{APIKey: item.Key, BaseURL: item.BaseURL, Protocol: item.Protocol}
 	creds := RunCredentials{AgentCLI: map[string]ProviderCredential{}}
 	switch kind {
-	case "codebuddy":
-		creds.CodeBuddy = CodeBuddyCredential{APIKey: item.Key, InternetEnvironment: item.Environment}
 	case "codex":
 		creds.Codex = cred
 	case "claude-code":

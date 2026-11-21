@@ -12,7 +12,7 @@ async function setup(page){
   const users=await page.request.get('/api/users').then(r=>r.json());
   const user=users.find(u=>u.id===identity.id);
   expect(!!user.gitHubCredentialConfigured).toBe(false);
-  expect(!!user.codeBuddyApiKeyConfigured).toBe(false);
+  expect(!!user.claudeCodeApiKeyConfigured).toBe(false);
   const projectId='e2e-onboarding';
   let response=await page.request.get(`/api/projects/${projectId}`);
   if(response.status()===404)response=await page.request.post('/api/projects',{data:{id:projectId,key:'GUIDE',name:'E2E onboarding',ownerId:user.id}});
@@ -93,19 +93,19 @@ test('all generic SOPs can start without a GitHub repository or token',async({pa
 });
 
 test('a real Agent generates a document with a model key and no GitHub repository or token',async({page})=>{
-  test.skip(process.env.AGENTFLOW_E2E_MODEL!=='1'||!process.env.LOOPFORGE_MODEL_KEY_FILE,'Requires AGENTFLOW_E2E_MODEL=1 and an explicit protected LOOPFORGE_MODEL_KEY_FILE');
+  test.skip(process.env.AGENTFLOW_E2E_MODEL!=='1'||!process.env.FRIDAY_MODEL_KEY_FILE,'Requires AGENTFLOW_E2E_MODEL=1 and an explicit protected FRIDAY_MODEL_KEY_FILE');
   test.setTimeout(300_000);
   const {projectId,user}=await setup(page);
   const credentialPath=`/api/users/${user.id}/credentials`;
   const suffix=Date.now().toString(36),agentId=`e2e-no-git-writer-${suffix}`,workflowId=`e2e-no-git-document-${suffix}`,marker=`NO-GITHUB-${suffix}`;
   let runId='',agentSaved=false,workflowSaved=false;
   try{
-    const saved=await page.request.put(credentialPath,{data:{codeBuddyApiKey:fs.readFileSync(process.env.LOOPFORGE_MODEL_KEY_FILE,'utf8').trim(),codeBuddyInternetEnvironment:process.env.LOOPFORGE_MODEL_KEY_ENVIRONMENT||''}});
+    const saved=await page.request.put(credentialPath,{data:{claudeCodeApiKey:fs.readFileSync(process.env.FRIDAY_MODEL_KEY_FILE,'utf8').trim()}});
     expect(saved.ok()).toBe(true);
-    const agent=await page.request.put('/api/agents',{data:{id:agentId,name:'E2E document writer without GitHub',projectId,executorId:'codebuddy',model:process.env.AGENTFLOW_E2E_MODEL_ID||process.env.LOOPFORGE_TEST_MODEL||'default',prompt:`Write report.md in the current workspace with a short three-item to-do plan and the literal marker ${marker}. Do not use Git, access the network, install dependencies or modify other files. Reply when done.`}});
+    const agent=await page.request.put('/api/agents',{data:{id:agentId,name:'E2E document writer without GitHub',projectId,executorId:'claude',model:process.env.AGENTFLOW_E2E_MODEL_ID||process.env.FRIDAY_TEST_MODEL||'default',prompt:`Write report.md in the current workspace with a short three-item to-do plan and the literal marker ${marker}. Do not use Git, access the network, install dependencies or modify other files. Reply when done.`}});
     expect(agent.ok()).toBe(true);agentSaved=true;
     const workflow=await page.request.put('/api/workflows',{data:{id:workflowId,name:'E2E document without GitHub',projectId,status:'draft',revision:0,sandboxProfileId:'local',nodes:[
-      {id:'write',name:'Write document',type:'agent',agentId,executorId:'codebuddy',maxAttempts:1,maxReworks:0,position:{x:100,y:100},artifactOutputs:[{name:'report',path:'report.md',mediaType:'text/markdown',required:true}]},
+      {id:'write',name:'Write document',type:'agent',agentId,executorId:'claude',maxAttempts:1,maxReworks:0,position:{x:100,y:100},artifactOutputs:[{name:'report',path:'report.md',mediaType:'text/markdown',required:true}]},
       {id:'verify',name:'Verify document',type:'script',scriptLanguage:'shell',script:`grep -q '${marker}' report.md`,maxAttempts:1,maxReworks:0,position:{x:350,y:100}},
     ],edges:[{id:'write-verify',source:'write',target:'verify',when:'success'}]}});
     expect(workflow.ok()).toBe(true);workflowSaved=true;
@@ -126,7 +126,7 @@ test('a real Agent generates a document with a model key and no GitHub repositor
       if(workflowSaved)expect((await page.request.delete(`/api/workflows/${workflowId}`)).ok()).toBe(true);
       if(agentSaved)expect((await page.request.delete(`/api/agents/${agentId}`)).ok()).toBe(true);
     }finally{
-      const cleared=await page.request.put(credentialPath,{data:{codeBuddyApiKeyClear:true,codeBuddyInternetEnvironment:user.codeBuddyInternetEnvironment||''}});expect(cleared.ok()).toBe(true);
+      const cleared=await page.request.put(credentialPath,{data:{claudeCodeApiKeyClear:true}});expect(cleared.ok()).toBe(true);
     }
   }
 });

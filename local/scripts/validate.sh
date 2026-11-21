@@ -10,7 +10,7 @@ if rg --hidden -n \
   -g '!.git/**' \
   -g '!scripts/validate.sh' \
   "$ROOT_DIR"; then
-  echo "Legacy public repository name found; use Tencent/LoopForge." >&2
+  echo "Legacy public repository name found; use Tencent/Friday." >&2
   exit 1
 fi
 if rg --hidden -n -i \
@@ -151,10 +151,10 @@ codex_readme = (root / ".codex/README.md").read_text(encoding="utf-8")
 if "SOLO -> leader" in codex_readme:
     raise SystemExit("Codex README drift: small workflow must not route through leader")
 
-codebuddy_state = json.loads(
-    (root / ".codebuddy/assets/workflow-state-template.json").read_text(encoding="utf-8")
+codex_state = json.loads(
+    (root / ".codex/assets/workflow-state-template.json").read_text(encoding="utf-8")
 )
-test_description = codebuddy_state["stages"]["TASK-04"]["description"]
+test_description = codex_state["stages"]["TASK-04"]["description"]
 if "E2E" in test_description:
     raise SystemExit("Classic state drift: TASK-04 must describe project-appropriate testing")
 PY
@@ -165,8 +165,7 @@ python3 "$ROOT_DIR/skills/devflow/scripts/validate_config.py"
 
 echo "[6/6] Checking public structure"
 for path in README.md LICENSE scripts/prepare-notices.py \
-  AGENTS.md CLAUDE.md pyproject.toml package.json bin/loopforge.mjs install.sh \
-  .codebuddy/README.md .codebuddy/settings.json .codebuddy/settings.local.json \
+  AGENTS.md CLAUDE.md pyproject.toml package.json bin/friday.mjs install.sh \
   .codex/README.md .cursor/README.md .claude/README.md \
   .codex/skills/devflow-codex/SKILL.md skills/README.md skills/devflow/SKILL.md \
   skills/devflow-clarify-requirements/SKILL.md \

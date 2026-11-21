@@ -585,7 +585,7 @@ func TestAssistantTaskGenerationAndWriterBranches(t *testing.T) {
 	st := cvAStore(t)
 	projectID := "cva-r3-task-p"
 	_ = st.PutProject(domain.Project{ID: projectID, Name: "P"})
-	_ = st.PutUser(domain.User{LoginName: "cva-r3-task", CodeBuddyAPIKey: "key"})
+	_ = st.PutUser(domain.User{LoginName: "cva-r3-task", ClaudeCodeAPIKey: "key"})
 	user, _ := st.UserByLoginName("cva-r3-task")
 	h := &assistantHandlers{deps: &deps{repo: st}}
 
@@ -716,7 +716,7 @@ func TestGenerationLifecycleAndValidation(t *testing.T) {
 	st := cvAStore(t)
 	project := domain.Project{ID: "cva-r3-gen-p", Name: "P"}
 	_ = st.PutProject(project)
-	_ = st.PutUser(domain.User{LoginName: "cva-r3-gen", CodeBuddyAPIKey: "key"})
+	_ = st.PutUser(domain.User{LoginName: "cva-r3-gen", ClaudeCodeAPIKey: "key"})
 	user, _ := st.UserByLoginName("cva-r3-gen")
 	project.OwnerID = user.ID
 	_ = st.PutProject(project)
@@ -1023,7 +1023,7 @@ func TestRunnerAdditionalSuccessAndDecodePaths(t *testing.T) {
 	}
 	reregister := requestWithHeaders(t, f.h, http.MethodPost, "/runners/register", map[string]any{
 		"runnerId": runnerID, "name": "updated", "maxConcurrency": 0,
-		"runtimes": []domain.RunnerRuntime{{Provider: "codebuddy", Status: domain.RuntimeStatusOnline}},
+		"runtimes": []domain.RunnerRuntime{{Provider: "claude-code", Status: domain.RuntimeStatusOnline}},
 	}, map[string]string{"X-Bootstrap-Token": "boot-secret"})
 	if reregister.Code != http.StatusOK {
 		t.Fatalf("reregister = %d: %s", reregister.Code, reregister.Body.String())

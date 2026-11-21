@@ -75,7 +75,7 @@ const ctx = {
         { id: 'model-b', name: 'Model B', family: 'glm', credits: 'x0.06' },
         { id: 'codex:gpt-5.5', name: 'GPT-5.5', family: 'gpt', engine: 'codex' },
       ],
-      engines: [{ id: 'codebuddy', name: 'CodeBuddy' }, { id: 'codex', name: 'Codex' }],
+      engines: [{ id: 'claude-code', name: 'Claude Code' }, { id: 'codex', name: 'Codex' }],
     }),
   }),
 };
@@ -111,8 +111,6 @@ vm.runInContext(moduleSource, ctx);
   assert.match(icon.innerHTML, /\/images\/credentials\/meta\.svg/);
   api.paintItem(toggle, {id: 'auto', family: 'cursor'});
   assert.match(icon.innerHTML, /\/images\/credentials\/cursor\.svg/);
-  api.paintItem(toggle, {id: 'primary-model', family: 'codebuddy'});
-  assert.match(icon.innerHTML, /\/images\/credentials\/codebuddy\.svg/);
   for (const [id, family] of [
     ['opencode:alibaba/qwen3.7-plus', 'qwen'],
     ['opencode:doubao-seed-2-0-lite-260428', 'doubao'],
@@ -125,21 +123,21 @@ vm.runInContext(moduleSource, ctx);
   }
   // Pickers keep painting before the catalog lands, so the built-in fallback
   // must already render a usable label.
-  assert.equal(api.codeBuddyModel('codex:gpt-5.5'), 'default', 'codex ids fall back before the catalog loads');
+  assert.equal(api.primaryModel('codex:gpt-5.5'), 'default', 'codex ids fall back before the catalog loads');
   api.paint(toggle, api.DEFAULT);
   assert.equal(label.textContent, '默认');
   assert.equal(icon.dataset.family, 'other');
-  assert.equal(api.codeBuddyModels().length, 0, 'the placeholder is not selectable before loading');
+  assert.equal(api.primaryModels().length, 0, 'the placeholder is not selectable before loading');
 
   await api.load();
   assert.equal(api.catalog().default, 'model-b');
   assert.equal(api.catalog().models.length, 3, 'catalog adopts /api/assistant/models');
-  // Issue #228: clarification runs on CodeBuddy only, so CodeBuddy-only
+  // Issue #228: clarification runs on the default CLI only, so default-CLI-only
   // pickers hide other CLIs and a saved "codex:…" id falls back.
-  assert.deepEqual(api.codeBuddyModels().map(m => m.id), ['model-a', 'model-b']);
-  assert.equal(api.codeBuddyModel('codex:gpt-5.5'), 'default');
-  assert.equal(api.codeBuddyModel(''), 'default');
-  assert.equal(api.codeBuddyModel('model-a'), 'model-a');
+  assert.deepEqual(api.primaryModels().map(m => m.id), ['model-a', 'model-b']);
+  assert.equal(api.primaryModel('codex:gpt-5.5'), 'default');
+  assert.equal(api.primaryModel(''), 'default');
+  assert.equal(api.primaryModel('model-a'), 'model-a');
 
   // Pull the real picker helpers out of the bundle and bind them to the stub host.
   for (const name of ['selectedClarifyModel', 'setClarifyModel', 'bindClarifyModelPicker']) {
@@ -154,7 +152,7 @@ vm.runInContext(moduleSource, ctx);
 
   toggle.onclick({ stopPropagation() {} });
   assert.equal(menu.hidden, false, 'clicking 选择模型 must open the menu');
-  assert.equal(menu.children.length, 2, 'menu lists only CodeBuddy models');
+  assert.equal(menu.children.length, 2, 'menu lists only default-CLI models');
   assert.ok(!menu.children.some(opt => opt.dataset.id.startsWith('codex:')), 'clarify menu hides Codex models');
   assert.ok(menu.children[0].className.includes('is-active'), 'stored model is marked active');
 

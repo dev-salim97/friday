@@ -5,7 +5,7 @@
 - `devflow/`：任务分级、需求澄清、方案、计划、实现、审查、测试、知识沉淀和总结。
 - `devflow-clarify-requirements/`：需求阶段使用的澄清 Skill，由主协调 Agent 在当前会话中调用。
 
-脚本只依赖 Python 3.8+ 标准库。当前支持 CodeBuddy、Codex、Cursor、Claude Code、Pi、DeepSeek Harness 和 Hermes Agent。
+脚本只依赖 Python 3.8+ 标准库。当前支持 Codex、Cursor、Claude Code、Pi、DeepSeek Harness 和 Hermes Agent。
 
 ## 流程
 
@@ -26,15 +26,14 @@ REQUIREMENT → DESIGN → IMPLEMENT → REVIEW → TEST → [KNOWLEDGE] → SUM
 
 ## 安装
 
-推荐使用 LoopForge Local 提供的统一 CLI。以下源码安装命令在仓库根目录执行；Portable edition 使用独立的 `skills` 命令组：
+推荐使用 Friday Local 提供的统一 CLI。以下源码安装命令在仓库根目录执行；Portable edition 使用独立的 `skills` 命令组：
 
 ```bash
 pipx install ./local
-loopforge skills install codebuddy
-loopforge skills install codex
-loopforge skills install cursor
-loopforge skills install claude
-loopforge skills install hermes
+friday skills install codex
+friday skills install cursor
+friday skills install claude
+friday skills install hermes
 ```
 
 Hermes Agent 使用项目级 `.hermes/skills/`，安装后在项目根目录执行
@@ -42,32 +41,13 @@ Hermes Agent 使用项目级 `.hermes/skills/`，安装后在项目根目录执�
 阶段通过公开的 `delegate_task` 工具创建独立子 Agent；缺少该工具时必须记录原因并降级为
 `single-context`。安装器不会改动 `~/.hermes/config.yaml` 或用户 profile。需要独立的
 状态、结果和审批命令时，可按 [`hermes-plugin/README.md`](../hermes-plugin/README.md)
-安装可选原生插件，使用 `/loopforge status|result|approve`；`/devflow` 仍是工作流入口。
+安装可选原生插件，使用 `/friday status|result|approve`；`/devflow` 仍是工作流入口。
 
-`loopforge skills status/update/uninstall <host>` 和 `loopforge doctor` 使用
+`friday skills status/update/uninstall <host>` 和 `friday doctor` 使用
 `.devflow/install-state.json` 保护用户文件。下面的 adapter 命令只保留为开发和
 故障排查入口，不再是面向使用者的主安装方式。
 遇到旧 Skill 文件或软链接冲突时默认停止；确认替换后使用
-`loopforge skills install <host> --force`。
-
-### CodeBuddy
-
-将 `devflow` 暴露为项目 Skill，再运行 adapter 安装器：
-
-```bash
-mkdir -p <项目目录>/.codebuddy/skills
-ln -s <本仓库绝对路径>/devflow <项目目录>/.codebuddy/skills/devflow
-python3 <本仓库绝对路径>/devflow/adapters/codebuddy/install.py \
-  --project-root <项目目录> \
-  --refresh-managed
-```
-
-安装后使用 `/devflow <软件交付需求>`。只使用新命令 `/devflow`，不要与旧版 `/start-devflow`、`architect`、`leader` 工作流混用。新版 CodeBuddy 只需要：
-
-- `devflow-stage-executor`
-- `devflow-research-helper`
-
-medium/large 会为每次运行创建一个 `multi-agents-devflow-<task-slug>-<run-id>` Team，避免同 slug 的历史 Team 把消息送回旧 main。实际 route 中由 Agent 执行的阶段按需创建独立 Team member，创建调用必须携带状态中的完整 `team_name`，并在初始 Prompt 中一次性传入完整阶段规则和任务；首次执行不再二次 `send_message` 派发。阶段结果通过 `send_message` 返回 main。普通 `task` subagent 不是合法的 CodeBuddy 阶段执行器。
+`friday skills install <host> --force`。
 
 ### Cursor
 
@@ -116,7 +96,7 @@ Claude Code 的 Agent 使用自己的权限字段生成，但执行器正文与 
 
 ## 恢复任务
 
-不要对已有 slug 再次运行 `init`。CodeBuddy 中只需输入：
+不要对已有 slug 再次运行 `init`。宿主中只需输入：
 
 ```text
 /devflow resume <task-slug>
@@ -134,12 +114,10 @@ python3 <Skill 路径>/scripts/workflow_state.py resume \
 `resume` 会返回 JSON action：
 
 - `prepare`：准备 next stage。
-- `spawn-and-assign`：按 adapter 拓扑创建阶段 Agent 并登记真实 ID；CodeBuddy 创建同一 Team 下的新 member。
+- `spawn-and-assign`：按 adapter 拓扑创建阶段 Agent 并登记真实 ID。
 - `start-assigned`：启动已登记执行者。
 - `continue-executor`：继续已有 in-progress Agent，不创建新 ID。
-- `upgrade-team`：旧 CodeBuddy v2 状态尚未登记中间阶段执行者时，先原地升级为 Team v3。
-- `rotate-team`：CodeBuddy 从新主会话恢复时先直接删除返回的同名旧 Team，再分配新 Team 并放弃旧 executor 绑定。
-- `restart-required`：状态文件不存在；删除返回的同名旧 Team 后停止 resume，重新提交原始需求。
+- `restart-required`：状态文件不存在；停止 resume，重新提交原始需求。
 - `approve`：处理用户确认或 manual gate；REQUIREMENT 仅在用户明确确认后使用 `--user-confirmed`。
 - `assess-knowledge`：根据最终 diff、审查和测试证据判断是否运行 KNOWLEDGE；按知识价值而不是任务规模决定。
 - `completed`：流程已完成。

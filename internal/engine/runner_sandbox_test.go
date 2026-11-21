@@ -76,7 +76,6 @@ func TestRunnerSandboxSpecRequestsRelayForDockerCodexAccountLogin(t *testing.T) 
 	}{
 		{name: "Codex account login", driver: "docker", provider: "codex", authMode: domain.RuntimeAuthLocal, wantRelay: true},
 		{name: "Codex API key", driver: "docker", provider: "codex", authMode: domain.RuntimeAuthPersonal},
-		{name: "CodeBuddy API key", driver: "docker", provider: "codebuddy", authMode: domain.RuntimeAuthPersonal},
 		{name: "Claude login uses stdio", driver: "docker", provider: "claude-code", authMode: domain.RuntimeAuthLocal},
 		{name: "Antigravity refreshes inside its sandbox", driver: "docker", provider: "agy", authMode: domain.RuntimeAuthLocal},
 		{name: "native Codex uses loopback", driver: "native", provider: "codex", authMode: domain.RuntimeAuthLocal},
@@ -194,8 +193,8 @@ func TestBindRunnerRepositoriesPreservesMultiRepositoryLayout(t *testing.T) {
 		},
 	}
 	invocation := &domain.RunnerInvocation{}
-	bindRunnerRepositories(invocation, run, "example-admin", "example-admin@users.noreply.loopforge.invalid")
-	if invocation.GitUserName != "example-admin" || invocation.GitUserEmail != "example-admin@users.noreply.loopforge.invalid" {
+	bindRunnerRepositories(invocation, run, "example-admin", "example-admin@users.noreply.friday.invalid")
+	if invocation.GitUserName != "example-admin" || invocation.GitUserEmail != "example-admin@users.noreply.friday.invalid" {
 		t.Fatalf("runner git identity = %q <%s>", invocation.GitUserName, invocation.GitUserEmail)
 	}
 	if len(invocation.Repositories) != 2 {

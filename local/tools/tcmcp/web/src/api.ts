@@ -1,6 +1,6 @@
 import type { Metadata, Preview, ResourceCatalog, Selection } from "./types";
 
-export type AgentClient = "cursor" | "codebuddy" | "codex" | "workbuddy";
+export type AgentClient = "cursor" | "codex" | "workbuddy";
 export type Installation = { id: string; expiresAt: number; paths: Record<AgentClient, string> };
 
 export async function createInstallation(selection: Selection): Promise<Installation> {

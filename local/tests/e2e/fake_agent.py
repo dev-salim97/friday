@@ -29,7 +29,6 @@ import zlib
 from pathlib import Path
 
 HOST_SKILL_DIRS = {
-    "codebuddy": ".codebuddy/skills",
     "codex": ".agents/skills",
     "cursor": ".cursor/skills",
     "claude": ".claude/skills",
@@ -59,7 +58,6 @@ class FakeAgent:
         self.actions = 0
         self.review_rejections_left = args.review_reject
         self.failures_left = dict(args.fail_stage)
-        self.fresh_team = bool(args.resume and args.host == "codebuddy")
         self.overflowed = False
         self.rounds = {}
 
@@ -120,10 +118,6 @@ class FakeAgent:
 
     def next_action(self):
         argv = ["resume", "--project-root", self.root, "--slug", self.args.slug]
-        if self.fresh_team:
-            # Per workflow-contract.md a new CodeBuddy main session resumes with a fresh Team.
-            argv.append("--fresh-team")
-            self.fresh_team = False
         return json.loads(self.run(*argv).stdout)
 
     def loop(self):

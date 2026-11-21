@@ -844,6 +844,9 @@ func (e *Engine) RefreshRunSOP(runID string) error {
 	// an existing workspace. A new Run will pick up the latest sandbox asset.
 	latest.SandboxProfileID = r.WorkflowSnapshot.SandboxProfileID
 	latest.SandboxSnapshot = r.WorkflowSnapshot.SandboxSnapshot
+	// The 执行 CLI is frozen the same way: it may be a run-only choice, and
+	// a node session cannot be resumed on a different CLI.
+	latest.ExecutorID = r.WorkflowSnapshot.ExecutorID
 	var err error
 	latest, err = domain.AttachPreviewBuild(latest)
 	if err != nil {

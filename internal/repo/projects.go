@@ -167,7 +167,7 @@ func (r *ProjectsRepo) PutProject(v domain.Project) error {
 func (r *ProjectsRepo) writeProject(v domain.Project) error {
 	payload := v
 	payload.Members = nil
-	payload.GitToken, payload.CodeBuddyAPIKey = "", ""
+	payload.GitToken = ""
 	var owner any
 	if v.OwnerID > 0 {
 		owner = v.OwnerID

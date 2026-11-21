@@ -25,7 +25,7 @@ func TestAssistantActivityKeepsCommandsAndUpdatesPartialTools(t *testing.T) {
 }
 
 func TestAssistantActivityPreservesVisibleStreamWithoutModelPromptOrSecrets(t *testing.T) {
-	user := domain.User{CodeBuddyAPIKey: "test-personal-key"}
+	user := domain.User{ClaudeCodeAPIKey: "test-personal-key"}
 	var log assistantActivityLog
 	for _, event := range []assistantStreamEvent{
 		{Kind: "thinkingStart"}, {Kind: "thinking", Text: "读取项目信息：test-"}, {Kind: "thinking", Text: "personal-key"},
@@ -37,7 +37,7 @@ func TestAssistantActivityPreservesVisibleStreamWithoutModelPromptOrSecrets(t *t
 	}
 	events := log.forUser(user)
 	raw, _ := json.Marshal(events)
-	if len(events) != 5 || events[4].Kind != "text" || events[4].Text != "final answer" || strings.Contains(string(raw), user.CodeBuddyAPIKey) || strings.Contains(string(raw), "private draft") {
+	if len(events) != 5 || events[4].Kind != "text" || events[4].Text != "final answer" || strings.Contains(string(raw), user.ClaudeCodeAPIKey) || strings.Contains(string(raw), "private draft") {
 		t.Fatalf("invalid public transcript: %s", raw)
 	}
 	if events[0].Text != "读取项目信息：[redacted]" || events[0].At == nil || !events[2].Failed || events[0].ID == events[3].ID {
@@ -52,7 +52,7 @@ func TestAssistantActivityPreservesVisibleStreamWithoutModelPromptOrSecrets(t *t
 
 func TestAssistantActivitySurvivesLaterTurnsAndSessionReload(t *testing.T) {
 	h, user := workbenchFixture(t)
-	bin := filepath.Join(t.TempDir(), "codebuddy")
+	bin := filepath.Join(t.TempDir(), "claude")
 	script := `#!/bin/sh
 cat <<'JSON'
 {"type":"stream_event","event":{"type":"content_block_start","content_block":{"type":"thinking"}}}
@@ -66,7 +66,7 @@ JSON
 	if err := os.WriteFile(bin, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	sid := "activity-history"
 	messages := []assistantMessage{{Role: "user", Content: "检查文件"}}
 	for turn := 0; turn < 2; turn++ {

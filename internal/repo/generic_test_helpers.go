@@ -28,7 +28,7 @@ func testNamedGenericTemplate(id, name, agentID string) GenericTemplate {
 			},
 		},
 		Agents: []domain.AgentDefinition{{
-			ID: agentID, Name: name + "角色", Version: 1, ExecutorID: "codebuddy",
+			ID: agentID, Name: name + "角色", Version: 1, ExecutorID: "claude",
 			Prompt: "完成任务\n\n任务输入：{{input}}",
 		}},
 	}
@@ -52,7 +52,7 @@ func testBackendGenericTemplate() GenericTemplate {
 	nodes := make([]domain.WorkflowNode, 0, len(agents))
 	for i, spec := range agents {
 		outAgents = append(outAgents, domain.AgentDefinition{
-			ID: spec.id, Name: spec.name, Version: 1, ExecutorID: "codebuddy",
+			ID: spec.id, Name: spec.name, Version: 1, ExecutorID: "claude",
 			Rules:      []string{GenericRuleCore, GenericRuleBackendProfile},
 			Skills:     spec.skills,
 			MCPServers: spec.mcp,
@@ -83,7 +83,7 @@ func testBackendGenericTemplate() GenericTemplate {
 	}
 	return GenericTemplate{
 		Workflow: domain.WorkflowDefinition{
-			ID: GenericBackendDeliveryWorkflowID, Name: "通用后端交付 SOP（LoopForge）",
+			ID: GenericBackendDeliveryWorkflowID, Name: "通用后端交付 SOP（Friday）",
 			Version: 1, Revision: 1, Status: "published", Owner: "平台",
 			Description:      "测试用通用后端 SOP",
 			SandboxProfileID: GenericDockerSandboxID, Generic: true,
@@ -103,7 +103,7 @@ func testBackendGenericTemplate() GenericTemplate {
 		},
 		Agents: outAgents,
 		Rules: []domain.RuleDefinition{
-			{ID: GenericRuleCore, Name: "LoopForge 核心", Content: "follow the stored template"},
+			{ID: GenericRuleCore, Name: "Friday 核心", Content: "follow the stored template"},
 			{ID: GenericRuleBackendProfile, Name: "后端画像", Content: "backend delivery"},
 		},
 		Skills: []domain.SkillDefinition{

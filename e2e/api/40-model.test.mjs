@@ -1,4 +1,4 @@
-// Scenarios that call the real model with the token owner's CodeBuddy key:
+// Scenarios that call the real model with the token owner's model key:
 // an agent node run, AI run evaluation and the AI assistant. Skipped with
 // AGENTFLOW_E2E_MODEL=0.
 import { test, before, after } from 'node:test';

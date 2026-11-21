@@ -86,8 +86,8 @@ func buildProviderArgs(in providerInvocation) []string {
 }
 
 // appendEffortArgs injects the native --effort flag used by Claude Code and
-// CodeBuddy. Codex maps the same setting onto a -c config override in its own
-// Prepare, so this helper is intentionally Claude/CodeBuddy-only.
+// Claude Code. Codex maps the same setting onto a -c config override in its own
+// Prepare, so this helper is intentionally Claude-only.
 func appendEffortArgs(argv []string, effort string) []string {
 	effort = strings.TrimSpace(effort)
 	if effort == "" || hasArg(argv, "--effort") {
@@ -118,7 +118,7 @@ func positionalPrompt(in providerInvocation) string {
 // Linux rejects any single argv string above MAX_ARG_STRLEN (128KiB) with
 // E2BIG, so the CLI never starts ("fork/exec ...: argument list too long").
 // Chat prompts embed the whole conversation on a fresh native session and
-// have no prompt file to point at. CodeBuddy and Claude Code in print mode
+// have no prompt file to point at. Claude Code in print mode
 // read the prompt from stdin when no positional prompt is given; stdin is
 // forwarded by local, Docker and remote conversation execution.
 //
@@ -153,7 +153,6 @@ func (baseProvider) SystemHooks() []domain.AgentHook { return nil }
 
 var providers = map[string]Provider{
 	"claude-code": claudeProvider{},
-	"codebuddy":   codeBuddyProvider{},
 	"codex":       codexProvider{},
 	"mock":        mockProvider{},
 }

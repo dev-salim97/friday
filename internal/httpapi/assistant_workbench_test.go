@@ -26,7 +26,7 @@ func workbenchFixture(t *testing.T) (*assistantHandlers, domain.User) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err = st.PutUser(domain.User{LoginName: "workbench-owner", CodeBuddyAPIKey: "test-only"}); err != nil {
+	if err = st.PutUser(domain.User{LoginName: "workbench-owner", ClaudeCodeAPIKey: "test-only"}); err != nil {
 		t.Fatal(err)
 	}
 	u, _ := st.UserByLoginName("workbench-owner")
@@ -34,7 +34,7 @@ func workbenchFixture(t *testing.T) (*assistantHandlers, domain.User) {
 		t.Fatal(err)
 	}
 	// Title summaries run beside a new chat and would otherwise call the same
-	// CodeBuddy binary, stealing scripted replies and inflight slots.
+	// Claude binary, stealing scripted replies and inflight slots.
 	h := &assistantHandlers{deps: &deps{repo: st}, titleSummary: func(context.Context, domain.User, string) (string, error) {
 		return "", context.Canceled
 	}}
@@ -51,7 +51,7 @@ func workbenchContext(u domain.User, method, path string, body *bytes.Buffer) (*
 func TestViewerCannotExecuteAgentsThroughRunConversation(t *testing.T) {
 	t.Setenv("AGENTFLOW_AUTH_REQUIRED", "true")
 	h, owner := workbenchFixture(t)
-	if err := h.repo.PutUser(domain.User{LoginName: "read-only-viewer", CodeBuddyAPIKey: "test-only"}); err != nil {
+	if err := h.repo.PutUser(domain.User{LoginName: "read-only-viewer", ClaudeCodeAPIKey: "test-only"}); err != nil {
 		t.Fatal(err)
 	}
 	viewer, _ := h.repo.UserByLoginName("read-only-viewer")

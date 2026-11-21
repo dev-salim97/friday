@@ -43,7 +43,7 @@ func TestScheduleJobsRequireProjectAccess(t *testing.T) {
 	h, _ := workbenchFixture(t)
 	st := h.repo
 	for _, login := range []string{"sched-owner", "sched-member", "sched-viewer", "sched-outsider"} {
-		if err := st.PutUser(domain.User{LoginName: login, CodeBuddyAPIKey: "key-" + login}); err != nil {
+		if err := st.PutUser(domain.User{LoginName: login, ClaudeCodeAPIKey: "key-" + login}); err != nil {
 			t.Fatal(err)
 		}
 	}

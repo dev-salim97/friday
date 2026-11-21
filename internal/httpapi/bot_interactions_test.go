@@ -12,65 +12,6 @@ import (
 	"time"
 )
 
-func botFixture(t *testing.T) (*repo.Store, *assistantHandlers, domain.NotificationBot) {
-	t.Helper()
-	s, err := repo.OpenTest()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { s.Close() })
-	t.Setenv("AGENTFLOW_ASSISTANT_SESSION_DIR", t.TempDir())
-	s.PutUser(domain.User{ID: 42, LoginName: "bot-owner", CodeBuddyAPIKey: "owner-key", CodeBuddyInternetEnvironment: "ioa"})
-	s.PutUser(domain.User{ID: 43, LoginName: "other-user", CodeBuddyAPIKey: "other-key", CodeBuddyInternetEnvironment: "ioa"})
-	s.PutProject(domain.Project{ID: "p", OwnerID: 42, Members: []domain.ProjectMember{{UserID: 43, Role: "member"}}})
-	bot := domain.NotificationBot{ID: "b", BotID: "external", ProjectID: "p", OwnerID: 42, Enabled: true, InteractionEnabled: true, Model: domain.DefaultNotificationReportModel}
-	if err = s.SaveNotificationBot(bot, "secret"); err != nil {
-		t.Fatal(err)
-	}
-	e := engine.New(s, nil)
-	e.ConfigureExecution("api", "test", time.Minute, false)
-	d := &deps{repo: s, engine: e}
-	h := &assistantHandlers{deps: d, notifications: &notificationHandlers{deps: d, service: notification.New(s)}}
-	h.notifications.service.PublicURL = "http://platform.example"
-	h.identities = &botIdentityHandlers{deps: d, publicURL: h.notifications.service.PublicURL}
-	bindBotTestUser(t, s, bot, "new-wecom-user", 43)
-	bindBotTestUser(t, s, bot, "bound-member", 42)
-	return s, h, bot
-}
-func TestBotUsesBoundSenderIdentityAutoModeAndSharedChatContext(t *testing.T) {
-	s, h, bot := botFixture(t)
-	h.generate = func(ctx context.Context, prompt string, user domain.User) (string, error) {
-		if user.ID != 43 || user.CodeBuddyAPIKey != "other-key" || user.CodeBuddyInternetEnvironment != "ioa" {
-			t.Fatal("wrong credentials")
-		}
-		if !strings.Contains(prompt, "当前审批模式为「完全权限」") || !strings.Contains(prompt, "发送者 new-wecom-user") || !strings.Contains(prompt, "历史回复") {
-			t.Fatal("missing shared context or auto mode")
-		}
-		agentToolSessions.mu.Lock()
-		var session *AgentToolSession
-		for _, candidate := range agentToolSessions.sessions {
-			if candidate.Mode == AgentToolAssistant && candidate.UserID == 43 {
-				session = candidate
-			}
-		}
-		agentToolSessions.mu.Unlock()
-		if session == nil || !session.ExecMode.AutoWrite || session.ExecMode.ConfirmDangerous || session.ExecMode.DeferSOP {
-			t.Fatal("Bot did not reuse full auto assistant")
-		}
-		session.commitFinal(AgentTerminalResult{Kind: AgentTerminalAssistant, Assistant: &assistantReply{Message: "查询完成 other-key"}})
-		return "", context.Canceled
-	}
-	reply, err := h.generateBotReply(context.Background(), bot, domain.BotConversation{SessionID: "session", ChatID: "new-group", ChatType: "group"}, []domain.BotInteraction{{SenderID: "first-member", Content: "历史提问", Reply: "历史回复"}}, domain.BotInteraction{SenderID: "new-wecom-user", Content: "现在有什么进展"})
-	if err != nil || reply != "查询完成 [redacted]" {
-		t.Fatal(reply, err)
-	}
-	// No fallback to the Bot owner when the sender has a different identity.
-	bot.InteractionEnabled = false
-	s.SaveNotificationBot(bot, "")
-	if _, err = h.botExecutionUser(bot, "new-wecom-user"); err == nil {
-		t.Fatal("disabled Bot executed")
-	}
-}
 func TestCardActionsAreScopedAndCannotApproveAnotherAttempt(t *testing.T) {
 	s, h, bot := botFixture(t)
 	run := domain.Run{ID: "card-run", Status: "waiting", WorkflowID: "wf", ExecutionContext: domain.TelemetryContext{ProjectID: "p"}, WorkflowSnapshot: domain.WorkflowDefinition{ID: "wf", ProjectID: "p", Nodes: []domain.WorkflowNode{{ID: "gate", Type: "human", Name: "人工确认"}}}, Nodes: map[string]*domain.NodeRun{"gate": {NodeID: "gate", Status: "waiting_approval", Attempt: 1, ReworkCount: 0}}}
@@ -185,7 +126,7 @@ func TestBotUnboundAndMissingCredentialsNeverUseOwner(t *testing.T) {
 	if _, err := h.botExecutionUser(bot, "unknown"); err == nil {
 		t.Fatal("unbound user used owner")
 	}
-	s.UpdateUserCredentials(43, repo.UserCredentialUpdate{CodeBuddyAPIKeyClear: true})
+	s.UpdateUserCredentials(43, repo.UserCredentialUpdate{ClaudeCodeAPIKeyClear: true})
 	reply, err = h.generateBotReply(context.Background(), bot, domain.BotConversation{}, nil, domain.BotInteraction{SenderID: "new-wecom-user", Content: "创建需求"})
 	if err != nil || !strings.Contains(reply, "你的平台账号尚未配置") {
 		t.Fatal(reply, err)
@@ -211,4 +152,30 @@ func TestUnboundCardActorCannotMutateRun(t *testing.T) {
 	if after.Nodes["gate"].Status != "waiting_approval" {
 		t.Fatal("unbound click changed run")
 	}
+}
+
+func botFixture(t *testing.T) (*repo.Store, *assistantHandlers, domain.NotificationBot) {
+	t.Helper()
+	s, err := repo.OpenTest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	t.Setenv("AGENTFLOW_ASSISTANT_SESSION_DIR", t.TempDir())
+	s.PutUser(domain.User{ID: 42, LoginName: "bot-owner", ClaudeCodeAPIKey: "owner-key"})
+	s.PutUser(domain.User{ID: 43, LoginName: "other-user", ClaudeCodeAPIKey: "other-key"})
+	s.PutProject(domain.Project{ID: "p", OwnerID: 42, Members: []domain.ProjectMember{{UserID: 43, Role: "member"}}})
+	bot := domain.NotificationBot{ID: "b", BotID: "external", ProjectID: "p", OwnerID: 42, Enabled: true, InteractionEnabled: true, Model: domain.DefaultNotificationReportModel}
+	if err = s.SaveNotificationBot(bot, "secret"); err != nil {
+		t.Fatal(err)
+	}
+	e := engine.New(s, nil)
+	e.ConfigureExecution("api", "test", time.Minute, false)
+	d := &deps{repo: s, engine: e}
+	h := &assistantHandlers{deps: d, notifications: &notificationHandlers{deps: d, service: notification.New(s)}}
+	h.notifications.service.PublicURL = "http://platform.example"
+	h.identities = &botIdentityHandlers{deps: d, publicURL: h.notifications.service.PublicURL}
+	bindBotTestUser(t, s, bot, "new-wecom-user", 43)
+	bindBotTestUser(t, s, bot, "bound-member", 42)
+	return s, h, bot
 }

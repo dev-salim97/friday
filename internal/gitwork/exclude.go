@@ -413,9 +413,6 @@ func IsSOPDeliverableOrControlFile(rel string) bool {
 	if rel == ".agentflow" || strings.HasPrefix(rel, ".agentflow/") {
 		return true
 	}
-	if rel == ".codebuddy" || strings.HasPrefix(rel, ".codebuddy/") {
-		return true
-	}
 	return PatchExcludeBasenames[filepath.Base(rel)]
 }
 

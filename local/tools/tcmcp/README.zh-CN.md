@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-MIT。Copyright (C) 2026 Tencent。本目录是 LoopForge 的可选工具，适用仓库根目录 [`LICENSE`](../../LICENSE)。
+MIT。Copyright (C) 2026 Tencent。本目录是 Friday 的可选工具，适用仓库根目录 [`LICENSE`](../../LICENSE)。
 
 类似 [start.spring.io](https://start.spring.io/)：在页面上勾选腾讯云产品与**真实资源**，下载一个精简的 Python MCP 项目。
 
@@ -10,7 +10,7 @@ MIT。Copyright (C) 2026 Tencent。本目录是 LoopForge 的可选工具，适�
 
 支持的产品：Redis、CDB、TDSQL-C、TKE（TKEX）、CLS、COS。一期只走只读 API；COS 仅列桶、列对象和查询对象元数据，不下载对象内容。
 
-`loopforge install` **不会**安装本工具。在本目录运行，或拉取已发布镜像。
+`friday install` **不会**安装本工具。在本目录运行，或拉取已发布镜像。
 
 ## 本地运行
 
@@ -33,11 +33,11 @@ cd web && npm run dev       # UI :5173，代理 /api
 
 ## Docker
 
-LoopForge Local 以 `local-vX.Y.Z` tag 发版时，会把本镜像推到 GHCR（版本号与 CLI 相同）：
+Friday Local 以 `local-vX.Y.Z` tag 发版时，会把本镜像推到 GHCR（版本号与 CLI 相同）：
 
 ```bash
-docker pull ghcr.io/tencent/loopforge-tcmcp:0.2.1
-docker run --rm -p 127.0.0.1:8088:8088 ghcr.io/tencent/loopforge-tcmcp:0.2.1
+docker pull ghcr.io/tencent/friday-tcmcp:0.2.1
+docker run --rm -p 127.0.0.1:8088:8088 ghcr.io/tencent/friday-tcmcp:0.2.1
 ```
 
 在本目录本地构建（Node 打前端，Python 跑 API 并托管 `web/dist`）：
@@ -59,7 +59,7 @@ docker run --rm -p 127.0.0.1:8088:8088 tcmcp
 1. 填项目名、target 别名、地域，以及仅用于当次请求的云 API 密钥（**不写入 zip**）。
 2. 勾选产品，拉取资源，勾选实例 / 日志主题，可改别名。
 3. 右侧查看每个工具的 JSON Schema 与 enum；可关掉单个工具。
-4. 点击「生成安装命令」，选择 Cursor / CodeBuddy / Codex / WorkBuddy，将命令粘贴到终端运行。
+4. 点击「生成安装命令」，选择 Cursor / Codex / WorkBuddy，将命令粘贴到终端运行。
 5. 在终端输入 SecretId / SecretKey（输入内容正常显示），自动下载项目、创建虚拟环境、安装依赖、检查 MCP 并合并客户端配置。
 6. 在客户端刷新 MCP 或重启；如出现信任提示，在客户端确认。安装页仍可下载 ZIP 或复制 Docker 部署命令。
 
@@ -68,7 +68,6 @@ docker run --rm -p 127.0.0.1:8088:8088 tcmcp
 在页面选择资源后，每份配置生成独立安装 ID，有效期 24 小时。页面直接提供完整命令：
 
 ```bash
-curl -fsSL 'http://127.0.0.1:8088/codebuddy?project=<安装ID>' | bash
 curl -fsSL 'http://127.0.0.1:8088/cursor?project=<安装ID>' | bash
 curl -fsSL 'http://127.0.0.1:8088/codex?project=<安装ID>' | bash
 curl -fsSL 'http://127.0.0.1:8088/workbuddy?project=<安装ID>' | bash
@@ -77,7 +76,7 @@ curl -fsSL 'http://127.0.0.1:8088/workbuddy?project=<安装ID>' | bash
 也可以使用短入口，脚本会通过终端提示输入页面给出的安装 ID：
 
 ```bash
-curl -fsSL http://127.0.0.1:8088/codebuddy | bash
+curl -fsSL http://127.0.0.1:8088/cursor | bash
 ```
 
 支持 macOS / Linux，需 Bash、Python 3.11+（含 venv / pip）及访问 Python 包索引的网络。
@@ -87,7 +86,6 @@ curl -fsSL http://127.0.0.1:8088/codebuddy | bash
 | 客户端 | 默认用户级配置 |
 | --- | --- |
 | Cursor | `~/.cursor/mcp.json` |
-| CodeBuddy | `~/.codebuddy/mcp.json` |
 | Codex | `${CODEX_HOME:-~/.codex}/config.toml` |
 | WorkBuddy | `~/.workbuddy/mcp.json` |
 
@@ -112,10 +110,10 @@ curl -fsSL http://127.0.0.1:8088/codebuddy | bash
 - `TCMCP_INSTALL_STORE`：安装包目录，默认系统临时目录下的 `tcmcp-installations`。多 worker / 多实例需共享此目录；容器重建后仍需使用旧链接时挂载持久卷。
 - 最多保留 200 份有效安装包，单包最大 10 MiB；创建新包时清理过期包，过期链接不能下载。无后续请求时可由系统定期清理过期临时文件。
 
-安装链接可下载所选资源配置，请只分享给可信人员。对外部署请使用 HTTPS，网关同时转发四个脚本入口和 `/api/installations`。
+安装链接可下载所选资源配置，请只分享给可信人员。对外部署请使用 HTTPS，网关同时转发三个脚本入口和 `/api/installations`。
 如网关要求认证，应确保终端也能完成认证；浏览器登录态不会自动传给 curl 或 Python 下载器。
 
-配置格式依据：[Cursor MCP](https://prod.cursor.com/docs/mcp)、[CodeBuddy 目录说明](https://www.codebuddy.cn/docs/cli/codebuddy-dir)、[Codex MCP](https://developers.openai.com/codex/mcp)、[WorkBuddy MCP](https://staging.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide)。
+配置格式依据：[Cursor MCP](https://prod.cursor.com/docs/mcp)、[Codex MCP](https://developers.openai.com/codex/mcp)。
 
 ## 生成项目
 

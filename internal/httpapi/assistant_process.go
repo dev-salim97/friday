@@ -339,8 +339,6 @@ func (h *assistantHandlers) conversationExecutor(s *AgentToolSession, root strin
 
 func assistantEngineBinary(kind string) string {
 	switch kind {
-	case assistantEngineCodeBuddy:
-		return "codebuddy"
 	case assistantEngineCodex:
 		return "codex"
 	case assistantEngineClaude:
@@ -471,7 +469,7 @@ func (h *assistantHandlers) bindWorkspaceGit(ctx context.Context, s *AgentToolSe
 	if user, ok := h.repo.User(s.User.ID); ok {
 		if login := strings.TrimSpace(user.LoginName); login != "" {
 			credentials.GitUserName = login
-			credentials.GitUserEmail = login + "@users.noreply.loopforge.invalid"
+			credentials.GitUserEmail = login + "@users.noreply.friday.invalid"
 		}
 	}
 	if !slices.Contains(command.CredentialBindings, runtime.BindGitWorkspace) {
@@ -481,15 +479,13 @@ func (h *assistantHandlers) bindWorkspaceGit(ctx context.Context, s *AgentToolSe
 }
 
 func (h *assistantHandlers) testRunnerCLI(ctx context.Context, runnerID, provider string, runnerLogin bool, user domain.User) error {
-	root, err := os.MkdirTemp("", "loopforge-cli-test-")
+	root, err := os.MkdirTemp("", "friday-cli-test-")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(root)
 	model := provider + ":default"
-	if provider == assistantEngineCodeBuddy {
-		model = loadAssistantModels(ctx, user.CodeBuddyInternetEnvironment).Default
-	} else if !runnerLogin {
+	if !runnerLogin {
 		models, _ := assistantDiscoveredModelsFor(ctx, user, provider)
 		if len(models) == 0 {
 			models = assistantEngineBuiltinModels(provider)

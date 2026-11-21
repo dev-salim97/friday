@@ -108,7 +108,7 @@ func TestConversationLifecycle(t *testing.T) {
 		}
 	}
 
-	// The test user has no CodeBuddy key: the reply must say so instead of
+	// The test user has no Claude key: the reply must say so instead of
 	// pretending to think.
 	// Sent like a browser (gzip accepted) so the forwarded assistant call's
 	// error body must still be readable.

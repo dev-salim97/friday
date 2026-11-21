@@ -141,7 +141,7 @@ func (h *assistantHandlers) approvalReviewer(req assistantRequest, user domain.U
 	input := approvalReviewInput(req, user)
 	var catalog assistantModelCatalog
 	if h.reviewCatalog != nil {
-		catalog = h.reviewCatalog(user.CodeBuddyInternetEnvironment)
+		catalog = h.reviewCatalog()
 	} else {
 		catalog = h.chatCatalog(context.Background(), user)
 	}
@@ -208,7 +208,7 @@ func (h *assistantHandlers) approvalReviewer(req assistantRequest, user domain.U
 }
 
 func runAssistantApprovalReview(ctx context.Context, input assistantApprovalInput, user domain.User, model string) (assistantApprovalReview, error) {
-	if model == "" || strings.TrimSpace(user.CodeBuddyAPIKey) == "" {
+	if model == "" || !assistantModelCredentialConfigured(user, model) {
 		return assistantApprovalReview{}, fmt.Errorf("review model or credential unavailable")
 	}
 	root, err := os.MkdirTemp("", "agentflow-approval-review-")

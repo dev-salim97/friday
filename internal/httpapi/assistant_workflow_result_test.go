@@ -18,7 +18,7 @@ import (
 func TestToolResultRedactionKeepsTheBody(t *testing.T) {
 	const secret = "wf-tool-secret-9f3a"
 	body := strings.Repeat("节", 20000) + " " + secret
-	got := redactAgentToolResult(body, domain.User{CodeBuddyAPIKey: secret})
+	got := redactAgentToolResult(body, domain.User{ClaudeCodeAPIKey: secret})
 	if utf8.RuneCountInString(got) < 20000 || strings.Contains(got, secret) || !strings.Contains(got, "[redacted]") {
 		t.Fatalf("redacted result runes=%d", utf8.RuneCountInString(got))
 	}
@@ -42,7 +42,7 @@ func TestWorkflowGetReturnsFullDefinition(t *testing.T) {
 	}
 	const secret = "wf-tool-secret-9f3a"
 	const marker = "TAIL_NODE_SCRIPT_MARKER"
-	user.CodeBuddyAPIKey = secret
+	user.ClaudeCodeAPIKey = secret
 	script := strings.Repeat("env-prep phpstan\n", 800)
 	wf := domain.WorkflowDefinition{
 		ID: "wf-large", Name: "大 SOP", ProjectID: "platform", SandboxProfileID: "local",

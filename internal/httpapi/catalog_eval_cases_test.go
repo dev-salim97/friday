@@ -78,7 +78,7 @@ func TestCatalogAssetLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	request(http.MethodPut, "/api/agents", domain.AgentDefinition{
-		ID: "cvb-r2-shared-agent", Name: "Shared agent", ProjectID: "platform", ExecutorID: "codebuddy",
+		ID: "cvb-r2-shared-agent", Name: "Shared agent", ProjectID: "platform", ExecutorID: "claude",
 		Shared: true, Rules: []string{rule.ID}, Skills: []string{skill.ID},
 	}, http.StatusOK)
 	if stored, _ := f.s.Rule(rule.ID); !stored.Shared {
@@ -89,7 +89,7 @@ func TestCatalogAssetLifecycle(t *testing.T) {
 	}
 
 	request(http.MethodPut, "/api/agents", domain.AgentDefinition{
-		ID: "cvb-r2-delete-agent", Name: "Delete agent", ProjectID: "platform", ExecutorID: "codebuddy",
+		ID: "cvb-r2-delete-agent", Name: "Delete agent", ProjectID: "platform", ExecutorID: "claude",
 	}, http.StatusOK)
 	request(http.MethodPost, "/api/agents/cvb-r2-delete-agent/clone",
 		map[string]any{"id": "cvb-r2-cloned-agent", "name": "Clone", "projectId": "platform"}, http.StatusCreated)
@@ -172,7 +172,7 @@ func TestCatalogSandboxDependencyAndScopeHelpers(t *testing.T) {
 
 func TestRunEvalBusyApplyAndCloneHelpers(t *testing.T) {
 	f := cvBNewHTTPFixture(t)
-	if _, err := f.s.UpdateUserCredentials(f.user.ID, repo.UserCredentialUpdate{CodeBuddyAPIKey: "key"}); err != nil {
+	if _, err := f.s.UpdateUserCredentials(f.user.ID, repo.UserCredentialUpdate{ClaudeCodeAPIKey: "key"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.s.PutSandbox(domain.SandboxProfile{ID: "cvb-r2-eval-sandbox", Name: "Eval sandbox", ProjectID: "platform", Driver: "local"}); err != nil {
@@ -213,7 +213,7 @@ func TestRunEvalBusyApplyAndCloneHelpers(t *testing.T) {
 	if _, err := h.ensureProjectAgent(run, "platform", "missing"); err == nil {
 		t.Fatal("missing agent accepted")
 	}
-	agent := domain.AgentDefinition{ID: "cvb-r2-eval-agent", Name: "Agent", ProjectID: "other", Shared: true, ExecutorID: "codebuddy"}
+	agent := domain.AgentDefinition{ID: "cvb-r2-eval-agent", Name: "Agent", ProjectID: "other", Shared: true, ExecutorID: "claude"}
 	if err := f.s.PutAgent(agent); err != nil {
 		t.Fatal(err)
 	}
@@ -666,7 +666,7 @@ func TestCatalogRemainingReachableBranches(t *testing.T) {
 		t.Fatalf("fallback repository = %d: %s", rec.Code, rec.Body.String())
 	}
 
-	agent := domain.AgentDefinition{ID: "cvb-r2-existing-agent", Name: "Existing", ProjectID: "platform", ExecutorID: "codebuddy"}
+	agent := domain.AgentDefinition{ID: "cvb-r2-existing-agent", Name: "Existing", ProjectID: "platform", ExecutorID: "claude"}
 	if err := f.s.PutAgent(agent); err != nil {
 		t.Fatal(err)
 	}
@@ -879,7 +879,7 @@ func TestCatalogAnonymousPersonalMCPClone(t *testing.T) {
 		t.Fatal(err)
 	}
 	agent := domain.AgentDefinition{ID: "cvb-r2-personal-agent", Name: "Personal agent", ProjectID: "platform",
-		ExecutorID: "codebuddy", MCPServers: []string{server.ID}}
+		ExecutorID: "claude", MCPServers: []string{server.ID}}
 	if err := f.s.PutAgent(agent); err != nil {
 		t.Fatal(err)
 	}

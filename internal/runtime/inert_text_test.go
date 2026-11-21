@@ -10,7 +10,7 @@ import (
 	"agentflow/internal/domain"
 )
 
-// The CLI's own patterns (CodeBuddy 2.180.0): inline bash runs on any match,
+// The CLI's own patterns (Claude Code): inline bash runs on any match,
 // an import needs whitespace or the start before it.
 var (
 	cliInlineBash = regexp.MustCompile("!`([^`]+)`")

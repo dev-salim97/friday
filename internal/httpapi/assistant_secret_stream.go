@@ -101,7 +101,7 @@ func (r *gitSecretRegistry) streamSecrets(user domain.User) []string {
 	r.mu.Lock()
 	secrets := append([]string(nil), r.sorted...)
 	r.mu.Unlock()
-	for _, secret := range []string{user.CodeBuddyAPIKey, user.CodexAPIKey, user.ClaudeCodeAPIKey, user.GitToken} {
+	for _, secret := range []string{user.CodexAPIKey, user.ClaudeCodeAPIKey, user.GitToken} {
 		if secret = strings.TrimSpace(secret); secret != "" {
 			secrets = append(secrets, secret)
 		}

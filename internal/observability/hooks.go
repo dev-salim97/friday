@@ -3,7 +3,6 @@ package observability
 import (
 	"bufio"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -16,10 +15,9 @@ import (
 )
 
 const (
-	AdapterLive        = "anthropic-stream-v1"
-	AdapterHooks       = "agent-hooks-v1"
-	AdapterLegacyHooks = "codebuddy-hooks-v1"
-	AdapterOTEL        = "codebuddy-otel-v1"
+	AdapterLive  = "anthropic-stream-v1"
+	AdapterHooks = "agent-hooks-v1"
+	AdapterOTEL  = "agent-otel-v1"
 )
 
 const hookPython = `#!/usr/bin/env python3
@@ -37,39 +35,6 @@ os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "a", encoding="utf-8") as f:
     f.write(json.dumps(payload, ensure_ascii=False) + "\n")
 `
-
-func WriteCodeBuddyHookBridge(workspace string) error {
-	return WriteCodeBuddyHookBridgeAt(workspace, filepath.Join(".agentflow", "observability"))
-}
-
-func WriteCodeBuddyHookBridgeAt(workspace, relativeRoot string) error {
-	root := filepath.Join(workspace, relativeRoot)
-	if err := os.MkdirAll(root, 0o755); err != nil {
-		return err
-	}
-	script := filepath.Join(root, "hook.py")
-	if err := writeFileIfChanged(script, []byte(hookPython), 0o755); err != nil {
-		return err
-	}
-	cmd := codeBuddyHookCommand(filepath.Join(relativeRoot, "hook.py"))
-	hook := func(timeout int) map[string]any {
-		return map[string]any{"hooks": []map[string]any{{"type": "command", "command": cmd, "timeout": timeout}}}
-	}
-	settings := map[string]any{
-		"hooks": map[string]any{
-			"SessionStart":     []any{hook(5)},
-			"UserPromptSubmit": []any{hook(5)},
-			"PreToolUse":       []any{map[string]any{"matcher": "", "hooks": []map[string]any{{"type": "command", "command": cmd, "timeout": 8}}}},
-			"PostToolUse":      []any{map[string]any{"matcher": "", "hooks": []map[string]any{{"type": "command", "command": cmd, "timeout": 10}}}},
-			"Stop":             []any{hook(8)},
-		},
-	}
-	raw, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return err
-	}
-	return writeFileIfChanged(filepath.Join(workspace, filepath.Dir(relativeRoot), "codebuddy-settings.json"), raw, 0o600)
-}
 
 // writeFileIfChanged leaves an identical file untouched and otherwise
 // replaces it through a rename: a CLI of a parallel branch may be executing
@@ -98,18 +63,6 @@ func writeFileIfChanged(path string, data []byte, mode os.FileMode) error {
 		return err
 	}
 	return os.Rename(temp.Name(), path)
-}
-
-// codeBuddyHookCommand returns a PreToolUse-safe shell command that recreates
-// hook.py when an agent git stash/clean removes the untracked runtime file.
-func codeBuddyHookCommand(relativeScriptPath string) string {
-	script := filepath.ToSlash(relativeScriptPath)
-	encoded := base64.StdEncoding.EncodeToString([]byte(hookPython))
-	return fmt.Sprintf(
-		`bash -lc 'H=%s; if [ ! -f "$H" ]; then mkdir -p "$(dirname "$H")" && echo %s | base64 -d > "$H" && chmod +x "$H"; fi; exec python3 "$H"'`,
-		script,
-		encoded,
-	)
 }
 
 func HookFile(workspace string) string {
@@ -148,7 +101,7 @@ func HookEvent(raw []byte) (domain.TelemetryEvent, bool) {
 	}
 	provider := firstString(payload, "_agentflow_provider")
 	if provider == "" {
-		provider = "codebuddy"
+		provider = "agent"
 	}
 	hookID := firstString(payload, "_agentflow_hook_id")
 	hookName := firstString(payload, "_agentflow_hook_name")
@@ -341,11 +294,11 @@ func MatchAdapter(event domain.TelemetryEvent, view string) bool {
 	case "", "all":
 		return true
 	case "hooks":
-		return adapter == AdapterHooks || adapter == AdapterLegacyHooks
+		return adapter == AdapterHooks
 	case "otel":
 		return adapter == AdapterOTEL
 	case "live":
-		return adapter != AdapterHooks && adapter != AdapterLegacyHooks && adapter != AdapterOTEL
+		return adapter != AdapterHooks && adapter != AdapterOTEL
 	default:
 		return adapter == view
 	}
@@ -362,18 +315,17 @@ func CollectorTracesURL() string {
 	return strings.TrimRight(base, "/") + "/v1/traces"
 }
 
-func InjectCodeBuddyEnv(env map[string]string, runID, nodeID string) {
+func InjectTelemetryEnv(env map[string]string, runID, nodeID string) {
 	if env == nil {
 		return
 	}
 	env["AGENTFLOW_RUN_ID"] = runID
 	env["AGENTFLOW_NODE_ID"] = nodeID
-	env["CODEBUDDY_CODE_ENABLE_TELEMETRY"] = "1"
 	env["CLAUDE_CODE_ENABLE_TELEMETRY"] = "1"
 	env["OTEL_TRACES_EXPORTER"] = "otlp"
 	env["OTEL_EXPORTER_OTLP_PROTOCOL"] = "http/protobuf"
 	env["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] = CollectorTracesURL()
 	env["OTEL_LOG_TOOL_DETAILS"] = "1"
-	attrs := fmt.Sprintf("agentflow.run_id=%s,agentflow.node_id=%s,service.name=agentflow-codebuddy", runID, nodeID)
+	attrs := fmt.Sprintf("agentflow.run_id=%s,agentflow.node_id=%s,service.name=agentflow-agent", runID, nodeID)
 	env["OTEL_RESOURCE_ATTRIBUTES"] = attrs
 }

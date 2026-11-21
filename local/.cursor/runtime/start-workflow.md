@@ -10,8 +10,7 @@
 2. `.cursor/runtime/workflow-state-spec.md`
 3. `.cursor/rules/global.mdc`
 
-可选读取 `.cursor/workflows/devflow.md` 做恢复检查。禁止在运行期读取
-`.cursor/` 作为 Cursor 工作流来源。
+可选读取 `.cursor/workflows/devflow.md` 做恢复检查。
 
 ## Step 1：工作区初始化
 

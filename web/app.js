@@ -977,7 +977,7 @@ function settleBootLoader(){
 }
 window.addEventListener('pageshow',event=>{if(event.persisted)finishBootLoader()});
 // Shared with the /chatbot/ iframe (chatbot/src/theme.js): light|dark|system, while data-theme stays light|dark.
-const THEME_KEY='agentflow.theme.v3',LEGACY_THEME_KEY='agentflow.native-chat.theme',EARLIER_THEME_KEY='loopforge.theme.v3',themeMedia=matchMedia('(prefers-color-scheme: dark)');
+const THEME_KEY='agentflow.theme.v3',LEGACY_THEME_KEY='agentflow.native-chat.theme',EARLIER_THEME_KEY='friday.theme.v3',themeMedia=matchMedia('(prefers-color-scheme: dark)');
 function readThemePreference(){try{const current=localStorage.getItem(THEME_KEY),legacy=localStorage.getItem(LEGACY_THEME_KEY),earlier=localStorage.getItem(EARLIER_THEME_KEY),valid=value=>['light','dark','system'].includes(value);let preference='light';if(valid(current))preference=current;else if(valid(legacy)||valid(earlier)){preference=valid(legacy)?legacy:earlier;localStorage.setItem(THEME_KEY,preference)}if(legacy!==null)localStorage.removeItem(LEGACY_THEME_KEY);if(earlier!==null)localStorage.removeItem(EARLIER_THEME_KEY);return preference}catch{return'light'}}
 function resolvedTheme(preference){return preference==='system'?(themeMedia.matches?'dark':'light'):preference==='dark'?'dark':'light'}
 // Kept in memory so the switcher still reflects the choice when localStorage is unavailable.
@@ -1015,6 +1015,7 @@ function bind(){
   $('#workflowName').oninput=e=>{if(!state.workflow)return;state.workflow.name=e.target.value;dirty()};
   $('#workflowOwner').oninput=e=>{if(!state.workflow)return;state.workflow.owner=e.target.value;dirty()};
   $('#workflowSandbox').onchange=e=>{if(!state.workflow)return;state.workflow.sandboxProfileId=e.target.value;dirty()};
+  $('#workflowExecutor')&&($('#workflowExecutor').onchange=e=>{if(!state.workflow)return;if(e.target.value)state.workflow.executorId=e.target.value;else delete state.workflow.executorId;dirty();renderCanvas();renderProperties()});
   $('#workflowStatus').onchange=e=>{if(!state.workflow)return;state.workflow.status=e.target.value;dirty()};
   $('#workflowTags').oninput=e=>{if(!state.workflow)return;state.workflow.tags=e.target.value.split(',').map(x=>x.trim()).filter(Boolean);dirty()};
   $('#workflowMetricCategory').onchange=e=>{if(!state.workflow)return;state.workflow.metricCategory=e.target.value;dirty()};
@@ -1089,7 +1090,7 @@ function bind(){
   $$('#runModal .modal-close').forEach(b=>b.onclick=()=>$('#runModal').classList.remove('open'));
   $$('.generic-template-close').forEach(b=>b.onclick=()=>$('#genericTemplateModal').classList.remove('open'));
   $('#confirmGenericTemplate')&&($('#confirmGenericTemplate').onclick=adoptGenericTemplate);
-  $('#runGenericTemplateDirect')&&($('#runGenericTemplateDirect').onclick=()=>{const id=state.genericTemplateId;$('#genericTemplateModal').classList.remove('open');if(!id)return toast('请先选择通用模板');openRunModal(id)});
+  $('#runGenericTemplateDirect')&&($('#runGenericTemplateDirect').onclick=()=>{const id=state.genericTemplateId,executorId=genericTemplateExecutor();$('#genericTemplateModal').classList.remove('open');if(!id)return toast('请先选择通用模板');openRunModal(id,executorId)});
   $('#confirmRun').onclick=startRun; $('#newAgent').onclick=()=>openAgentWizard();
   $('#agentForm').onsubmit=saveAgent;
   $('#agentForm').elements.executorId?.addEventListener('change',e=>applyAgentModelUI(e.target.value,'','',true));

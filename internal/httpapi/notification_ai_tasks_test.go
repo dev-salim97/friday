@@ -20,7 +20,7 @@ func TestScheduledAssistantNotificationUsesModelOutputWithoutExtraCalls(t *testi
 		t.Fatal(err)
 	}
 	defer s.Close()
-	if err = s.PutUser(domain.User{LoginName: "ai-owner", CodeBuddyAPIKey: "test-ai-key"}); err != nil {
+	if err = s.PutUser(domain.User{LoginName: "ai-owner", ClaudeCodeAPIKey: "test-ai-key"}); err != nil {
 		t.Fatal(err)
 	}
 	owner, _ := s.UserByLoginName("ai-owner")
@@ -88,7 +88,7 @@ func TestScheduleNotificationConfigCannotForgeResult(t *testing.T) {
 	}
 	defer s.Close()
 	t.Setenv("AGENTFLOW_AUTH_REQUIRED", "true")
-	if err = s.PutUser(domain.User{LoginName: "schedule-owner", CodeBuddyAPIKey: "owner-key"}); err != nil {
+	if err = s.PutUser(domain.User{LoginName: "schedule-owner", ClaudeCodeAPIKey: "owner-key"}); err != nil {
 		t.Fatal(err)
 	}
 	owner, _ := s.UserByLoginName("schedule-owner")

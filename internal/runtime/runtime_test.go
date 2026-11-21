@@ -97,7 +97,7 @@ func TestResolveMapOmitsUnresolvedSecret(t *testing.T) {
 func TestMaterializeExpandsMCPBearerSecret(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("AGENTFLOW_MCP_TOKEN", "tai_live")
-	_, err := materialize(dir, "secret-ok", domain.ExecutorDefinition{Kind: "codebuddy"}, domain.AgentDefinition{ID: "checker", Name: "Checker"}, domain.AgentAssetBundle{
+	_, err := materialize(dir, "secret-ok", domain.ExecutorDefinition{Kind: "claude-code"}, domain.AgentDefinition{ID: "checker", Name: "Checker"}, domain.AgentAssetBundle{
 		MCPServers: []domain.MCPServerDefinition{{
 			ID: "gongfeng-delivery", Name: "工蜂", Transport: "http",
 			URL:     "https://mcp-gateway.example.com/gongfeng",
@@ -123,7 +123,7 @@ func TestMaterializeExpandsMCPBearerSecret(t *testing.T) {
 func TestMaterializeFailsWhenMCPSecretMissing(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("AGENTFLOW_MCP_TOKEN", "")
-	_, err := materialize(dir, "secret-missing", domain.ExecutorDefinition{Kind: "codebuddy"}, domain.AgentDefinition{ID: "checker", Name: "Checker"}, domain.AgentAssetBundle{
+	_, err := materialize(dir, "secret-missing", domain.ExecutorDefinition{Kind: "claude-code"}, domain.AgentDefinition{ID: "checker", Name: "Checker"}, domain.AgentAssetBundle{
 		MCPServers: []domain.MCPServerDefinition{{
 			ID: "gongfeng-delivery", Name: "工蜂", Transport: "http",
 			URL:     "https://mcp-gateway.example.com/gongfeng",
@@ -141,7 +141,7 @@ func TestMaterializeFailsWhenMCPSecretMissing(t *testing.T) {
 func TestMaterializeUsesPlainMCPHeaders(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("AGENTFLOW_MCP_TOKEN", "")
-	_, err := materialize(dir, "plain-headers", domain.ExecutorDefinition{Kind: "codebuddy"}, domain.AgentDefinition{ID: "checker", Name: "Checker"}, domain.AgentAssetBundle{
+	_, err := materialize(dir, "plain-headers", domain.ExecutorDefinition{Kind: "claude-code"}, domain.AgentDefinition{ID: "checker", Name: "Checker"}, domain.AgentAssetBundle{
 		MCPServers: []domain.MCPServerDefinition{{
 			ID: "gongfeng-delivery", Name: "工蜂", Transport: "http",
 			URL:     "https://mcp-gateway.example.com/gongfeng",
@@ -514,7 +514,6 @@ func TestWithCodexIsolationEnvInsertsSetBeforePrompt(t *testing.T) {
 		"ZDOTDIR":                 "/tmp/zdot",
 		"PREFIX":                  "/tmp/prefix",
 		"AGENTFLOW_GIT_TOKEN":     "secret",
-		"CODEBUDDY_API_KEY":       "ck",
 		"GIT_CEILING_DIRECTORIES": "/tmp/workspaces",
 	})
 	if !containsArgPair(got, "-c", `shell_environment_policy.inherit="core"`) {
@@ -530,7 +529,7 @@ func TestWithCodexIsolationEnvInsertsSetBeforePrompt(t *testing.T) {
 	if !containsArgPair(got, "-c", `shell_environment_policy.set.GIT_CEILING_DIRECTORIES="/tmp/workspaces"`) {
 		t.Fatal("Codex tool shells lost the workspace git boundary")
 	}
-	if strings.Contains(joined, "AGENTFLOW_GIT_TOKEN") || strings.Contains(joined, "CODEBUDDY_API_KEY") {
+	if strings.Contains(joined, "AGENTFLOW_GIT_TOKEN") {
 		t.Fatalf("secrets must not be copied into Codex set: %v", got)
 	}
 	if got[len(got)-1] != "do work" {
@@ -677,12 +676,12 @@ func TestBwrapProvidesWritableRuntimeInfrastructure(t *testing.T) {
 	workspace := t.TempDir()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	stateDir := filepath.Join(home, ".codebuddy")
+	stateDir := filepath.Join(home, ".claude")
 	if err := os.MkdirAll(stateDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	bunfs := stubBunFSMountPoint(t, filepath.Join(t.TempDir(), "$bunfs"))
-	args, err := bwrapArgsCommand(workspace, ProviderRequirements("codebuddy"))
+	args, err := bwrapArgsCommand(workspace, ProviderRequirements("claude-code"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -693,14 +692,14 @@ func TestBwrapProvidesWritableRuntimeInfrastructure(t *testing.T) {
 		}
 	}
 	if strings.Contains(text, stateDir) {
-		t.Fatalf("CodeBuddy host state leaked into bwrap: %v", args)
+		t.Fatalf("Claude host state leaked into bwrap: %v", args)
 	}
 }
 
 func TestDockerMountsOnlySelectedCLIStateDirectory(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	for _, name := range []string{".claude", ".codex", ".codebuddy"} {
+	for _, name := range []string{".claude", ".codex"} {
 		if err := os.MkdirAll(filepath.Join(home, name), 0o700); err != nil {
 			t.Fatal(err)
 		}
@@ -715,11 +714,10 @@ func TestDockerMountsOnlySelectedCLIStateDirectory(t *testing.T) {
 	}{
 		{binary: "claude"},
 		{binary: "codex"},
-		{binary: "codebuddy"},
 	}
 	for _, test := range tests {
 		t.Run(test.binary, func(t *testing.T) {
-			kind := map[string]string{"claude": "claude-code", "codex": "codex", "codebuddy": "codebuddy"}[test.binary]
+			kind := map[string]string{"claude": "claude-code", "codex": "codex"}[test.binary]
 			args, err := dockerAgentStateMountRequirements(ProviderRequirements(kind))
 			if err != nil {
 				t.Fatal(err)
@@ -731,7 +729,7 @@ func TestDockerMountsOnlySelectedCLIStateDirectory(t *testing.T) {
 					t.Fatalf("selected state directory missing from Docker mount: %v", args)
 				}
 			} else if len(args) != 0 {
-				t.Fatalf("CodeBuddy must not mount host state: %v", args)
+				t.Fatalf("Claude must not mount host state: %v", args)
 			}
 			claudeState := filepath.Join(home, ".claude.json")
 			if test.state == ".claude" {
@@ -741,7 +739,7 @@ func TestDockerMountsOnlySelectedCLIStateDirectory(t *testing.T) {
 			} else if strings.Contains(text, claudeState) {
 				t.Fatalf("Claude sibling state file leaked into %s mount: %v", test.binary, args)
 			}
-			for _, other := range []string{".claude", ".codex", ".codebuddy"} {
+			for _, other := range []string{".claude", ".codex"} {
 				if other != test.state && strings.Contains(text, filepath.Join(home, other)) {
 					t.Fatalf("unselected state directory %s leaked into Docker mount: %v", other, args)
 				}
@@ -797,11 +795,11 @@ func TestLightweightSandboxSmoke(t *testing.T) {
 	}
 	stateHome := t.TempDir()
 	t.Setenv("HOME", stateHome)
-	if err := os.MkdirAll(filepath.Join(stateHome, ".codebuddy"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(stateHome, ".claude"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	fakeCodeBuddy := filepath.Join(workspace, "codebuddy")
-	if err := os.Symlink("/bin/sh", fakeCodeBuddy); err != nil {
+	fakeClaude := filepath.Join(workspace, "claude")
+	if err := os.Symlink("/bin/sh", fakeClaude); err != nil {
 		t.Fatal(err)
 	}
 	profile := domain.SandboxProfile{}
@@ -809,9 +807,9 @@ func TestLightweightSandboxSmoke(t *testing.T) {
 	var createErr error
 	switch runtime.GOOS {
 	case "darwin":
-		sb, createErr = createSeatbelt("smoke", workspace, profile, providerForKind("codebuddy").SandboxRequirements())
+		sb, createErr = createSeatbelt("smoke", workspace, profile, providerForKind("claude-code").SandboxRequirements())
 	case "linux":
-		sb, createErr = createBwrap("smoke", workspace, profile, providerForKind("codebuddy").SandboxRequirements())
+		sb, createErr = createBwrap("smoke", workspace, profile, providerForKind("claude-code").SandboxRequirements())
 	default:
 		t.Skip("lightweight sandbox is only available on macOS/Linux")
 	}
@@ -819,7 +817,7 @@ func TestLightweightSandboxSmoke(t *testing.T) {
 		t.Fatal(createErr)
 	}
 	allowed := `test "$HOME" != "` + stateHome + `" && test -w "$HOME" && f=$(mktemp) && printf ok > "$f" && printf ok > /dev/null && printf ok > workspace-write.txt`
-	command, err := bindCommand(t.Context(), sb, workspace, CommandSpec{Argv: []string{fakeCodeBuddy, "-lc", allowed}, Provider: "codebuddy", PrivateHome: true}, RunCredentials{})
+	command, err := bindCommand(t.Context(), sb, workspace, CommandSpec{Argv: []string{fakeClaude, "-lc", allowed}, Provider: "claude-code", PrivateHome: true}, RunCredentials{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -833,7 +831,7 @@ func TestLightweightSandboxSmoke(t *testing.T) {
 	protectedPath := protected.Name()
 	_ = protected.Close()
 	t.Cleanup(func() { _ = os.Remove(protectedPath) })
-	if _, err := sb.Exec(context.Background(), CommandSpec{Argv: []string{fakeCodeBuddy, "-lc", fmt.Sprintf("printf blocked >> %q", protectedPath)}}, nil); err == nil {
+	if _, err := sb.Exec(context.Background(), CommandSpec{Argv: []string{fakeClaude, "-lc", fmt.Sprintf("printf blocked >> %q", protectedPath)}}, nil); err == nil {
 		t.Fatal("sandbox allowed a write outside workspace/temp/state")
 	}
 }
@@ -965,7 +963,7 @@ func TestAgentFlowGitExcludeSurvivesStashUntracked(t *testing.T) {
 	if err := EnsureControlRoot(workspace); err != nil {
 		t.Fatal(err)
 	}
-	hookPath := filepath.Join(workspace, ".agentflow", "hooks", "codebuddy", "hook.py")
+	hookPath := filepath.Join(workspace, ".agentflow", "hooks", "claude", "hook.py")
 	if err := os.MkdirAll(filepath.Dir(hookPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -1270,61 +1268,6 @@ func TestExecSetsPWDAndRejectsMissingWorkspace(t *testing.T) {
 	}
 }
 
-func TestRunSandboxBindsCodeBuddyCredentialOnlyToTargetProcess(t *testing.T) {
-	t.Setenv("CODEBUDDY_API_KEY", "host-key-must-not-leak")
-	t.Setenv("CODEBUDDY_INTERNET_ENVIRONMENT", "host-network-must-not-leak")
-	root := t.TempDir()
-	manager := NewManager(root)
-	sandbox, err := manager.AcquireRun(context.Background(), "run-credential", domain.SandboxProfile{ID: "local", Driver: "local"}, ProviderRequirements("codebuddy"), RunCredentials{
-		CodeBuddy: CodeBuddyCredential{APIKey: "project-key", InternetEnvironment: "project-network"},
-	}, SandboxResources{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer sandbox.Close(context.Background())
-
-	codeBuddy := CommandSpec{
-		Argv:               []string{"sh", "-lc", `printf '%s|%s|%s' "$CODEBUDDY_API_KEY" "$CODEBUDDY_INTERNET_ENVIRONMENT" "$HOME"; touch "$HOME/used"`},
-		Provider:           "codebuddy",
-		CredentialBindings: []CredentialBinding{BindCodeBuddy},
-		PrivateHome:        true,
-	}
-	output, err := sandbox.Exec(context.Background(), codeBuddy, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	parts := strings.Split(strings.TrimSpace(output), "|")
-	if len(parts) != 3 || parts[0] != "project-key" || parts[1] != "project-network" {
-		t.Fatalf("bound credential output = %q", output)
-	}
-	if !strings.HasPrefix(parts[2], filepath.Join(sandbox.Workspace(), ".agentflow", "private-home")) {
-		t.Fatalf("CodeBuddy HOME is not run-private: %q", parts[2])
-	}
-	plain, err := sandbox.Exec(context.Background(), CommandSpec{Argv: []string{"sh", "-lc", `printf '%s|%s' "$CODEBUDDY_API_KEY" "$CODEBUDDY_INTERNET_ENVIRONMENT"`}, Provider: "command"}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.TrimSpace(plain) != "|" {
-		t.Fatalf("credential leaked to unrelated child: %q", plain)
-	}
-	err = filepath.Walk(sandbox.Workspace(), func(path string, info os.FileInfo, walkErr error) error {
-		if walkErr != nil || info.IsDir() {
-			return walkErr
-		}
-		raw, readErr := os.ReadFile(path)
-		if readErr != nil {
-			return readErr
-		}
-		if strings.Contains(string(raw), "project-key") || strings.Contains(string(raw), "project-network") {
-			t.Fatalf("credential persisted in %s", path)
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestRunSandboxBindsHostCredentialHelperForVerification(t *testing.T) {
 	manager := NewManager(t.TempDir())
 	sb, err := manager.AcquireRun(context.Background(), "helper-verification", domain.SandboxProfile{ID: "local", Driver: "local"}, SandboxRequirements{}, RunCredentials{GitHTTPCredentials: testHTTPSCredentials("proj_git_token")}, SandboxResources{})
@@ -1517,11 +1460,11 @@ func TestCompactCommandKeepsShortCommandsAndBoundsPrompts(t *testing.T) {
 		t.Fatalf("short command changed: %q", got)
 	}
 	longPrompt := strings.Repeat("需求", 2_000)
-	got := compactCommand([]string{"codebuddy", "-p", longPrompt})
+	got := compactCommand([]string{"-p", longPrompt})
 	if len([]rune(got)) > 1_100 || !strings.Contains(got, "arguments truncated") {
 		t.Fatalf("long command was not bounded: %d runes", len([]rune(got)))
 	}
-	secret := compactCommand([]string{"docker", "exec", "-e", "CODEBUDDY_API_KEY=ck_secret", "-e", "GIT_CONFIG_KEY_0=url.https://private:token@git.example.com/.insteadof", "sandbox", "codebuddy"})
+	secret := compactCommand([]string{"docker", "exec", "-e", "OPENAI_API_KEY=ck_secret", "-e", "GIT_CONFIG_KEY_0=url.https://private:token@git.example.com/.insteadof", "sandbox"})
 	if strings.Contains(secret, "ck_secret") || strings.Contains(secret, "private:token") {
 		t.Fatalf("credential leaked into compact command: %s", secret)
 	}
@@ -1563,7 +1506,7 @@ func TestMaterializeProviderAssets(t *testing.T) {
 		MCPServers: []domain.MCPServerDefinition{{ID: "tools", Name: "Tools", Transport: "stdio", Command: "tool-server", Args: []string{"serve"}, TimeoutSec: 30}},
 	}
 	agent := domain.AgentDefinition{ID: "reviewer", Name: "Reviewer", Prompt: "Review the change."}
-	for _, kind := range []string{"claude-code", "codex", "codebuddy"} {
+	for _, kind := range []string{"claude-code", "codex"} {
 		dir := filepath.Join(t.TempDir(), kind)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
@@ -1585,33 +1528,6 @@ func TestMaterializeProviderAssets(t *testing.T) {
 			}
 			if !containsArgPair(cfg.Args, "--plugin-dir", ".agentflow/reviewer") {
 				t.Fatalf("Claude selected skills were not injected: %v", cfg.Args)
-			}
-		case "codebuddy":
-			if !containsArgPair(cfg.Args, "--system-prompt-file", ".agentflow/reviewer/agent-system.md") {
-				t.Fatalf("CodeBuddy system prompt was not injected: %v", cfg.Args)
-			}
-			if containsArg(cfg.Args, "--strict-mcp-config") {
-				t.Fatalf("CodeBuddy user MCP configuration must remain enabled: %v", cfg.Args)
-			}
-			if containsArg(cfg.Args, "-y") || containsArg(cfg.Args, "--setting-sources") || containsArg(cfg.Args, "--permission-mode") {
-				t.Fatalf("process-only CodeBuddy flags must be added once by Prepare: %v", cfg.Args)
-			}
-			if !containsArgPair(cfg.Args, "--settings", ".agentflow/reviewer/codebuddy-settings.json") {
-				t.Fatalf("CodeBuddy hook settings were not injected: %v", cfg.Args)
-			}
-			if containsArg(cfg.Args, "--plugin-dir") {
-				t.Fatalf("CodeBuddy plugin flag must be added once by Prepare: %v", cfg.Args)
-			}
-			if _, err := os.Stat(filepath.Join(dir, ".agentflow", "hooks", "codebuddy", "hook.py")); err != nil {
-				t.Fatal(err)
-			}
-			if cfg.HookOutput != ".agentflow/runtime/invoke-1/observability/hooks.ndjson" {
-				t.Fatalf("CodeBuddy hook output is not invocation-scoped: %v", cfg.HookOutput)
-			}
-			for _, name := range []string{"hooks", "codebuddy-settings.json"} {
-				if info, err := os.Lstat(filepath.Join(agentRoot, name)); err != nil || info.Mode()&os.ModeSymlink == 0 {
-					t.Fatalf("CodeBuddy Agent binding %s is not a symlink: %v, %v", name, info, err)
-				}
 			}
 		case "codex":
 			if containsArg(cfg.Args, "--ignore-user-config") {
@@ -1644,7 +1560,7 @@ func TestMaterializeProviderAssets(t *testing.T) {
 		if !strings.Contains(string(raw), "Never leak secrets") {
 			t.Fatalf("rule was not compiled for %s", kind)
 		}
-		for _, repoFile := range []string{"AGENTS.md", "CLAUDE.md", "CODEBUDDY.md"} {
+		for _, repoFile := range []string{"AGENTS.md", "CLAUDE.md"} {
 			if _, err := os.Lstat(filepath.Join(dir, repoFile)); !os.IsNotExist(err) {
 				t.Fatalf("materialize should not create repository file %s", repoFile)
 			}
@@ -1718,30 +1634,6 @@ func TestMaterializedCodexArgumentsAreAcceptedByInstalledCLI(t *testing.T) {
 	}
 }
 
-func TestMaterializeCodeBuddyDoesNotOverwriteRepositoryInstructions(t *testing.T) {
-	dir := t.TempDir()
-	agents := filepath.Join(dir, "AGENTS.md")
-	codebuddy := filepath.Join(dir, "CODEBUDDY.md")
-	if err := os.WriteFile(agents, []byte("repository policy\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink("AGENTS.md", codebuddy); err != nil {
-		t.Fatal(err)
-	}
-	_, err := materialize(dir, "invoke-1", domain.ExecutorDefinition{Kind: "codebuddy"}, domain.AgentDefinition{ID: "fixer", Name: "Fixer", Prompt: "agent policy"}, domain.AgentAssetBundle{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	raw, err := os.ReadFile(agents)
-	if err != nil || string(raw) != "repository policy\n" {
-		t.Fatalf("repository instructions changed: %q, %v", raw, err)
-	}
-	info, err := os.Lstat(codebuddy)
-	if err != nil || info.Mode()&os.ModeSymlink == 0 {
-		t.Fatalf("CODEBUDDY.md symlink changed: %v, %v", info, err)
-	}
-}
-
 func containsArg(values []string, wanted string) bool {
 	for _, value := range values {
 		if value == wanted {
@@ -1753,7 +1645,7 @@ func containsArg(values []string, wanted string) bool {
 
 func TestMaterializeIgnoresWorkspaceLocalMCP(t *testing.T) {
 	dir := t.TempDir()
-	server := filepath.Join(dir, ".codebuddy", "runtime", "replace_batch_mcp")
+	server := filepath.Join(dir, ".claude", "runtime", "replace_batch_mcp")
 	if err := os.MkdirAll(server, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -1764,13 +1656,13 @@ func TestMaterializeIgnoresWorkspaceLocalMCP(t *testing.T) {
   "mcpServers": {
     "gongfeng": {"url": "https://example.invalid/gongfeng"},
     "playwright": {"command": "npx", "args": ["-y", "@playwright/mcp@latest"]},
-    "replace-batch": {"command": "python3", "args": [".codebuddy/runtime/replace_batch_mcp/server.py"]}
+    "replace-batch": {"command": "python3", "args": [".claude/runtime/replace_batch_mcp/server.py"]}
   }
 }`
 	if err := os.WriteFile(filepath.Join(dir, ".mcp.json"), []byte(mcp), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := materialize(dir, "invoke-1", domain.ExecutorDefinition{Kind: "codebuddy"}, domain.AgentDefinition{ID: "fixer", Name: "Fixer"}, domain.AgentAssetBundle{})
+	cfg, err := materialize(dir, "invoke-1", domain.ExecutorDefinition{Kind: "claude-code"}, domain.AgentDefinition{ID: "fixer", Name: "Fixer"}, domain.AgentAssetBundle{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1796,7 +1688,7 @@ func TestMaterializeInjectsHTTPMCPAliases(t *testing.T) {
 			{ID: "gongfeng-delivery", Name: "工蜂", Transport: "http", URL: "https://mcp.example.com/gongfeng", Headers: map[string]string{"Authorization": "Bearer test-token"}},
 		},
 	}
-	_, err := materialize(dir, "invoke-1", domain.ExecutorDefinition{Kind: "codebuddy"}, domain.AgentDefinition{ID: "checker", Name: "Checker"}, assets)
+	_, err := materialize(dir, "invoke-1", domain.ExecutorDefinition{Kind: "claude-code"}, domain.AgentDefinition{ID: "checker", Name: "Checker"}, assets)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1822,35 +1714,6 @@ func TestMaterializeInjectsHTTPMCPAliases(t *testing.T) {
 		if !strings.Contains(hint, want) {
 			t.Fatalf("system prompt missing MCP rule %q:\n%s", want, hint)
 		}
-	}
-}
-
-func TestIsolateCodeBuddyFlagsSkipsProjectSettings(t *testing.T) {
-	got := isolateCodeBuddyFlags([]string{"codebuddy", "-p", "--setting-sources", "user,project,local", "--permission-mode", "dontAsk", "--output-format", "stream-json"})
-	if !containsArg(got, "-y") || !containsArgPair(got, "--setting-sources", "user") {
-		t.Fatalf("missing isolation flags: %v", got)
-	}
-	if !containsArgPair(got, "--permission-mode", "bypassPermissions") {
-		t.Fatalf("missing bypassPermissions: %v", got)
-	}
-	if containsArg(got, "user,project,local") || containsArg(got, "dontAsk") {
-		t.Fatalf("old setting sources or permission mode leaked: %v", got)
-	}
-	again := isolateCodeBuddyFlags(got)
-	ys, sources, modes := 0, 0, 0
-	for i, a := range again {
-		if a == "-y" {
-			ys++
-		}
-		if a == "--setting-sources" && i+1 < len(again) && again[i+1] == "user" {
-			sources++
-		}
-		if a == "--permission-mode" && i+1 < len(again) && again[i+1] == "bypassPermissions" {
-			modes++
-		}
-	}
-	if ys != 1 || sources != 1 || modes != 1 {
-		t.Fatalf("isolation flags should be idempotent: %v", again)
 	}
 }
 
@@ -1935,16 +1798,6 @@ func TestExecutorRunnerAppliesDriverSpecificUserConfigPolicy(t *testing.T) {
 				t.Fatalf("sandboxed Claude should inherit user settings and MCP: %v", argv)
 			}
 		}},
-		{name: "local codebuddy", driver: "local", kind: "codebuddy", check: func(t *testing.T, argv []string) {
-			if !containsArgPair(argv, "--setting-sources", "none") || !containsArg(argv, "--strict-mcp-config") {
-				t.Fatalf("local CodeBuddy compatibility flags missing: %v", argv)
-			}
-		}},
-		{name: "sandboxed codebuddy", driver: "bwrap", kind: "codebuddy", check: func(t *testing.T, argv []string) {
-			if !containsArgPair(argv, "--setting-sources", "none") || !containsArg(argv, "--strict-mcp-config") {
-				t.Fatalf("sandboxed CodeBuddy must use AgentFlow settings only: %v", argv)
-			}
-		}},
 		{name: "local codex", driver: "local", kind: "codex", check: func(t *testing.T, argv []string) {
 			if containsArg(argv, "--ignore-user-config") || containsArg(argv, "--ignore-rules") {
 				t.Fatalf("Codex no longer accepts the removed config flags: %v", argv)
@@ -1966,32 +1819,6 @@ func TestExecutorRunnerAppliesDriverSpecificUserConfigPolicy(t *testing.T) {
 			}
 			test.check(t, sb.argv)
 		})
-	}
-}
-
-func TestCodeBuddyDropsToolsAllowlistWhenHTTPMCPPresent(t *testing.T) {
-	sb := &capturingSandbox{workspace: t.TempDir(), driver: "local"}
-	ex := domain.ExecutorDefinition{
-		Kind:   "codebuddy",
-		Binary: "codebuddy",
-		Args:   []string{"-p", "--tools", "Read,Write,Edit,Bash,Glob,Grep", "--max-turns", "180"},
-	}
-	assets := domain.AgentAssetBundle{
-		MCPServers: []domain.MCPServerDefinition{
-			{ID: "gongfeng-delivery", Name: "工蜂", Transport: "http", URL: "https://mcp-gateway.example.com/gongfeng", Headers: map[string]string{"Authorization": "Bearer test-token"}},
-		},
-	}
-	if _, err := NewExecutorRunner().Run(context.Background(), sb, "invoke-mcp", ex, domain.AgentDefinition{ID: "closer", Name: "Closer"}, assets, "probe", InvocationOptions{}, nil); err != nil {
-		t.Fatal(err)
-	}
-	if containsArg(sb.argv, "--tools") || containsArg(sb.argv, "Read,Write,Edit,Bash,Glob,Grep") {
-		t.Fatalf("--tools allowlist must not hide MCP servers: %v", sb.argv)
-	}
-	if !containsArgPair(sb.argv, "--mcp-config", ".agentflow/config/closer/mcp.json") {
-		t.Fatalf("mcp-config must point at the real config file, got %v", sb.argv)
-	}
-	if sb.argv[len(sb.argv)-1] != "probe" {
-		t.Fatalf("short prompt must stay on argv, got %v", sb.argv)
 	}
 }
 
@@ -2041,7 +1868,7 @@ func TestClipOnRuneBoundaryBoundsBackoffOnMalformedInput(t *testing.T) {
 
 func TestOversizedPromptMovesOffArgvIntoSystemFile(t *testing.T) {
 	sb := &capturingSandbox{workspace: t.TempDir(), driver: "local"}
-	ex := domain.ExecutorDefinition{Kind: "codebuddy", Binary: "codebuddy", Args: []string{"-p"}}
+	ex := domain.ExecutorDefinition{Kind: "claude-code", Binary: "claude", Args: []string{"-p"}}
 	prompt := strings.Repeat("产物正文", maxArgvPromptBytes/12+100)
 	if _, err := NewExecutorRunner().Run(context.Background(), sb, "invoke-big", ex, domain.AgentDefinition{ID: "closer", Name: "Closer"}, domain.AgentAssetBundle{}, prompt, InvocationOptions{}, nil); err != nil {
 		t.Fatal(err)
@@ -2060,14 +1887,10 @@ func TestOversizedPromptMovesOffArgvIntoSystemFile(t *testing.T) {
 }
 
 func TestProviderIsolationKeepsOnlyInvocationPluginDirectory(t *testing.T) {
-	for _, kind := range []string{"claude-code", "codebuddy"} {
+	for _, kind := range []string{"claude-code"} {
 		argv := []string{kind, "--plugin-dir", "/repo/.claude/plugins/untrusted"}
 		runtimeRoot := ".agentflow/invoke-1"
-		if kind == "claude-code" {
-			argv = isolateClaudeFlags(argv, runtimeRoot+"/agent-system.md")
-		} else {
-			argv = isolateCodeBuddyFlags(argv)
-		}
+		argv = isolateClaudeFlags(argv, runtimeRoot+"/agent-system.md")
 		argv = append(argv, "--plugin-dir", runtimeRoot)
 		plugins := 0
 		for i, arg := range argv {
@@ -2085,7 +1908,7 @@ func TestProviderIsolationKeepsOnlyInvocationPluginDirectory(t *testing.T) {
 }
 
 func TestDockerWorkspaceExecAvoidsRuncWorkdirFlag(t *testing.T) {
-	got := dockerWorkspaceExecArgv([]string{"codebuddy", "--print"})
+	got := dockerWorkspaceExecArgv([]string{"claude", "--print"})
 	text := strings.Join(got, " ")
 	if strings.Contains(text, "-w") {
 		t.Fatalf("docker exec wrapper still sets -w: %v", got)
@@ -2096,7 +1919,7 @@ func TestDockerWorkspaceExecAvoidsRuncWorkdirFlag(t *testing.T) {
 	if !strings.Contains(got[2], "/workspace/.agentflow/runtime/bin") {
 		t.Fatalf("docker launch should prepend workspace agentflow bin after login, got %v", got)
 	}
-	if got[len(got)-2] != "codebuddy" || got[len(got)-1] != "--print" {
+	if got[len(got)-2] != "claude" || got[len(got)-1] != "--print" {
 		t.Fatalf("argv not preserved: %v", got)
 	}
 }
@@ -2112,7 +1935,7 @@ func TestDockerWorkspaceExecDropsInnerLoginShell(t *testing.T) {
 }
 
 func TestAdapterRequiresTerminalResult(t *testing.T) {
-	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "codebuddy", Protocol: "stream-json"}, nil)
+	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "claude-code", Protocol: "stream-json"}, nil)
 	if adapter.Finished() || adapter.Failed() {
 		t.Fatal("new adapter should be unfinished")
 	}
@@ -2131,46 +1954,10 @@ func containsArgPair(values []string, key, wanted string) bool {
 	return false
 }
 
-func TestCodeBuddyTelemetryAdapter(t *testing.T) {
-	events := []domain.TelemetryEvent{}
-	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "codebuddy", Protocol: "stream-json", Model: "deepseek-v4-pro-ioa"}, func(event domain.TelemetryEvent) {
-		events = append(events, event)
-	})
-	lines := []string{
-		`{"type":"system","subtype":"init","session_id":"session-1","model":"deepseek-v4-pro-ioa","permissionMode":"dontAsk"}`,
-		`{"type":"stream_event","session_id":"session-1","event":{"type":"content_block_start","content_block":{"type":"tool_use","id":"tool-1","name":"Write","input":{"file_path":"result.txt"}}}}`,
-		`{"type":"stream_event","session_id":"session-1","event":{"type":"content_block_delta","delta":{"type":"thinking_delta","thinking":"checking"}}}`,
-		`{"type":"stream_event","session_id":"session-1","event":{"type":"message_stop"}}`,
-		`{"type":"result","subtype":"success","session_id":"session-1","result":"done","duration_ms":100,"num_turns":1,"usage":{"input_tokens":120,"output_tokens":30,"cache_read_input_tokens":10,"cache_creation_input_tokens":20}}`,
-	}
-	for _, line := range lines {
-		adapter.Handle(domain.TelemetryEvent{Name: "process.stdout", Message: line})
-	}
-	if adapter.Result() != "done" {
-		t.Fatalf("unexpected result %q", adapter.Result())
-	}
-	var initialized, tool, reasoning, usage bool
-	for _, event := range events {
-		switch event.Name {
-		case "agent.initialized":
-			initialized = event.Model == "deepseek-v4-pro-ioa" && event.SessionID == "session-1"
-		case "tool.call":
-			tool = event.ToolCallID == "tool-1" && strings.Contains(event.Message, "Write") && strings.Contains(event.Message, "result.txt")
-		case "agent.reasoning":
-			reasoning = event.Message == "checking"
-		case "usage.final":
-			usage = event.Usage != nil && event.Usage.TotalTokens == 150
-		}
-	}
-	if !initialized || !tool || !reasoning || !usage {
-		t.Fatalf("missing normalized events: %+v", events)
-	}
-}
-
 func TestMaterializeNeverWritesProcessEnvironmentToRunContext(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("CODEBUDDY_API_KEY", "ck_secret")
-	_, err := materialize(dir, "context-probe", domain.ExecutorDefinition{Kind: "codebuddy"}, domain.AgentDefinition{ID: "fixer", Name: "Fixer"}, domain.AgentAssetBundle{})
+	t.Setenv("ANTHROPIC_API_KEY", "ck_secret")
+	_, err := materialize(dir, "context-probe", domain.ExecutorDefinition{Kind: "claude-code"}, domain.AgentDefinition{ID: "fixer", Name: "Fixer"}, domain.AgentAssetBundle{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2197,7 +1984,7 @@ func TestSummarizeToolCallIncludesCommandAndPath(t *testing.T) {
 
 func TestToolCallWaitsForInputJSONDelta(t *testing.T) {
 	events := []domain.TelemetryEvent{}
-	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "codebuddy", Protocol: "stream-json", Model: "deepseek-v4-pro-ioa"}, func(event domain.TelemetryEvent) {
+	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "claude-code", Protocol: "stream-json", Model: "deepseek-v4-pro-ioa"}, func(event domain.TelemetryEvent) {
 		events = append(events, event)
 	})
 	lines := []string{
@@ -2234,31 +2021,6 @@ func TestToolCallWaitsForInputJSONDelta(t *testing.T) {
 	}
 	if finish == "" {
 		t.Fatalf("telemetry still needs a tool finish event, got empty message")
-	}
-}
-
-func TestMCPStartupWaitReachesCodeBuddyProcess(t *testing.T) {
-	probe := []string{"sh", "-c", `printf '%s|%s' "$CODEBUDDY_FIRST_RUN_MCP_PREWAIT_TIMEOUT_MS" "$HOME"`}
-	// An ephemeral private HOME must not discard the requested wait.
-	ephemeral := CommandSpec{Argv: probe, Provider: "codebuddy", PrivateHome: true}.WithMCPStartupWait(30 * time.Second)
-	durable := CommandSpec{Argv: probe, Provider: "codebuddy"}.WithMCPStartupWait(30 * time.Second).WithPrivateHomeDir(t.TempDir())
-	for name, command := range map[string]CommandSpec{"ephemeral": ephemeral, "durable": durable} {
-		output, err := ExecuteLocalCommand(context.Background(), t.TempDir(), command, RunCredentials{}, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		wait, home, _ := strings.Cut(strings.TrimSpace(output), "|")
-		if wait != "30000" || home == "" {
-			t.Fatalf("%s: CodeBuddy MCP startup wait not applied: %q", name, output)
-		}
-	}
-	for _, command := range []CommandSpec{
-		CommandSpec{Provider: "codex"}.WithMCPStartupWait(time.Second),
-		CommandSpec{Provider: "codebuddy"}.WithMCPStartupWait(0),
-	} {
-		if _, ok := command.environment[codeBuddyMCPStartupWaitEnv]; ok {
-			t.Fatalf("unexpected MCP startup wait for %+v", command)
-		}
 	}
 }
 

@@ -31,7 +31,7 @@ func TestNormalizeAssistantApprovalMode(t *testing.T) {
 
 func TestAssistantRejectsApprovalFromAnotherAccount(t *testing.T) {
 	h, first := workbenchFixture(t)
-	if err := h.repo.PutUser(domain.User{LoginName: "different-account", CodeBuddyAPIKey: "test-only"}); err != nil {
+	if err := h.repo.PutUser(domain.User{LoginName: "different-account", ClaudeCodeAPIKey: "test-only"}); err != nil {
 		t.Fatal(err)
 	}
 	current, _ := h.repo.UserByLoginName("different-account")

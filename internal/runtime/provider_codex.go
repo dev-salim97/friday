@@ -124,7 +124,7 @@ func codexIsolationEnvKey(key string) bool {
 		}
 	}
 	switch {
-	case strings.HasPrefix(upper, "CODEBUDDY_"), strings.HasPrefix(upper, "GIT_"), strings.HasPrefix(upper, "SSH_"):
+	case strings.HasPrefix(upper, "GIT_"), strings.HasPrefix(upper, "SSH_"):
 		return false
 	default:
 		return true

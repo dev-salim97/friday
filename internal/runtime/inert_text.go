@@ -5,11 +5,11 @@ import (
 	"unicode"
 )
 
-// cliBreak is a zero-width space. It stops the CodeBuddy CLI from acting on
+// cliBreak is a zero-width space. It stops the agent CLI from acting on
 // the text after it while leaving what the model reads unchanged.
 const cliBreak = "​"
 
-// InertCLIText disarms what the CodeBuddy CLI executes when it renders a
+// InertCLIText disarms what an agent CLI executes when it renders a
 // skill (Skill tool, subagent preload) on the host it runs on:
 //
 //   - !`cmd` runs cmd in a shell, anywhere in the text, code blocks included;

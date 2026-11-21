@@ -22,7 +22,7 @@ func TestScheduledAssistantHasNoDeadline(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err := st.PutUser(domain.User{LoginName: "schedule-owner", CodeBuddyAPIKey: "test-key"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "schedule-owner", ClaudeCodeAPIKey: "test-key"}); err != nil {
 		t.Fatal(err)
 	}
 	user, _ := st.UserByLoginName("schedule-owner")
@@ -52,7 +52,7 @@ func TestScheduledAssistantAutoWritesWithoutConfirmation(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(st.Close)
-			if err := st.PutUser(domain.User{LoginName: "auto-owner", CodeBuddyAPIKey: "test-key"}); err != nil {
+			if err := st.PutUser(domain.User{LoginName: "auto-owner", ClaudeCodeAPIKey: "test-key"}); err != nil {
 				t.Fatal(err)
 			}
 			user, _ := st.UserByLoginName("auto-owner")

@@ -21,15 +21,15 @@ const (
 )
 
 // AssistantAcceptanceIdentity is the local copy of a production user's
-// CodeBuddy and Git credentials used only in disposable acceptance databases.
+// Claude Code and Git credentials used only in disposable acceptance databases.
 type AssistantAcceptanceIdentity struct {
 	LoginName                    string
 	StaffID                      int
 	ChineseName                  string
 	DeptID                       int
 	DeptName                     string
-	CodeBuddyAPIKey              string
-	CodeBuddyInternetEnvironment string
+	ClaudeCodeAPIKey             string
+	ClaudeCodeBaseURL            string
 	GitToken                     string
 }
 
@@ -52,9 +52,9 @@ func loopbackMySQLDSN(dsn string) bool {
 	return strings.Contains(dsn, "tcp(127.0.0.1:") || strings.Contains(dsn, "tcp(localhost:")
 }
 
-// LookupCodeBuddyCredentialReadOnly copies the named user's CodeBuddy key from
+// LookupClaudeCodeCredentialReadOnly copies the named user's Claude Code key from
 // a remote MySQL with a single SELECT. It never writes.
-func LookupCodeBuddyCredentialReadOnly(ctx context.Context, dsn, login string) (AssistantAcceptanceIdentity, error) {
+func LookupClaudeCodeCredentialReadOnly(ctx context.Context, dsn, login string) (AssistantAcceptanceIdentity, error) {
 	var ident AssistantAcceptanceIdentity
 	login = strings.TrimSpace(login)
 	dsn = strings.TrimSpace(dsn)
@@ -82,15 +82,15 @@ func LookupCodeBuddyCredentialReadOnly(ctx context.Context, dsn, login string) (
 	ident.LoginName = login
 	err = db.QueryRowContext(ctx, `
 SELECT COALESCE(u.staff_id, 0), COALESCE(u.chinese_name, ''), COALESCE(u.dept_id, 0), COALESCE(u.dept_name, ''),
-       COALESCE(c.codebuddy_api_key, ''),
-       COALESCE(c.codebuddy_internet_environment, ''),
+       COALESCE(c.claude_code_api_key, ''),
+       COALESCE(c.claude_code_base_url, ''),
        COALESCE((SELECT token FROM user_git_http_credentials h WHERE h.user_id=u.id AND h.host='github.com'), '')
   FROM users u
   LEFT JOIN user_configs c ON c.user_id = u.id
  WHERE u.login_name = ?
  LIMIT 1`, login).Scan(
 		&ident.StaffID, &ident.ChineseName, &ident.DeptID, &ident.DeptName,
-		&ident.CodeBuddyAPIKey, &ident.CodeBuddyInternetEnvironment, &ident.GitToken,
+		&ident.ClaudeCodeAPIKey, &ident.ClaudeCodeBaseURL, &ident.GitToken,
 	)
 	if err == sql.ErrNoRows {
 		return AssistantAcceptanceIdentity{}, fmt.Errorf("user %s not found", login)
@@ -99,18 +99,15 @@ SELECT COALESCE(u.staff_id, 0), COALESCE(u.chinese_name, ''), COALESCE(u.dept_id
 		return AssistantAcceptanceIdentity{}, fmt.Errorf("lookup %s: %w", login, err)
 	}
 	ident.GitToken = strings.TrimSpace(ident.GitToken)
-	if strings.TrimSpace(ident.CodeBuddyAPIKey) == "" {
-		return AssistantAcceptanceIdentity{}, fmt.Errorf("user %s has no CodeBuddy API Key", login)
-	}
-	if ident.CodeBuddyInternetEnvironment == "" {
-		ident.CodeBuddyInternetEnvironment = "ioa"
+	if strings.TrimSpace(ident.ClaudeCodeAPIKey) == "" {
+		return AssistantAcceptanceIdentity{}, fmt.Errorf("user %s has no Claude Code API Key", login)
 	}
 	return ident, nil
 }
 
 // SeedAssistantAcceptance writes the local test user, project, and sandbox.
 func SeedAssistantAcceptance(st *repo.Store, ident AssistantAcceptanceIdentity) (domain.User, error) {
-	if strings.TrimSpace(ident.LoginName) == "" || strings.TrimSpace(ident.CodeBuddyAPIKey) == "" {
+	if strings.TrimSpace(ident.LoginName) == "" || strings.TrimSpace(ident.ClaudeCodeAPIKey) == "" {
 		return domain.User{}, errors.New("acceptance identity is incomplete")
 	}
 	if ident.ChineseName == "" {
@@ -122,8 +119,8 @@ func SeedAssistantAcceptance(st *repo.Store, ident AssistantAcceptanceIdentity) 
 		ChineseName:                  ident.ChineseName,
 		DeptID:                       ident.DeptID,
 		DeptName:                     ident.DeptName,
-		CodeBuddyAPIKey:              ident.CodeBuddyAPIKey,
-		CodeBuddyInternetEnvironment: ident.CodeBuddyInternetEnvironment,
+		ClaudeCodeAPIKey:             ident.ClaudeCodeAPIKey,
+		ClaudeCodeBaseURL:            ident.ClaudeCodeBaseURL,
 	}); err != nil {
 		return domain.User{}, err
 	}
@@ -131,10 +128,10 @@ func SeedAssistantAcceptance(st *repo.Store, ident AssistantAcceptanceIdentity) 
 	if !ok {
 		return domain.User{}, errors.New("acceptance user missing after insert")
 	}
-	env := ident.CodeBuddyInternetEnvironment
+	baseURL := ident.ClaudeCodeBaseURL
 	if _, err := st.UpdateUserCredentials(user.ID, repo.UserCredentialUpdate{
-		CodeBuddyAPIKey:              ident.CodeBuddyAPIKey,
-		CodeBuddyInternetEnvironment: &env,
+		ClaudeCodeAPIKey:  ident.ClaudeCodeAPIKey,
+		ClaudeCodeBaseURL: &baseURL,
 	}); err != nil {
 		return domain.User{}, err
 	}
@@ -154,7 +151,7 @@ func SeedAssistantAcceptance(st *repo.Store, ident AssistantAcceptanceIdentity) 
 		}
 	}
 	user, ok = st.UserByLoginName(ident.LoginName)
-	if !ok || strings.TrimSpace(user.CodeBuddyAPIKey) == "" {
+	if !ok || strings.TrimSpace(user.ClaudeCodeAPIKey) == "" {
 		return domain.User{}, errors.New("acceptance credential was not stored")
 	}
 	if err := st.PutProject(domain.Project{

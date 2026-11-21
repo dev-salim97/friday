@@ -23,12 +23,10 @@ AGENTS.md
 AGENTS.override.md
 CLAUDE.md
 CLAUDE.local.md
-CODEBUDDY.md
 .mcp.json
 .agents/
 .codex/
 .claude/
-.codebuddy/
 `
 
 const agentFlowGitExcludeBlock = `# AgentFlow managed runtime (hooks, bindings, invocation state)
@@ -411,13 +409,13 @@ func trackedSkippedProjectAgentConfigPaths(ctx context.Context, workspace string
 }
 
 var legacyProjectAgentDirNames = map[string]bool{
-	".agents": true, ".codex": true, ".claude": true, ".codebuddy": true,
+	".agents": true, ".codex": true, ".claude": true,
 }
 
 var legacyProjectAgentFileNames = map[string]bool{
 	"AGENTS.md": true, "AGENTS.override.md": true,
 	"CLAUDE.md": true, "CLAUDE.local.md": true,
-	"CODEBUDDY.md": true, ".mcp.json": true,
+	".mcp.json": true,
 }
 
 func isLegacyProjectAgentConfigPath(path string) bool {

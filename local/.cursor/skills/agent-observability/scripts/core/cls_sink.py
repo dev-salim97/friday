@@ -53,8 +53,8 @@ def helper_path() -> Path:
 def sdk_entry_path() -> Path:
     return (
         repo_root()
-        / "cls-codebuddy"
-        / "tencentcloud-cls-sdk-codebuddy"
+        / "cls-codex"
+        / "tencentcloud-cls-sdk-codex"
         / "node_modules"
         / "tencentcloud-cls-sdk-js"
         / "dist"

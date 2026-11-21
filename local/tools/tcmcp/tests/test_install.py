@@ -45,7 +45,7 @@ def test_installation_scoped_expiring_package(client):
         assert client.get(f"/{name}").status_code == 200
     expired = api.package_path(token)
     os.utime(expired, (time.time() - api.TTL - 1,) * 2)
-    assert client.get(f"/codebuddy?project={token}").status_code == 410
+    assert client.get(f"/cursor?project={token}").status_code == 410
     assert client.get(f"/api/installations/{token}/starter.zip").status_code == 404
 
 
@@ -161,7 +161,7 @@ def test_invalid_config_untouched(tmp_path, monkeypatch, agent, invalid):
 def test_default_paths_and_codex_home(monkeypatch, tmp_path):
     monkeypatch.delenv("TCMCP_CLIENT_CONFIG", raising=False)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    for agent in ("cursor", "codebuddy", "workbuddy"):
+    for agent in ("cursor", "workbuddy"):
         assert installer.config_path(agent) == tmp_path / f".{agent}/mcp.json"
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "custom-codex"))
     assert installer.config_path("codex") == tmp_path / "custom-codex/config.toml"
@@ -198,7 +198,7 @@ def test_install_failure_leaves_client_untouched(tmp_path, monkeypatch):
 
 
 def test_piped_script_no_tty_reports_missing_id(tmp_path):
-    script = api.render_script("codebuddy", "http://testserver")
+    script = api.render_script("cursor", "http://testserver")
     env = {**os.environ, "TCMCP_PYTHON": sys.executable}
     env.pop("TCMCP_INSTALL_ID", None)
     result = subprocess.run(["bash"], input=script, text=True, capture_output=True, env=env, start_new_session=True)

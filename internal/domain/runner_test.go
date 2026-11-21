@@ -9,7 +9,6 @@ func TestPublicRunnerTaskScrubsMultiRepositoryTokens(t *testing.T) {
 	task := RunnerTask{
 		ID: "task-1",
 		Invocation: &RunnerInvocation{
-			CodeBuddyAPIKey: "cb-secret",
 			Repository: &RunnerRepository{
 				CloneURL: "git@example.com:a.git",
 				GitToken: "single-token",
@@ -22,9 +21,6 @@ func TestPublicRunnerTaskScrubsMultiRepositoryTokens(t *testing.T) {
 	}
 	public := PublicRunnerTask(task)
 	inv := public.Invocation
-	if inv.CodeBuddyAPIKey != "" {
-		t.Fatal("CodeBuddyAPIKey must be scrubbed")
-	}
 	if inv.Repository == nil || inv.Repository.GitToken != "" {
 		t.Fatal("legacy repository GitToken must be scrubbed")
 	}
@@ -77,9 +73,6 @@ func TestAgentCLIRuntimeAuthModeIsPersonal(t *testing.T) {
 	}
 	if r.RuntimeAuthMode("codex") != RuntimeAuthLocal {
 		t.Fatal("codex local login must stay local")
-	}
-	if r.RuntimeAuthMode("codebuddy") != RuntimeAuthPersonal {
-		t.Fatal("codebuddy still defaults to personal credentials")
 	}
 	if r.RuntimeAuthMode("agy") != RuntimeAuthLocal {
 		t.Fatal("Antigravity supports local account login")

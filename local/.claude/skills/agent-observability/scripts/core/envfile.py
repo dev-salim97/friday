@@ -9,7 +9,7 @@ def project_root(cwd: str | None = None) -> Path:
     """解析用于查找 `.env` 的项目根目录。"""
     if cwd:
         return Path(cwd).expanduser().resolve()
-    env_cwd = str(os.environ.get("CODEBUDDY_PROJECT_DIR") or "").strip()
+    env_cwd = str(os.environ.get("CLAUDE_PROJECT_DIR") or "").strip()
     if env_cwd:
         return Path(env_cwd).expanduser().resolve()
     return Path.cwd().resolve()

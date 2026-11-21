@@ -28,11 +28,11 @@ def _write_team_config(team_dir: Path, *, lead_session_id: str, member_cwd: str)
 
 class TaskSlugFromTeamDirTests(unittest.TestCase):
     def test_strips_fixed_prefix(self):
-        team_dir = Path("/tmp/.codebuddy/teams/multi-agents-devflow-my-task_20260911_1200")
+        team_dir = Path("/tmp/.codex/teams/multi-agents-devflow-my-task_20260911_1200")
         self.assertEqual(devflow.task_slug_from_team_dir(team_dir), "my-task_20260911_1200")
 
     def test_returns_none_for_non_devflow_team_dir(self):
-        team_dir = Path("/tmp/.codebuddy/teams/some-other-team")
+        team_dir = Path("/tmp/.codex/teams/some-other-team")
         self.assertIsNone(devflow.task_slug_from_team_dir(team_dir))
 
 
@@ -110,7 +110,7 @@ class ResolveAndDiffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             project_dir = Path(td) / "project"
             project_dir.mkdir()
-            state_path = project_dir / ".codebuddy" / "skills" / "agent-observability" / "logs" / ".state.json"
+            state_path = project_dir / ".codex" / "skills" / "agent-observability" / "logs" / ".state.json"
             sid = "sid-long-lived"
 
             # 会话早期：还没有任何 devflow 痕迹。
@@ -134,7 +134,7 @@ class ResolveAndDiffTests(unittest.TestCase):
             root = Path(td)
             project_dir = root / "project"
             project_dir.mkdir()
-            config_home = root / "codebuddy-home"
+            config_home = root / "codex-home"
             teams_root = config_home / "teams"
             team_dir = teams_root / "multi-agents-devflow-fix-token-bypass_20260911_0900"
             _write_team_config(team_dir, lead_session_id="sid-42", member_cwd=str(project_dir))
@@ -152,10 +152,10 @@ class ResolveAndDiffTests(unittest.TestCase):
             }), encoding="utf-8")
 
             import os
-            old_env = os.environ.get("CODEBUDDY_CONFIG_DIR")
-            os.environ["CODEBUDDY_CONFIG_DIR"] = str(config_home)
+            old_env = os.environ.get("CLAUDE_CONFIG_DIR")
+            os.environ["CLAUDE_CONFIG_DIR"] = str(config_home)
             try:
-                state_path = project_dir / ".codebuddy" / "skills" / "agent-observability" / "logs" / ".state.json"
+                state_path = project_dir / ".codex" / "skills" / "agent-observability" / "logs" / ".state.json"
                 sid = "sid-42"
 
                 # 第一次调用：发现 devflow 上下文，但因为是首次观测不产出 changes。
@@ -186,9 +186,9 @@ class ResolveAndDiffTests(unittest.TestCase):
                 self.assertEqual(third["changes"], [])
             finally:
                 if old_env is None:
-                    os.environ.pop("CODEBUDDY_CONFIG_DIR", None)
+                    os.environ.pop("CLAUDE_CONFIG_DIR", None)
                 else:
-                    os.environ["CODEBUDDY_CONFIG_DIR"] = old_env
+                    os.environ["CLAUDE_CONFIG_DIR"] = old_env
 
 
 class PortableSchemaStageSnapshotTests(unittest.TestCase):
@@ -200,7 +200,7 @@ class PortableSchemaStageSnapshotTests(unittest.TestCase):
             "current_stage": "IMPLEMENT",
             "size_class": "medium",
             "execution_mode": "isolated",
-            "host_adapter": "codebuddy",
+            "host_adapter": "codex",
             "run_id": "run-abc",
             "stages": {
                 "DESIGN": {"status": "completed", "executor_role": "devflow-architect", "retry_count": 0},
@@ -295,7 +295,7 @@ class ArtifactsScanFallbackTests(unittest.TestCase):
         必须切换到新的那个，而且两个 task_slug 各自的 diff 历史不能互相污染。"""
         with tempfile.TemporaryDirectory() as td:
             project_dir = Path(td) / "project"
-            state_path = project_dir / ".codebuddy" / "skills" / "agent-observability" / "logs" / ".state.json"
+            state_path = project_dir / ".codex" / "skills" / "agent-observability" / "logs" / ".state.json"
             sid = "sid-reused-across-two-runs"
 
             first_dir = project_dir / "artifacts" / "first-task_20260914_0900"
@@ -353,10 +353,10 @@ class ArtifactsScanFallbackTests(unittest.TestCase):
             }), encoding="utf-8")
 
             import os
-            old_env = os.environ.get("CODEBUDDY_CONFIG_DIR")
-            os.environ["CODEBUDDY_CONFIG_DIR"] = str(Path(td) / "empty-codebuddy-home")
+            old_env = os.environ.get("CLAUDE_CONFIG_DIR")
+            os.environ["CLAUDE_CONFIG_DIR"] = str(Path(td) / "empty-codex-home")
             try:
-                state_path = project_dir / ".codebuddy" / "skills" / "agent-observability" / "logs" / ".state.json"
+                state_path = project_dir / ".codex" / "skills" / "agent-observability" / "logs" / ".state.json"
                 sid = "sid-spawn-1"
 
                 first = devflow.resolve_and_diff(state_path, sid, str(project_dir))
@@ -380,9 +380,9 @@ class ArtifactsScanFallbackTests(unittest.TestCase):
                 self.assertEqual(second["changes"][0]["status"], "failed")
             finally:
                 if old_env is None:
-                    os.environ.pop("CODEBUDDY_CONFIG_DIR", None)
+                    os.environ.pop("CLAUDE_CONFIG_DIR", None)
                 else:
-                    os.environ["CODEBUDDY_CONFIG_DIR"] = old_env
+                    os.environ["CLAUDE_CONFIG_DIR"] = old_env
 
 
 if __name__ == "__main__":

@@ -29,20 +29,16 @@ type User struct {
 	DeptName            string                        `json:"deptName"`
 	// PlatformRole is a platform-wide role, independent of project membership.
 	// "admin" may edit generic SOP templates; empty is a regular user.
-	PlatformRole                 string     `json:"platformRole,omitempty"`
-	GitToken                     string     `json:"gitToken,omitempty"`
-	GitHubCredentialConfigured   bool       `json:"gitHubCredentialConfigured,omitempty"`
-	GitTokenOAuth                bool       `json:"gitTokenOAuth,omitempty"`
-	GitSSHKeyConfigured          bool       `json:"gitSshKeyConfigured,omitempty"`
-	GitHTTPCredentialsConfigured bool       `json:"gitHttpCredentialsConfigured,omitempty"`
-	GongfengRefreshToken         string     `json:"-"`
-	GongfengTokenExpiresAt       time.Time  `json:"-"`
-	CodeBuddyAPIKey              string     `json:"codeBuddyApiKey,omitempty"`
-	CodeBuddyAPIKeyConfigured    bool       `json:"codeBuddyApiKeyConfigured,omitempty"`
-	CodeBuddyInternetEnvironment string     `json:"codeBuddyInternetEnvironment,omitempty"`
-	CodeBuddyModels              []CLIModel `json:"codeBuddyModels,omitempty"`
-	CreatedAt                    time.Time  `json:"createdAt"`
-	UpdatedAt                    time.Time  `json:"updatedAt"`
+	PlatformRole                 string    `json:"platformRole,omitempty"`
+	GitToken                     string    `json:"gitToken,omitempty"`
+	GitHubCredentialConfigured   bool      `json:"gitHubCredentialConfigured,omitempty"`
+	GitTokenOAuth                bool      `json:"gitTokenOAuth,omitempty"`
+	GitSSHKeyConfigured          bool      `json:"gitSshKeyConfigured,omitempty"`
+	GitHTTPCredentialsConfigured bool      `json:"gitHttpCredentialsConfigured,omitempty"`
+	GongfengRefreshToken         string    `json:"-"`
+	GongfengTokenExpiresAt       time.Time `json:"-"`
+	CreatedAt                    time.Time `json:"createdAt"`
+	UpdatedAt                    time.Time `json:"updatedAt"`
 }
 
 const PlatformRoleAdmin = "admin"
@@ -144,23 +140,6 @@ func NormalizeGitPlatform(raw string) (string, bool) {
 	}
 }
 
-// NormalizeCodeBuddyInternetEnvironment maps a network environment chosen in
-// personal settings to the CODEBUDDY_INTERNET_ENVIRONMENT value: "" for the
-// international edition, "internal" for the China edition and "ioa" for iOA.
-// The CLI silently falls back to the international edition for any value it
-// does not recognize, so unknown values report ok=false instead of being saved.
-func NormalizeCodeBuddyInternetEnvironment(raw string) (value string, ok bool) {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "", "public", "intl", "international", "国际站":
-		return "", true
-	case "internal", "china", "cn", "国内站":
-		return "internal", true
-	case "ioa":
-		return "ioa", true
-	}
-	return "", false
-}
-
 // IsPlatformAdmin reports whether the user holds the platform-admin role.
 func IsPlatformAdmin(u User) bool {
 	return strings.EqualFold(strings.TrimSpace(u.PlatformRole), PlatformRoleAdmin)
@@ -176,8 +155,6 @@ func PublicUser(u User) User {
 	u.GitToken = ""
 	u.GongfengRefreshToken = ""
 	u.GongfengTokenExpiresAt = time.Time{}
-	u.CodeBuddyAPIKeyConfigured = strings.TrimSpace(u.CodeBuddyAPIKey) != ""
-	u.CodeBuddyAPIKey = ""
 	if len(u.AgentCLICredentials) > 0 {
 		public := make(map[string]AgentCLICredential, len(u.AgentCLICredentials))
 		for kind, cred := range u.AgentCLICredentials {

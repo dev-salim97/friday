@@ -20,7 +20,7 @@ func sharedWorkbenchFixture(t *testing.T) (*assistantHandlers, domain.User, doma
 	t.Helper()
 	h, a := workbenchFixture(t)
 	for _, name := range []string{"peer", "outsider"} {
-		if err := h.repo.PutUser(domain.User{LoginName: name, CodeBuddyAPIKey: name + "-test-key"}); err != nil {
+		if err := h.repo.PutUser(domain.User{LoginName: name, ClaudeCodeAPIKey: name + "-test-key"}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -80,7 +80,7 @@ func TestSharedRunConversationVisibilityAndAttribution(t *testing.T) {
 	actor := int64(0)
 	h.generate = func(_ context.Context, prompt string, u domain.User) (string, error) {
 		actor = u.ID
-		if u.CodeBuddyAPIKey != b.CodeBuddyAPIKey {
+		if u.ClaudeCodeAPIKey != b.ClaudeCodeAPIKey {
 			t.Error("creator credentials reused")
 		}
 		return "角色回复", nil
@@ -181,7 +181,7 @@ func TestRoleMentionKeepsMainBotSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	root := t.TempDir()
-	bin := filepath.Join(root, "codebuddy")
+	bin := filepath.Join(root, "claude")
 	argsFile := filepath.Join(root, "args")
 	script := `#!/bin/sh
 for arg in "$@"; do printf '%s\n' "$arg"; done > '` + argsFile + `'
@@ -190,7 +190,7 @@ printf '%s\n' '{"type":"result","result":"已派发实现工程师"}'
 	if err := os.WriteFile(bin, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	messages := append(session.Messages, assistantMessage{Role: "user", Content: "你如何实现", References: []domain.AssistantReference{{Type: "agent", ID: role.ID}}})
 	body, _ := json.Marshal(assistantRequest{ProjectID: "workbench", RunID: "shared-run", SessionID: session.ID, Messages: messages})
 	c, w := workbenchContext(b, "POST", "/api/assistant/chat", bytes.NewBuffer(body))
@@ -209,7 +209,7 @@ printf '%s\n' '{"type":"result","result":"已派发实现工程师"}'
 			values[v] = lines[i+1]
 		}
 	}
-	home := filepath.Join(assistantSharedSessionRoot(session.ID), "home", ".codebuddy")
+	home := filepath.Join(assistantSharedSessionRoot(session.ID), "home", ".claude")
 	agent, err := os.ReadFile(filepath.Join(home, "agents", "role-real-dev.md"))
 	if err != nil || strings.Contains(values["--system-prompt"], "你是 实现工程师") || !strings.Contains(string(agent), role.Prompt) {
 		t.Fatal("role must be a subagent, not replace Main Bot", err)

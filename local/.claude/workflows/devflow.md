@@ -1,6 +1,6 @@
 # Claude Code DevFlow
 
-`.claude/` 是 Claude Code 独立工作流资产，不是 `.claude/` 的符号链接或运行时代理。
+`.claude/` 是 Claude Code 独立工作流资产。
 
 ## 资产边界
 
@@ -15,9 +15,6 @@ Claude Code devflow 只读取：
 - `.claude/rules/*.mdc`
 - `.claude/checklists/*.md`
 - `.claude/skills/devflow-codex/SKILL.md`
-
-`.claude/` 保留给 CodeBuddy 使用。Claude Code 工作流不得在运行时读取
-`.claude/` 的 agents、rules、runtime、commands、hooks 或 settings。
 
 medium/large 需求必须先由主 Claude Code 线程执行 TASK-01：读取并使用
 `superpowers:brainstorming` 做需求分析与澄清，产物写入
@@ -41,4 +38,4 @@ small 路径进入 SOLO，不执行 TASK-01。
 2. `.agents/skills/superpowers-brainstorming` 是否指向 `../../.claude/skills/superpowers/brainstorming`
 3. `.claude/skills/devflow-codex/SKILL.md` 是否存在且权限为 `644`
 4. `.claude/skills/superpowers/brainstorming/SKILL.md` 是否存在
-5. `.claude` 是否为真实目录，而不是指向 `.claude` 的符号链接
+5. `.claude` 是否为真实目录，而不是符号链接

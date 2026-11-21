@@ -15,7 +15,7 @@ import (
 func TestAgentHooksCompileForAllCLIsAndStayInvocationScoped(t *testing.T) {
 	hook := domain.AgentHook{ID: "audit", Name: "Audit", Event: "PreToolUse", Matcher: "Bash", Language: "python", Script: "import json, sys\nprint(json.load(sys.stdin)['hook_event_name'])", TimeoutSec: 7}
 	agent := domain.AgentDefinition{ID: "reviewer", Name: "Reviewer", Hooks: []domain.AgentHook{hook}}
-	for _, kind := range []string{"claude-code", "codebuddy", "codex"} {
+	for _, kind := range []string{"claude-code", "codex"} {
 		t.Run(kind, func(t *testing.T) {
 			workspace := t.TempDir()
 			compiled, err := materialize(workspace, "invoke-1", domain.ExecutorDefinition{Kind: kind, Binary: kind}, agent, domain.AgentAssetBundle{})
@@ -63,9 +63,6 @@ func TestAgentHooksCompileForAllCLIsAndStayInvocationScoped(t *testing.T) {
 				if !containsArgPair(compiled.Args, "--settings", ".agentflow/config/reviewer/claude-settings.json") {
 					t.Fatalf("Claude settings not attached: %v", compiled.Args)
 				}
-			case "codebuddy":
-				settings := filepath.Join(workspace, ".agentflow", "config", "reviewer", "codebuddy-settings.json")
-				assertHookSettings(t, settings, "PreToolUse", "python3 '.agentflow/config/reviewer/hooks/audit-agentflow.py'")
 			case "codex":
 				joined := strings.Join(compiled.Args, " ")
 				if !strings.Contains(joined, "hooks.PreToolUse=") || !strings.Contains(joined, "audit-agentflow.py") {

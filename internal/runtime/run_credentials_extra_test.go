@@ -134,7 +134,7 @@ func TestConversationPathBindsExtraCredentialEnv(t *testing.T) {
 	sb := &localSandbox{id: "extra-cred-conversation", workspace: t.TempDir()}
 	command := CommandSpec{
 		Argv:               []string{"cli", "--model", "m"},
-		Provider:           "codebuddy",
+		Provider:           "claude-code",
 		CredentialBindings: []CredentialBinding{BindExtra},
 		ExtraCredentialEnv: map[string]string{"MY_TOOL_TOKEN": "gateway", "MY_ABSENT_TOKEN": "absent"},
 	}

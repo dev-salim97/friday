@@ -47,7 +47,6 @@ func (h *syncHandlers) syncConfig(c *gin.Context) {
 }
 
 func (h *syncHandlers) syncNow(c *gin.Context) {
-	// Reload MCP auth tokens from ~/.codebuddy/mcp.json in case they refreshed
 	cfg := h.repo.SyncConfig()
 	h.configureSync(cfg)
 	go func() {

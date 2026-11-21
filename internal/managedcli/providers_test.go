@@ -11,7 +11,7 @@ import (
 
 func TestDefaultProvidersIgnoreLegacyConfiguration(t *testing.T) {
 	for _, action := range []string{"check", "update"} {
-		for _, input := range []string{"", "invalid-json", `{"enabled":false,"providers":{"codex":{"enabled":false},"codebuddy":{"enabled":false},"claude-code":{"enabled":false}},"registry":"https://not-the-registry.invalid","minimumAgeHours":0}`} {
+		for _, input := range []string{"", "invalid-json", `{"enabled":false,"providers":{"codex":{"enabled":false},"claude-code":{"enabled":false}},"registry":"https://not-the-registry.invalid","minimumAgeHours":0}`} {
 			t.Run(action+"/"+input, func(t *testing.T) {
 				f := newUpdaterFixture(t)
 				path := filepath.Join(f.manager.Root, "config.json")
@@ -61,16 +61,12 @@ func TestFixedProvidersAndSafetyBounds(t *testing.T) {
 			Package: "@openai/codex", Binary: "codex", Help: []string{"exec", "--help"},
 			Flags: []string{"--json", "--sandbox", "--skip-git-repo-check", "--model"},
 		},
-		"codebuddy": {
-			Package: "@tencent-ai/codebuddy-code", Binary: "codebuddy", Help: []string{"--help"},
-			Flags: []string{"--print", "--output-format", "--permission-mode", "--setting-sources", "--system-prompt-file", "--mcp-config", "--strict-mcp-config", "--settings", "--resume", "--plugin-dir"},
-		},
 		"claude-code": {
 			Package: "@anthropic-ai/claude-code", Binary: "claude", Help: []string{"--help"},
 			Flags: []string{"--print", "--output-format", "--verbose", "--permission-mode", "--setting-sources", "--system-prompt-file", "--mcp-config", "--settings", "--resume", "--plugin-dir"},
 		},
 	}
-	if !reflect.DeepEqual(providerSpecs, want) || !reflect.DeepEqual(providerNames(), []string{"claude-code", "codebuddy", "codex"}) {
+	if !reflect.DeepEqual(providerSpecs, want) || !reflect.DeepEqual(providerNames(), []string{"claude-code", "codex"}) {
 		t.Fatal("official packages or required compatibility arguments changed")
 	}
 	for _, root := range []string{"", "/", "relative", "/tmp/../tmp/cli"} {

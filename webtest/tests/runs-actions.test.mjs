@@ -99,7 +99,7 @@ test('run helpers merge streams and format timing, output, logs, telemetry, prev
       tokens:[formatTokens(12),formatTokens(12500),formatTokens(2500000)],
       outputs,logs,workspace,preview,statuses,gate,compact,
       adapters:[matchTelemetryAdapter({source:{adapter:'agent-hooks-v1'}},'hooks'),
-        matchTelemetryAdapter({source:{adapter:'codebuddy-otel-v1'}},'live')],
+        matchTelemetryAdapter({source:{adapter:'agent-hooks-v1'}},'live')],
       urls:[vscodeWorkbenchURL('run x',{embed:true}),vscodeWindowName('run x!'),
         previewCandidateHttpsURL('http://example.com:80/path')],
       clean:[runWorkspaceWasCleaned({workspaceCleanedAt:'1970-01-01'}),runWorkspaceWasCleaned({workspaceCleanedAt:'2026-01-01'})],
@@ -140,7 +140,7 @@ test('run helpers merge streams and format timing, output, logs, telemetry, prev
   app.evaluate(`
     state.activeRun={...state.activeRun,status:'failed',artifacts:[
       {id:'art-1',nodeId:'b',name:'report.md',path:'report.md',attempt:2,size:1200,sha256:'abcdef',mediaType:'text/markdown'}]};
-    state.selectedRun='run-x';state.currentUser.codeBuddyApiKeyConfigured=true;
+    state.selectedRun='run-x';
     const host=document.querySelector('#runDetail');host.dataset.runId='run-x';
     host.innerHTML='<div data-run-pane="eval"></div>';
   `);
@@ -225,7 +225,7 @@ test('run helpers merge streams and format timing, output, logs, telemetry, prev
   assert.equal(app.router.calls.find(c => c.path.endsWith('/logs.txt')).method, 'GET');
   app.evaluate(`
     const evalRun={id:'run-x',status:'failed',workflowId:'flow-1',nodes:{}};
-    state.activeRun=evalRun;state.selectedRun='run-x';state.currentUser.codeBuddyApiKeyConfigured=true;
+    state.activeRun=evalRun;state.selectedRun='run-x';
   `);
   await app.evaluate(`startRunEval(state.activeRun)`);
   assert.equal(app.router.calls.find(c => c.method === 'POST' && c.path === '/api/runs/run-x/eval').body.model, 'model-x');

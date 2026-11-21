@@ -1176,14 +1176,14 @@ export default function App() {
         <button
           className="brand-home"
           onClick={startNewChat}
-          aria-label="LoopForge 首页"
+          aria-label="Friday 首页"
           inert={!sidebar}
           aria-hidden={!sidebar || undefined}
         >
           <span className="brand-icon">
             <HarnessIcon name="workflow" size={20} />
           </span>
-          <strong>LoopForge</strong>
+          <strong>Friday</strong>
         </button>
         <IconButton
           className="sidebar-toggle"
@@ -1796,32 +1796,6 @@ export default function App() {
                 <IconButton label="关闭提示" onClick={() => chat.setError("")}>
                   <HarnessIcon name="close" size={15} />
                 </IconButton>
-              </div>
-            ) : null}
-            {chat.ready &&
-            !chat.local &&
-            chat.user &&
-            !chat.user.isGuest &&
-            !chat.user.codeBuddyApiKeyConfigured &&
-            !chat.sponsoredModel &&
-            chat.executor === "codebuddy" &&
-            !chat.readOnly &&
-            credentialHint(chat.error)?.field !== "codeBuddyApiKey" ? (
-              <div className="credential-notice" role="status">
-                <HarnessIcon name="key" size={15} aria-hidden="true" />
-                <span>
-                  当前执行器 CodeBuddy 需要先配置 CodeBuddy API Key。
-                  {chat.user.codexApiKeyConfigured ||
-                  chat.user.claudeCodeApiKeyConfigured
-                    ? "你已配置 Codex / Claude Code Key，也可以在输入框下方把执行器切换过去。"
-                    : ""}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => openCredentialSettings("codeBuddyApiKey")}
-                >
-                  去配置
-                </button>
               </div>
             ) : null}
             {chat.readOnly ? (
@@ -2506,8 +2480,6 @@ export default function App() {
         projects={chat.projects}
         projectId={chat.projectId}
         defaultModel={chat.model}
-        sponsoredModel={chat.sponsoredModel}
-        sponsoredModels={chat.sponsoredModels}
         onClose={() => setQuickAccessOpen(false)}
         onOpenView={(view) => navigate(view)}
         onCredentialsSaved={chat.refreshUser}

@@ -32,29 +32,6 @@ const CREDENTIAL_GROUPS=[
   {id:'platform',name:'平台集成',sub:'代码仓库与统一认证',icon:'key'},
   {id:'model',name:'模型与执行',sub:'AI 对话与编码 CLI',icon:'sparkles'},
 ];
-// A CodeBuddy key only works on the edition that issued it; the CLI treats unknown values as 国际站.
-// Keep in sync with chatbot/src/credentials.js and domain.NormalizeCodeBuddyInternetEnvironment.
-const CODEBUDDY_ENVIRONMENTS=[
-  {value:'',label:'国际站',site:'codebuddy.ai',keyUrl:'https://www.codebuddy.ai/profile/keys'},
-  {value:'internal',label:'国内站',site:'copilot.tencent.com',keyUrl:'https://copilot.tencent.com/profile/'},
-  {value:'ioa',label:'iOA',site:'tencent.sso.copilot.tencent.com',keyUrl:'https://tencent.sso.copilot.tencent.com/profile/keys'},
-];
-const CODEBUDDY_ENVIRONMENT_ALIASES={public:'',intl:'',international:'','国际站':'',china:'internal',cn:'internal','国内站':'internal'};
-// The CLI receives the stored text as-is, so only the exact values count; returns null for anything else.
-function codeBuddyEnvironment(value){
-  const key=String(value||'').trim();
-  return CODEBUDDY_ENVIRONMENTS.find(env=>env.value===key)||null;
-}
-// What an old free-text value most likely meant (china → 国内站), used to preselect the fix.
-function codeBuddyEnvironmentIntent(value){
-  const key=String(value||'').trim().toLowerCase();
-  const normalized=Object.prototype.hasOwnProperty.call(CODEBUDDY_ENVIRONMENT_ALIASES,key)?CODEBUDDY_ENVIRONMENT_ALIASES[key]:key;
-  return CODEBUDDY_ENVIRONMENTS.find(env=>env.value===normalized)||null;
-}
-// A stored value the CLI does not take as written; it connects to 国际站 until it is saved again.
-function codeBuddyEnvironmentLegacy(value){const raw=String(value||'').trim();return !!raw&&!codeBuddyEnvironment(raw)}
-function codeBuddyKeyURL(value){return (codeBuddyEnvironmentIntent(value)||CODEBUDDY_ENVIRONMENTS[0]).keyUrl}
-function codeBuddyKeyLinkLabel(value){return `前往${(codeBuddyEnvironmentIntent(value)||CODEBUDDY_ENVIRONMENTS[0]).label}获取 API Key`}
 const CREDENTIAL_KINDS=[
   {key:'gitToken',group:'platform',name:'GitHub',short:'仓库授权',logo:'github',monochrome:true,
     use:'克隆私有仓库、创建任务分支、推送交付产物',
@@ -66,14 +43,6 @@ const CREDENTIAL_KINDS=[
     use:'SSH 密钥用于克隆和推送；创建 PR/MR 需要访问令牌',dialog:()=>openGitSSHKeys(),action:'管理密钥'},
   {key:'gitHttpCredentials',group:'platform',name:'Git HTTPS',short:'Git 访问令牌',icon:'lock',
     use:'按主机管理 HTTPS 访问令牌，工作区的 git、gh、glab 自动认证',dialog:()=>openGitHTTPCredentials(),action:'管理令牌'},
-  {key:'codeBuddyApiKey',group:'model',name:'CodeBuddy',short:'CodeBuddy API Key',logo:'codebuddy',
-    use:'AI 对话与 SOP 的 CodeBuddy 执行器',
-    description:'AI 对话（含 Claude、GPT 等模型）和 SOP 的 CodeBuddy 执行器都使用它；网络环境按账号所在环境配置。',
-    guide:[['先在下方选择 CodeBuddy 账号所在的网络环境：国际站、国内站或 iOA'],['登录该站点的 API Key 页面，新建 API Key',codeBuddyKeyURL,codeBuddyKeyLinkLabel],['复制以 <code>ck_</code> 开头的密钥粘贴到下方；DeepSeek、OpenAI 等第三方模型的 Key 不能填在这里']],
-    placeholder:'请输入个人 ck_ key',
-    extra:{name:'codeBuddyInternetEnvironment',label:'网络环境',options:CODEBUDDY_ENVIRONMENTS},
-    models:{name:'codeBuddyModels',engine:'codebuddy'},
-    impact:'AI 对话将只能使用默认模型，CodeBuddy 执行器节点会失败。'},
   {key:'codexApiKey',group:'model',name:'Codex',short:'Codex API Key',logo:'codex',monochrome:true,
     use:'AI 对话选择 Codex 执行器，以及以 Codex 运行的 SOP 节点',
     description:'AI 对话切换到 Codex 后可选用模型目录里的模型，SOP 在执行机器上以 Codex 运行的节点也使用它。目录为空时，未填 Base URL 使用 Codex 自带模型，填写后跟随服务发布的模型；也可以自己挑选、排序和命名。',
@@ -487,7 +456,7 @@ function validateCredentialCatalog(catalog,models){
   return false;
 }
 // Platform features depend on these, in the order people should configure them.
-const CREDENTIAL_RECOMMENDED=['gitToken','codeBuddyApiKey'];
+const CREDENTIAL_RECOMMENDED=['gitToken','claudeCodeApiKey'];
 const CREDENTIAL_PAT_WARNING='请填写 GitHub <b>个人访问令牌（PAT）</b>，为目标仓库授予 <b>Contents</b> 和 <b>Pull requests</b> 的读写权限；少勾权限会导致克隆 / 推送仓库失败。';
 function credentialKind(key){return CREDENTIAL_KINDS.find(kind=>kind.key===key)||null}
 // Kinds with a dialog manage several entries there instead of the inline editor.
@@ -506,37 +475,13 @@ function credentialNextKind(user){return CREDENTIAL_RECOMMENDED.map(credentialKi
 function credentialSecretError(kind,value){
   return '';
 }
-// Advisory only: a third-party model key is accepted here but CodeBuddy answers it with 401.
-function credentialSecretWarning(kind,value){
-  const text=String(value||'').trim();
-  if(kind?.key!=='codeBuddyApiKey'||!text||text.startsWith('ck_'))return '';
-  return /^sk-/i.test(text)
-    ?'这像是 DeepSeek、OpenAI 等第三方模型的 Key，CodeBuddy 会拒绝；第三方 Key 请改填到 Claude Code 或 Codex 凭证并设置 Base URL'
-    :'CodeBuddy API Key 通常以 ck_ 开头，请确认复制的是 CodeBuddy 的 Key';
-}
-// The value an extra field starts from. An old network environment preselects what it meant (china → 国内站),
-// and one that cannot be guessed shows as 国际站, which is what the CLI uses.
+function credentialSecretWarning(){return ''}
+// The value an extra field starts from.
 function credentialExtraValue(kind,value){
-  if(kind?.extra?.options)return codeBuddyEnvironmentIntent(value)?.value??'';
   return value||kind?.extra?.fallback||'';
 }
 function credentialExtraLabel(kind,value){
-  if(kind.extra.options){const env=codeBuddyEnvironment(value)||CODEBUDDY_ENVIRONMENTS[0];return `${env.label} · ${env.site}`}
   return String(value||'').trim()||(kind.extra.url?'官方地址':kind.extra.fallback||'');
-}
-function codeBuddyEnvironmentHintHTML(selected,stored=''){
-  const raw=String(stored||'').trim(),legacy=codeBuddyEnvironmentLegacy(raw)?`原来填写的「${raw}」无法识别，CodeBuddy 实际按国际站连接，点保存改为上面选择的环境。`:'';
-  return `${escapeHTML(legacy)}Key 只能在创建它的站点使用 · <a href="${escapeHTML(codeBuddyKeyURL(selected))}" target="_blank" rel="noopener noreferrer" data-credential-key-link>${escapeHTML(codeBuddyKeyLinkLabel(selected))} ↗</a>`;
-}
-function credentialSelectFieldHTML(kind,stored,note=''){
-  const selected=credentialExtraValue(kind,stored);
-  const options=kind.extra.options.map(option=>`<option value="${escapeHTML(option.value)}"${option.value===selected?' selected':''}>${escapeHTML(option.label)} · ${escapeHTML(option.site)}</option>`).join('');
-  return `<label class="credential-field"><span>${escapeHTML(kind.extra.label)}${note?`<em>${escapeHTML(note)}</em>`:''}</span><div class="credential-input is-plain is-select"><select name="extra">${options}</select></div><small class="credential-env-hint" data-credential-env-hint>${codeBuddyEnvironmentHintHTML(selected,stored)}</small></label>`;
-}
-// Keeps the 获取 API Key links pointed at the edition that is selected now.
-function refreshCredentialEnvironmentLinks(scope,value){
-  const hint=scope?.querySelector('[data-credential-env-hint]');if(hint)hint.innerHTML=codeBuddyEnvironmentHintHTML(value);
-  scope?.querySelectorAll('[data-wizard-link][data-environment-link]').forEach(link=>{link.href=codeBuddyKeyURL(value);link.textContent=`${codeBuddyKeyLinkLabel(value)} ↗`});
 }
 function credentialExtraError(kind,value,protocol){
   const text=String(value||'').trim();
@@ -602,10 +547,6 @@ function credentialSubline(kind,user){
     if(!result.valid)return source+dot+`<span class="is-err">缺少权限 ${escapeHTML((result.missing||[]).join('、'))}</span>`;
     return source+dot+'<span class="is-ok">令牌有效</span>'+(result.scopes?.length?dot+`<span class="credential-mono">${escapeHTML(result.scopes.join(' · '))}</span>`:'');
   }
-  if(kind.key==='codeBuddyApiKey'){
-    const raw=String(user.codeBuddyInternetEnvironment||'').trim(),env=codeBuddyEnvironment(raw);
-    return `<span>网络环境</span>${env?`<span class="credential-mono">${escapeHTML(env.label)}</span>`:`<span class="is-err">「${escapeHTML(raw)}」无法识别，按国际站连接</span>`}${dot}${use}`;
-  }
   if(kind.extra){
     const models=kind.models&&credentialCatalogModels(credentialValue(user,kind.models.name)).length,baseUrl=credentialValue(user,kind.extra.name);
     const protocol=kind.protocol?kind.protocol.options.find(([id])=>id===credentialProtocol(kind,user))?.[1]:'';
@@ -664,18 +605,16 @@ function credentialEditorHTML(kind,user){
   const extraStored=kind.extra?credentialValue(user,kind.extra.name):'';
   const extraValue=kind.extra?credentialExtraValue(kind,extraStored):'';
   const extraField=!kind.extra?''
-    :kind.extra.options?credentialSelectFieldHTML(kind,extraStored,'与 Key 所在站点一致')
     :credentialFieldHTML({label:kind.extra.label,note:kind.extra.note||(kind.extra.url?'留空使用官方地址':''),name:'extra',type:kind.extra.url?'url':'text',value:extraValue,placeholder:kind.extra.placeholder,hint:null});
   const protocolValue=kind.protocol?credentialProtocol(kind,user):'';
   const protocolField=kind.protocol?credentialProtocolHTML(kind,protocolValue):'';
-  const legacy=!!(kind.extra?.options&&codeBuddyEnvironmentLegacy(user[kind.extra.name]));
-  return `<div class="credential-editor-form${kind.models?' has-catalog':''}"${kind.extra?` data-original="${escapeHTML(extraValue)}"`:''}${kind.protocol?` data-original-protocol="${escapeHTML(protocolValue)}"`:''}${legacy?' data-legacy="true"':''}>
+  return `<div class="credential-editor-form${kind.models?' has-catalog':''}"${kind.extra?` data-original="${escapeHTML(extraValue)}"`:''}${kind.protocol?` data-original-protocol="${escapeHTML(protocolValue)}"`:''}>
     ${credentialFieldHTML({label:kind.short,note:'已配置 · 留空则不改',name:'secret',placeholder:'输入新值以替换',hint:kind.hint||''})}
     ${extraField}
     ${protocolField}
     ${kind.models?credentialCatalogHTML(kind,user):''}
     <div class="credential-swap">
-      <div class="credential-editor-foot" data-credential-pane="foot"><button type="button" class="credential-btn ghost danger credential-ink" data-credential-act="delete">${credentialGlyph('trash',14)}<span>删除</span></button><div><button type="button" class="credential-btn ghost credential-ink" data-credential-act="cancel">取消</button><button type="button" class="credential-btn primary credential-ink" data-credential-act="save"${legacy?'':' disabled'}>保存</button></div></div>
+      <div class="credential-editor-foot" data-credential-pane="foot"><button type="button" class="credential-btn ghost danger credential-ink" data-credential-act="delete">${credentialGlyph('trash',14)}<span>删除</span></button><div><button type="button" class="credential-btn ghost credential-ink" data-credential-act="cancel">取消</button><button type="button" class="credential-btn primary credential-ink" data-credential-act="save" disabled>保存</button></div></div>
       <div class="credential-confirm is-off" data-credential-pane="confirm" role="alert"><div>删除 <b>${escapeHTML(kind.short)}</b>？${escapeHTML(kind.impact)}</div><button type="button" class="credential-btn ghost credential-ink" data-credential-act="undelete">取消</button><button type="button" class="credential-btn danger-solid credential-ink" data-credential-act="confirm-delete">删除</button></div>
     </div>
   </div>`;
@@ -771,7 +710,6 @@ function resetCredentialEditor(row){
   row.querySelectorAll('[name="secret"]').forEach(input=>{input.value='';if(input.tagName==='INPUT')input.type='password'});
   const form=row.querySelector('.credential-editor-form');if(!form)return;
   const extra=form.querySelector('[name="extra"]');if(extra)extra.value=form.dataset.original||'';
-  if(extra?.tagName==='SELECT')refreshCredentialEnvironmentLinks(form,extra.value);
   const protocol=form.querySelector('select[name="protocol"]');if(protocol)protocol.value=form.dataset.originalProtocol||'';
   resetCredentialCatalog(row);
   if(row.dataset.credentialRow==='gitToken'){
@@ -798,7 +736,7 @@ function showCredentialPane(row,name,focus=CREDENTIAL_PANE_FOCUS[name]){
 }
 function updateCredentialEditorDirty(form){
   const secret=form.querySelector('[name="secret"]')?.value.trim()||'',extra=form.querySelector('[name="extra"]'),protocol=form.querySelector('select[name="protocol"]'),save=form.querySelector('[data-credential-act="save"]');
-  if(save&&!save.dataset.busy)save.disabled=!secret&&!form.dataset.legacy&&!(extra&&extra.value.trim()!==(form.dataset.original||''))&&!(protocol&&protocol.value!==(form.dataset.originalProtocol||''))&&!credentialCatalogDirty(form.querySelector('[data-credential-catalog]'));
+  if(save&&!save.dataset.busy)save.disabled=!secret&&!(extra&&extra.value.trim()!==(form.dataset.original||''))&&!(protocol&&protocol.value!==(form.dataset.originalProtocol||''))&&!credentialCatalogDirty(form.querySelector('[data-credential-catalog]'));
 }
 function setCredentialHint(scope,name,text,tone=''){
   const hint=scope.querySelector(`[data-credential-hint="${name}"]`),box=scope.querySelector(`[name="${name}"]`)?.closest('.credential-input');
@@ -986,7 +924,6 @@ function bindCredentialPanel(panel){
       const kind=credentialKind(form.closest('[data-credential-row]').dataset.credentialRow),error=credentialSecretError(kind,event.target.value),warning=credentialSecretWarning(kind,event.target.value);
       setCredentialHint(form,'secret',error||warning||(kind.key==='gitToken'?GIT_TOKEN_REPLACE_HINT:kind.hint||''),error?'err':warning?'warn':'');
     }
-    if(event.target.name==='extra'&&event.target.tagName==='SELECT')refreshCredentialEnvironmentLinks(form,event.target.value);
     updateCredentialEditorDirty(form);
   };
 }
@@ -1071,10 +1008,8 @@ function credentialWizardStepOneHTML(user){
 }
 function credentialWizardStepTwoHTML(kind){
   const wizard=credentialWizard;
-  // A guide link given as functions follows the selected network environment.
-  const guide=kind.guide.map(([text,href,label],index)=>{
-    const dynamic=typeof href==='function',url=dynamic?href(wizard.extra):href,name=typeof label==='function'?label(wizard.extra):label;
-    return `<li class="${wizard.guide[index]?'is-done':''}" data-wizard-guide="${index}"><span class="credential-guide-no">${wizard.guide[index]?credentialGlyph('check-draw',10):index+1}</span><span>${text}${url?`<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer" data-wizard-link="${index}"${dynamic?' data-environment-link':''}>${escapeHTML(name)} ↗</a>`:''}</span></li>`;
+  const guide=kind.guide.map(([text,url,name],index)=>{
+    return `<li class="${wizard.guide[index]?'is-done':''}" data-wizard-guide="${index}"><span class="credential-guide-no">${wizard.guide[index]?credentialGlyph('check-draw',10):index+1}</span><span>${text}${url?`<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer" data-wizard-link="${index}">${escapeHTML(name)} ↗</a>`:''}</span></li>`;
   }).join('');
   const github=kind.key==='gitToken';
   const manual=wizard.githubMethod==='manual';
@@ -1323,16 +1258,15 @@ function renderPlatformNav(){
   const group=$('#platformNavGroup');if(!group)return;
   group.hidden=!isPlatformAdmin();
 }
-// 平台管理分成三个 tab：成员账号、平台管理员、共享 CodeBuddy Key。
+// 平台管理分成两个 tab：成员账号、平台管理员。
 const PLATFORM_TABS=[
   {id:'accounts',zh:'成员账号',en:'Accounts'},
   {id:'admins',zh:'平台管理员',en:'Admins'},
-  {id:'sharedKey',zh:'共享 CodeBuddy Key',en:'Shared CodeBuddy Key'},
 ];
 function platformTabsHTML(active){
   return `<div class="pa-tabs-wrap platform-tabs-wrap"><div class="pa-tabs platform-tabs" id="platformTabs" role="tablist" aria-label="平台管理分区">${PLATFORM_TABS.map(t=>{
     const on=t.id===active;
-    const extra=t.id==='sharedKey'?'<span class="platform-tab-state" data-platform-tab-state hidden></span>':'<span class="pa-tab-n" data-platform-tab-count hidden></span>';
+    const extra='<span class="pa-tab-n" data-platform-tab-count hidden></span>';
     return `<button type="button" role="tab" class="pa-tab${on?' on':''}" id="platformTab-${t.id}" data-platform-tab="${t.id}" aria-controls="platformPanel-${t.id}" aria-selected="${on}" tabindex="${on?0:-1}">${lfT(t.zh,t.en)}${extra}</button>`;
   }).join('')}</div></div>`;
 }
@@ -1495,26 +1429,18 @@ function renderPlatformAdminPanel(){
       </div>
     </div>
     `)}
-    ${platformTabPanel('sharedKey',tab,platformSharedKeyHTML())}
   `;
   bindPlatformTabs(host);
   loadPlatformAccounts(host);
-  loadPlatformSharedKey(host);
   loadPlatformAdmins(host);
 }
 
-// 平台管理 → 成员账号 / 平台共享 CodeBuddy Key.
+// 平台管理 → 成员账号.
 const PLATFORM_ACCOUNT_PASSWORD_MIN=6;
 function platformRandomPassword(){
   const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
   const bytes=new Uint32Array(14);window.crypto.getRandomValues(bytes);
   return Array.from(bytes,b=>alphabet[b%alphabet.length]).join('');
-}
-function sharedModelLabel(id){return id==='deepseek-v4.1-flash'?'Deepseek-V4.1-Flash':String(id||'')}
-// The models users without their own CodeBuddy key may use, as announced by bootstrap.
-function sharedModelSummary(){
-  const models=Array.isArray(state.data?.sponsoredModels)&&state.data.sponsoredModels.length?state.data.sponsoredModels:(state.data?.sponsoredModel?[state.data.sponsoredModel]:[]);
-  return models.map(sharedModelLabel).join('、');
 }
 const PLATFORM_ICON_USER='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 const PLATFORM_ICON_LOCK='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
@@ -1544,46 +1470,6 @@ function platformAccountsHTML(){
       <div id="platformAccountList" class="platform-admin-list platform-account-list"></div>
     </section>`;
 }
-function platformSharedKeyHTML(){
-  const envOptions=CODEBUDDY_ENVIRONMENTS.map(env=>`<option value="${escapeHTML(env.value)}">${escapeHTML(env.label)} · ${escapeHTML(env.site)}</option>`).join('');
-  return `
-    <section class="platform-admin-main-card" id="platformSharedKeyCard">
-      <div class="platform-admin-head">
-        <div class="platform-admin-head-meta">
-          <h2>给没配 Key 的成员用</h2>
-          <p>成员没配自己的 CodeBuddy API Key 时，对话和 SOP 会用这里的 Key，并且只能用下面勾选的模型。成员配了自己的 Key 就用自己的，不受限制。</p>
-        </div>
-        <span class="platform-admin-count-pill platform-status-pill" data-shared-key-badge>${lfT('加载中','Loading')}</span>
-      </div>
-      <form id="platformSharedKeyForm" class="platform-shared-key-form" autocomplete="off">
-        <div class="platform-shared-key-grid">
-          <div class="platform-shared-key-col">
-            <label class="platform-field"><span>网络环境</span><select name="internetEnvironment">${envOptions}</select></label>
-            <div class="platform-field-group">
-              <label class="platform-field"><span>API Key</span><input name="apiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="ck_ 开头的 CodeBuddy API Key"></label>
-              <a class="platform-shared-key-link" data-shared-key-link target="_blank" rel="noopener noreferrer"></a>
-            </div>
-            <div class="platform-note is-warn" data-shared-key-warning hidden></div>
-            <label class="platform-field"><span>默认模型</span><select name="defaultModel"></select><small class="platform-field-hint">没指定模型时用它；SOP 角色的模型不在允许范围内时也改用它。</small></label>
-          </div>
-          <div class="platform-shared-key-col">
-            <div class="platform-field">
-              <div class="platform-field-head"><span>允许使用的模型</span><small data-shared-models-count></small></div>
-              <div class="platform-model-list" data-shared-models><p class="prop-hint">正在读取可用模型…</p></div>
-            </div>
-            <label class="platform-field"><span>列表里没有的模型</span><input name="extraModels" placeholder="模型 ID，多个用逗号分隔" autocomplete="off" spellcheck="false"></label>
-          </div>
-        </div>
-        <div class="platform-shared-key-footer">
-          <p class="platform-add-hint" data-shared-key-meta></p>
-          <div class="platform-shared-key-actions">
-            <button class="button ghost danger" type="button" data-shared-key-clear hidden>停用共享 Key</button>
-            <button class="button primary" type="submit">保存</button>
-          </div>
-        </div>
-      </form>
-    </section>`;
-}
 function platformAccountCreatedHTML(action,login,password){
   const who=`<b data-i18n-skip>${escapeHTML(login)}</b>`,secret=`<code>${escapeHTML(password)}</code>`;
   const text=action==='reset'
@@ -1608,7 +1494,7 @@ async function loadPlatformAccounts(host){
     if(!rows.length){list.innerHTML=`<div class="platform-empty-state"><b>${accounts.length?'没有匹配的账号':'还没有账号'}</b></div>`;return}
     list.innerHTML=rows.map(a=>{
       const name=a.chineseName&&a.chineseName.toLowerCase()!==String(a.loginName).toLowerCase()?`${a.loginName}(${a.chineseName})`:a.loginName;
-      const badges=[a.admin?'<span class="platform-source-badge source-builtin">平台管理员</span>':'',a.password?'<span class="platform-source-badge source-default">用户名密码</span>':'<span class="platform-source-badge source-default">GitHub / 网关登录</span>',a.codeBuddyApiKeyConfigured?'<span class="platform-source-badge source-env">已配 CodeBuddy Key</span>':'<span class="platform-source-badge source-default">未配 CodeBuddy Key</span>'].join('');
+      const badges=[a.admin?'<span class="platform-source-badge source-builtin">平台管理员</span>':'',a.password?'<span class="platform-source-badge source-default">用户名密码</span>':'<span class="platform-source-badge source-default">GitHub / 网关登录</span>'].join('');
       const editing=resetting===a.userId;
       return `<div class="platform-admin-row platform-account-row" data-account-row="${Number(a.userId)}">
         <div class="platform-admin-user">
@@ -1665,103 +1551,6 @@ async function loadPlatformAccounts(host){
     finally{if(submit)submit.disabled=false}
   };
   await load();
-}
-async function loadPlatformSharedKey(host){
-  const card=host.querySelector('#platformSharedKeyCard');if(!card)return;
-  const form=card.querySelector('#platformSharedKeyForm');
-  const env=form.elements.internetEnvironment,key=form.elements.apiKey,extra=form.elements.extraModels,defaultSelect=form.elements.defaultModel;
-  const modelsHost=card.querySelector('[data-shared-models]'),badge=card.querySelector('[data-shared-key-badge]'),meta=card.querySelector('[data-shared-key-meta]');
-  const link=card.querySelector('[data-shared-key-link]'),warning=card.querySelector('[data-shared-key-warning]'),clear=card.querySelector('[data-shared-key-clear]');
-  let status=null,catalog=[],selected=[];
-  const extraIDs=()=>String(extra.value||'').split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean);
-  const chosen=()=>{const all=[...selected];for(const id of extraIDs())if(!all.includes(id))all.push(id);return all};
-  const modelCount=card.querySelector('[data-shared-models-count]'),tabState=host.querySelector('[data-platform-tab-state]');
-  const renderDefault=()=>{
-    const models=chosen(),current=defaultSelect.value;
-    if(modelCount)modelCount.textContent=models.length?lfT(`已选 ${models.length} 个`,`${models.length} selected`):'';
-    defaultSelect.innerHTML=models.length?models.map(id=>`<option value="${escapeHTML(id)}">${escapeHTML(sharedModelLabel(id))}</option>`).join(''):'<option value="">请先勾选模型</option>';
-    defaultSelect.value=models.includes(current)?current:(models[0]||'');
-  };
-  const renderModels=()=>{
-    const listed=catalog.filter(m=>m&&m.id&&m.id!=='default');
-    const ids=new Set(listed.map(m=>m.id));
-    for(const id of selected)if(!ids.has(id)){listed.push({id,name:id});ids.add(id)}
-    modelsHost.innerHTML=listed.length?listed.map(m=>`<label class="platform-check platform-model-option"><input type="checkbox" value="${escapeHTML(m.id)}"${selected.includes(m.id)?' checked':''}><span>${escapeHTML(m.name&&m.name!==m.id?`${m.name}（${m.id}）`:sharedModelLabel(m.id))}</span>${m.credits?`<small>${escapeHTML(m.credits)}</small>`:''}</label>`).join(''):'<p class="prop-hint">这个网络环境暂时没有读到模型列表，可以在下面直接填模型 ID。</p>';
-    modelsHost.querySelectorAll('input[type="checkbox"]').forEach(box=>box.onchange=()=>{
-      selected=box.checked?[...selected.filter(id=>id!==box.value),box.value]:selected.filter(id=>id!==box.value);
-      renderDefault();
-    });
-    renderDefault();
-  };
-  const renderLink=()=>{link.href=codeBuddyKeyURL(env.value);link.textContent=`${codeBuddyKeyLinkLabel(env.value)} ↗`};
-  const renderStatus=()=>{
-    const on=!!status?.configured,envInfo=CODEBUDDY_ENVIRONMENTS.find(e=>e.value===(status?.internetEnvironment||''))||CODEBUDDY_ENVIRONMENTS[0];
-    const tone=on?'on':status?.legacySponsor?'legacy':'off';
-    badge.textContent=on?'已启用':status?.legacySponsor?'使用旧配置':'未启用';
-    badge.classList.remove('is-on','is-legacy','is-off');badge.classList.add(`is-${tone}`);
-    if(tabState){tabState.className=`platform-tab-state is-${tone}`;tabState.title=badge.textContent;tabState.hidden=false}
-    key.placeholder=on?'已配置，留空保持不变':'ck_ 开头的 CodeBuddy API Key';
-    clear.hidden=!on;
-    const parts=[];
-    if(on){
-      const n=(status.models||[]).length,first=sharedModelLabel(status.models?.[0]),by=status.updatedBy||'';
-      parts.push(lfT(`当前：${envInfo.label}，${n} 个模型，默认 ${first}${by?`，${by} 最后修改`:''}。`,`Current: ${envInfo.label}, ${n} model${n===1?'':'s'}, default ${first}${by?`, last changed by ${by}`:''}.`));
-    }
-    else parts.push(lfT('还没有配置共享 Key，没配 Key 的成员需要先配自己的 Key 才能对话和跑 SOP。','No shared key yet; members without their own key must add one before chatting or running SOPs.'));
-    const sponsor=status?.legacySponsor;
-    if(sponsor)parts.push(on
-      ?lfT(`配置后不再使用环境变量 AGENTFLOW_ASSISTANT_SPONSOR_LOGIN 指定的账号 ${sponsor} 的 Key。`,`The key of ${sponsor} (AGENTFLOW_ASSISTANT_SPONSOR_LOGIN) is no longer used.`)
-      :lfT(`现在沿用环境变量 AGENTFLOW_ASSISTANT_SPONSOR_LOGIN 指定的账号 ${sponsor} 的 Key，只能用 ${sharedModelLabel(status.legacySponsorModel)}。`,`For now the key of ${sponsor} (AGENTFLOW_ASSISTANT_SPONSOR_LOGIN) is shared, limited to ${sharedModelLabel(status.legacySponsorModel)}.`));
-    meta.textContent=parts.join(lfT('',' '));
-  };
-  const syncBootstrap=()=>{
-    if(!state.data)return;
-    const models=status?.configured?(status.models||[]):(status?.legacySponsor?[status.legacySponsorModel]:[]);
-    state.data.sponsoredModels=models;state.data.sponsoredModel=models[0]||'';
-  };
-  const fetchStatus=async environment=>{
-    const query=environment===undefined?'':`?environment=${encodeURIComponent(environment)}`;
-    const result=await api('/api/platform/codebuddy-key'+query);
-    catalog=Array.isArray(result?.catalog)?result.catalog:[];
-    return result;
-  };
-  try{
-    status=await fetchStatus();
-    env.value=status?.internetEnvironment||'';
-    selected=status?.configured?[...(status.models||[])]:(status?.legacySponsorModel?[status.legacySponsorModel]:[]);
-    renderStatus();renderLink();renderModels();
-  }catch(e){
-    badge.textContent='加载失败';modelsHost.innerHTML=`<p class="prop-hint">${escapeHTML(e.message||'加载共享 Key 失败')}</p>`;
-    return;
-  }
-  env.onchange=async()=>{
-    renderLink();
-    modelsHost.innerHTML='<p class="prop-hint">正在读取可用模型…</p>';
-    try{await fetchStatus(env.value)}catch(e){catalog=[]}
-    renderModels();
-  };
-  extra.oninput=renderDefault;
-  key.oninput=()=>{const text=credentialSecretWarning(credentialKind('codeBuddyApiKey'),key.value);warning.textContent=text;warning.hidden=!text};
-  form.onsubmit=async e=>{
-    e.preventDefault();
-    const models=chosen();
-    if(!models.length)return toast('请至少勾选一个允许使用的模型','err');
-    if(!status?.configured&&!key.value.trim())return toast('请填写 CodeBuddy API Key','err');
-    const first=defaultSelect.value&&models.includes(defaultSelect.value)?defaultSelect.value:models[0];
-    const ordered=[first,...models.filter(id=>id!==first)];
-    const submit=form.querySelector('button[type="submit"]');if(submit)submit.disabled=true;
-    try{
-      status=await api('/api/platform/codebuddy-key',{method:'PUT',body:JSON.stringify({apiKey:key.value.trim(),internetEnvironment:env.value,models:ordered})});
-      key.value='';warning.hidden=true;extra.value='';selected=[...(status.models||ordered)];
-      renderStatus();renderModels();syncBootstrap();toast('共享 Key 已保存','ok');
-    }catch(err){toast(err.message,'err')}
-    finally{if(submit)submit.disabled=false}
-  };
-  clear.onclick=async()=>{
-    if(!await afConfirm({title:'停用共享 Key',message:'停用后，没配自己 Key 的成员将不能再用共享 Key 对话和跑 SOP。确定停用？',danger:true,confirmText:'停用'}))return;
-    try{status=await api('/api/platform/codebuddy-key',{method:'DELETE'});renderStatus();syncBootstrap();toast('共享 Key 已停用','ok')}
-    catch(err){toast(err.message,'err')}
-  };
 }
 async function loadPlatformAdmins(host){
   const list=host.querySelector('#platformAdminList');
@@ -1974,7 +1763,7 @@ function renderUserProfilePopover() {
             <b>⚠️ 认证换票未通过</b><br>此前统一认证票据已失效，请点击下方按钮重新登录。
           </div>
         ` : `
-          <p class="upp-guest-desc">当前以访客身份访问平台。登录后可在左侧「个人配置」配置 GitHub Git Token 和 CodeBuddy API Key。</p>
+          <p class="upp-guest-desc">当前以访客身份访问平台。登录后可在左侧「个人配置」配置 GitHub Git Token 和执行器 API Key。</p>
         `}
       </div>
       <div class="upp-divider"></div>
@@ -2024,7 +1813,7 @@ function renderUserProfilePopover() {
         </div>
         <div class="upp-info-item">
           <span class="upp-label">认证方式</span>
-          <span class="upp-value">LoopForge 本地账号</span>
+          <span class="upp-value">Friday 本地账号</span>
         </div>
       </div>
       <div class="upp-divider"></div>

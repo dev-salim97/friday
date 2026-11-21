@@ -84,6 +84,54 @@ test('generic SOP requirements reflect credentials and installed MCPs, then clon
   assert.equal(app.evaluate(`state.data.workflows[0].generic`), false);
 });
 
+test('generic SOP 执行 CLI drives requirements, direct runs and adoption', async (t) => {
+  const app = await loadApp();
+  t.after(app.close);
+  const generic = {
+    id: 'generic-cli', name: '通用交付', description: 'standard', generic: true, version: 1, requirements: [],
+    nodes: [{ id: 'dev', name: '开发', type: 'agent', agentId: 'generic-cli-dev' }],
+  };
+  app.router.post('/api/workflows/generic-cli/clone', (call) => ({ ...generic, ...call.body, generic: false }));
+  app.router.post('/api/runs', (call) => ({ id: 'run-cli', status: 'running', workflowId: call.body.workflowId, nodes: {} }));
+  app.evaluate(`
+    state.currentUser={id:1,loginName:'owner',isPlatformAdmin:false};
+    state.data.users=[{id:1,loginName:'owner',codexApiKeyConfigured:true}];
+    state.data.workflows=[${JSON.stringify(generic)}];
+    openGenericTemplateModal('generic-cli');
+  `);
+  const select = app.document.querySelector('#genericTemplateExecutor');
+  const requirements = () => app.document.querySelector('#genericTemplateRequirements').textContent;
+  assert.equal(select.value, '');
+  assert.match(select.options[0].textContent, /按角色配置（Claude Code）/);
+  assert.match(requirements(), /Claude Code API Key.*未配置/s);
+  select.value = 'codex';
+  select.dispatchEvent(new app.window.Event('change', { bubbles: true }));
+  assert.match(requirements(), /Codex API Key.*已配置/s);
+  assert.doesNotMatch(requirements(), /Claude Code/);
+
+  app.document.querySelector('#runGenericTemplateDirect').click();
+  const runChoice = app.document.querySelector('#runExecutorChoice');
+  assert.equal(runChoice.value, 'codex');
+  assert.match(runChoice.options[0].textContent, /按 SOP 配置（Claude Code）/);
+  await app.evaluate(`startRun()`);
+  await settle(8);
+  const run = app.router.calls.find(c => c.path === '/api/runs' && c.method === 'POST');
+  assert.equal(run.body.workflowId, 'generic-cli');
+  assert.equal(run.body.executorId, 'codex');
+
+  app.evaluate(`openGenericTemplateModal('generic-cli')`);
+  assert.equal(select.value, '');
+  select.value = 'claude';
+  select.dispatchEvent(new app.window.Event('change', { bubbles: true }));
+  await app.evaluate(`adoptGenericTemplate()`);
+  await settle(8);
+  const clone = app.router.calls.find(c => c.path === '/api/workflows/generic-cli/clone');
+  assert.equal(clone.body.executorId, 'claude');
+  assert.equal(app.evaluate(`state.workflow.executorId`), 'claude');
+  assert.equal(app.document.querySelector('#workflowExecutor').value, 'claude');
+  assert.match(app.evaluate(`sopRunRequirements(state.workflow).map(r=>r.label).join(',')`), /Claude Code API Key/);
+});
+
 test('runner cards expose runtime controls and persist limits, defaults, and auth mode', async (t) => {
   const app = await loadApp();
   t.after(app.close);

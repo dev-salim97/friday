@@ -100,7 +100,7 @@ func pricingModel(model string) string {
 
 func IsHYModel(model string) bool {
 	model = strings.ToLower(strings.TrimSpace(model))
-	// hy3-ioa / hy4std / hy4-preview-ioa are CodeBuddy's versioned Hy ids.
+	// hy3-ioa / hy4std / hy4-preview-ioa are versioned Hy ids.
 	return model == "hy" || strings.HasPrefix(model, "hy-") || strings.HasPrefix(model, "hy.") || hyVersionedModel.MatchString(model) || strings.HasPrefix(model, "hunyuan")
 }
 

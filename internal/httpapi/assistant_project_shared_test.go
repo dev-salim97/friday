@@ -290,7 +290,7 @@ func TestProjectConversationsAreReadOnlyForNonMembers(t *testing.T) {
 // project conversations in their list and may continue them.
 func TestPlatformAdminSeesAndContinuesAllProjectConversations(t *testing.T) {
 	h, a, _, _, _ := sharedWorkbenchFixture(t)
-	if err := h.repo.PutUser(domain.User{LoginName: "platform-boss", CodeBuddyAPIKey: "boss-test-key"}); err != nil {
+	if err := h.repo.PutUser(domain.User{LoginName: "platform-boss", ClaudeCodeAPIKey: "boss-test-key"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := h.repo.GrantPlatformAdmin("platform-boss"); err != nil {

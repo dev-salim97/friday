@@ -7,10 +7,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
-	"agentflow/internal/domain"
 	"agentflow/internal/runtime"
 )
 
@@ -38,7 +38,7 @@ func canResumeClarifySession(homeDir, sessionID string, sessionUserID, userID in
 	if sessionID == "" || strings.ContainsAny(sessionID, `/\\*?[]`) || sessionID == "." || sessionID == ".." {
 		return false
 	}
-	files, err := filepath.Glob(filepath.Join(homeDir, ".codebuddy", "projects", "*", sessionID+".jsonl"))
+	files, err := filepath.Glob(filepath.Join(homeDir, ".claude", "projects", "*", claudeSessionUUID(sessionID)+".jsonl"))
 	if err != nil {
 		return false
 	}
@@ -50,7 +50,7 @@ func canResumeClarifySession(homeDir, sessionID string, sessionUserID, userID in
 	return false
 }
 
-// CodeBuddy can report a missing resume conversation but still exit with 0.
+// The CLI can report a missing resume conversation but still exit with 0.
 // Inspect error envelopes as well as the OS exit status so the caller can
 // rebuild the conversation from stored history instead of retrying resume.
 func clarifySessionOutputError(output string) error {
@@ -107,7 +107,7 @@ func resetClarifyWorkspaceLinks(dir string) {
 	}
 }
 
-// materializeClarifyRepo places a real directory tree at dest so CodeBuddy
+// materializeClarifyRepo places a real directory tree at dest so the CLI's
 // Read/Grep/Glob can see the files. Out-of-tree symlinks are invisible to those
 // tools even when they point at a valid cache checkout.
 //
@@ -214,33 +214,55 @@ func prepareClarifyCommand(bin, model, prompt, runID, sessionID string, resume b
 	return prepareClarifyCommandWith(clarifyCommandOpts{Bin: bin, Model: model, Prompt: prompt, RunID: runID, SessionID: sessionID, Resume: resume, Native: true})
 }
 
+var claudeSessionUUIDRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+// claudeSessionUUID maps a platform session ID onto the UUID Claude Code
+// requires; a real Claude session ID is kept as is.
+func claudeSessionUUID(id string) string {
+	id = strings.TrimSpace(id)
+	if claudeSessionUUIDRe.MatchString(id) {
+		return id
+	}
+	return assistantClaudeSessionID(id)
+}
+
 func prepareClarifyCommandWith(opts clarifyCommandOpts) (runtime.CommandSpec, error) {
-	args := []string{"-p", "--max-turns", "500", "--output-format", "stream-json", "--include-partial-messages"}
+	argv := []string{opts.Bin, "-p", "--verbose", "--max-turns", "500", "--output-format", "stream-json", "--include-partial-messages",
+		"--permission-mode", "bypassPermissions", "--setting-sources", "user"}
+	if model := strings.TrimSpace(opts.Model); model != "" && model != assistantDefaultModel {
+		argv = append(argv, "--model", model)
+	}
 	if strings.TrimSpace(opts.MCPConfig) != "" {
-		args = append(args, "--mcp-config", opts.MCPConfig, "--strict-mcp-config")
+		servers, err := readAssistantMCPServers(opts.MCPConfig)
+		if err != nil {
+			return runtime.CommandSpec{}, err
+		}
+		for _, server := range servers {
+			delete(server, "tools")
+		}
+		mcpPath := filepath.Join(filepath.Dir(opts.MCPConfig), "claude-mcp.json")
+		raw, _ := json.Marshal(map[string]any{"mcpServers": servers})
+		if err := os.WriteFile(mcpPath, raw, 0o600); err != nil {
+			return runtime.CommandSpec{}, err
+		}
+		argv = append(argv, "--mcp-config", mcpPath, "--strict-mcp-config")
 		if strings.TrimSpace(opts.Settings) != "" {
-			args = append(args, "--settings", opts.Settings)
+			argv = append(argv, "--settings", opts.Settings)
 		}
 	}
-	inv := runtime.InvocationOptions{RunID: opts.RunID, NodeID: "clarify"}
-	if opts.Resume && strings.TrimSpace(opts.SessionID) != "" {
-		inv.ResumeSessionID = opts.SessionID
-	} else if strings.TrimSpace(opts.SessionID) != "" {
-		args = append(args, "--session-id", opts.SessionID)
+	if sid := strings.TrimSpace(opts.SessionID); sid != "" {
+		if opts.Resume {
+			argv = append(argv, "--resume", claudeSessionUUID(sid))
+		} else {
+			argv = append(argv, "--session-id", claudeSessionUUID(sid))
+		}
 	}
-	ex := domain.ExecutorDefinition{Kind: "codebuddy", Binary: opts.Bin, Model: opts.Model, Args: args}
-	command, err := runtime.PrepareProviderCommand(ex, opts.Prompt, "local", inv)
-	if err != nil {
-		return runtime.CommandSpec{}, err
-	}
+	command := runtime.CommandSpec{Argv: append(argv, "--", opts.Prompt), Provider: "claude-code", CredentialBindings: []runtime.CredentialBinding{runtime.BindClaudeCode}}
 	command.Argv = applyNativeToolSafety(command.Argv, AgentToolClarify)
 	if opts.SubmitOnly {
 		command.Argv = appendDisallowedTools(command.Argv, "Read,Grep,Glob")
 	}
-	if strings.TrimSpace(opts.MCPConfig) != "" {
-		command = command.WithMCPStartupWait(agentToolSessionMCPStartupWait)
-	}
-	return runtime.PromptOnStdin(command, opts.Prompt), nil
+	return runtime.PromptOnStdin(command, opts.Prompt).WithClaudeBypassAccepted(), nil
 }
 
 func appendDisallowedTools(argv []string, extra string) []string {

@@ -350,24 +350,6 @@ class LifecycleTests(unittest.TestCase):
             state = json.loads(state_path.read_text(encoding="utf-8"))
             self.assertIsNotNone(state["stages"]["SOLO"]["prepared_at"])
 
-    def test_codebuddy_adapter_requires_team_member_dispatch(self):
-        manifest = json.loads(
-            (SKILL_ROOT / "adapters/codebuddy/manifest.json").read_text(encoding="utf-8")
-        )
-        adapter = (SKILL_ROOT / "adapters/codebuddy/adapter.md").read_text(encoding="utf-8")
-        self.assertEqual("team", manifest["topology"])
-        self.assertNotIn("team_registry_dir", manifest)
-        self.assertEqual("devflow-stage-team-member", manifest["stage_executor"])
-        self.assertIn("team_name=<team_name>", adapter)
-        self.assertIn("严禁省略 `team_name`", adapter)
-        self.assertIn("prompt=<完整阶段提示>", adapter)
-        self.assertIn("首次执行不得再用 `send_message`", adapter)
-        self.assertNotIn('prompt="待命', adapter)
-        self.assertIn("resume --project-root . --slug <slug> --fresh-team", adapter)
-        self.assertIn("team_delete(team_name=<team_name>)", adapter)
-        self.assertIn("cleanup_team.py", adapter)
-        self.assertIn("不得读取 Team 配置、成员、inbox 或状态", adapter)
-
     def fill_stage_artifacts(self, state_path, stage):
         state = json.loads(state_path.read_text(encoding="utf-8"))
         artifact_root = Path(state["artifacts_dir"])
@@ -399,17 +381,14 @@ class LifecycleTests(unittest.TestCase):
                 run_script(
                     "workflow_state.py", "init", "--project-root", root,
                     "--slug", "guard", "--size", "medium", "--mode", "auto",
-                    "--execution-mode", "isolated", "--host-adapter", "codebuddy",
+                    "--execution-mode", "isolated", "--host-adapter", "claude",
                     "--coordinator-id", "main-1",
                 ).stdout.strip()
             )
             state = json.loads(state_path.read_text(encoding="utf-8"))
             self.assertEqual(3, state["execution_policy_version"])
-            self.assertEqual("team", state["executor_topology"])
-            self.assertRegex(state["run_id"], r"^[0-9a-f]{12}$")
-            self.assertEqual(
-                f"multi-agents-devflow-guard-{state['run_id']}", state["team_name"]
-            )
+            self.assertEqual("spawn", state["executor_topology"])
+            self.assertIsNone(state["team_name"])
             for stage_name in ("REQUIREMENT", "SUMMARY"):
                 stage = state["stages"][stage_name]
                 self.assertEqual("coordinator", stage["executor_type"])
@@ -425,31 +404,20 @@ class LifecycleTests(unittest.TestCase):
             rejected = run_script(
                 "workflow_state.py", "assign", "--state", state_path, "--stage", "DESIGN",
                 "--role", "devflow-architect", "--executor-type", "architect",
-                "--executor-id", "agent-1", "--dispatch-tool", "task",
-                "--team-name", state["team_name"], check=False,
+                "--executor-id", "agent-1", "--dispatch-tool", "agent", check=False,
             )
             self.assertNotEqual(0, rejected.returncode)
-            self.assertIn("executor type must be devflow-stage-team-member", rejected.stderr)
-
-            missing_team = run_script(
-                "workflow_state.py", "assign", "--state", state_path, "--stage", "DESIGN",
-                "--role", "devflow-architect", "--executor-type", "devflow-stage-team-member",
-                "--executor-id", "agent-1", "--dispatch-tool", "task", check=False,
-            )
-            self.assertNotEqual(0, missing_team.returncode)
-            self.assertIn("assignments require --team-name", missing_team.stderr)
+            self.assertIn("executor type must be devflow-stage-executor", rejected.stderr)
 
             run_script(
                 "workflow_state.py", "assign", "--state", state_path, "--stage", "DESIGN",
-                "--role", "devflow-architect", "--executor-type", "devflow-stage-team-member",
-                "--executor-id", "agent-2", "--dispatch-tool", "task",
-                "--team-name", state["team_name"],
+                "--role", "devflow-architect", "--executor-type", "devflow-stage-executor",
+                "--executor-id", "agent-2", "--dispatch-tool", "agent",
             )
             resume = json.loads(run_script("workflow_state.py", "resume", "--state", state_path).stdout)
             self.assertEqual("start-assigned", resume["action"])
-            self.assertEqual("devflow-stage-team-member", resume["executor_type"])
-            self.assertEqual("team", resume["executor_topology"])
-            self.assertEqual(state["team_name"], resume["team_name"])
+            self.assertEqual("devflow-stage-executor", resume["executor_type"])
+            self.assertEqual("spawn", resume["executor_topology"])
 
     def test_medium_lifecycle_conditionally_skips_knowledge_without_agent(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -458,12 +426,11 @@ class LifecycleTests(unittest.TestCase):
                 run_script(
                     "workflow_state.py", "init", "--project-root", root,
                     "--slug", "full-run", "--size", "medium", "--mode", "auto",
-                    "--execution-mode", "isolated", "--host-adapter", "codebuddy",
+                    "--execution-mode", "isolated", "--host-adapter", "claude",
                     "--coordinator-id", "main-1",
                 ).stdout.strip()
             )
             state = json.loads(state_path.read_text(encoding="utf-8"))
-            team_name = state["team_name"]
             for index, stage in enumerate(state["route"]):
                 if stage == "KNOWLEDGE":
                     resume = json.loads(run_script(
@@ -480,9 +447,8 @@ class LifecycleTests(unittest.TestCase):
                 if STAGE_EXECUTION[stage] == "agent":
                     run_script(
                         "workflow_state.py", "assign", "--state", state_path, "--stage", stage,
-                        "--role", STAGE_ROLES[stage], "--executor-type", "devflow-stage-team-member",
-                        "--executor-id", f"agent-{index}", "--dispatch-tool", "task",
-                        "--team-name", team_name,
+                        "--role", STAGE_ROLES[stage], "--executor-type", "devflow-stage-executor",
+                        "--executor-id", f"agent-{index}", "--dispatch-tool", "agent",
                     )
                 run_script("workflow_state.py", "start", "--state", state_path, "--stage", stage)
                 self.fill_stage_artifacts(state_path, stage)
@@ -595,136 +561,6 @@ class LifecycleTests(unittest.TestCase):
             self.assertEqual("run", state["stages"]["KNOWLEDGE"]["decision"])
             self.assertIsNotNone(state["stages"]["KNOWLEDGE"]["prepared_at"])
 
-    def test_new_run_with_same_slug_does_not_reuse_stale_codebuddy_team(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            first_state_path = Path(
-                run_script(
-                    "workflow_state.py", "init", "--project-root", root,
-                    "--slug", "same-task", "--size", "medium", "--mode", "auto",
-                    "--execution-mode", "isolated", "--host-adapter", "codebuddy",
-                    "--coordinator-id", "main-1",
-                ).stdout.strip()
-            )
-            first = json.loads(first_state_path.read_text(encoding="utf-8"))
-            stale_team = root / ".codebuddy/teams" / first["team_name"]
-            stale_team.mkdir(parents=True)
-            (stale_team / "config.json").write_text(
-                json.dumps({"leadAgentId": "old-main"}), encoding="utf-8"
-            )
-            shutil.rmtree(root / "artifacts/same-task")
-
-            second_state_path = Path(
-                run_script(
-                    "workflow_state.py", "init", "--project-root", root,
-                    "--slug", "same-task", "--size", "medium", "--mode", "auto",
-                    "--execution-mode", "isolated", "--host-adapter", "codebuddy",
-                    "--coordinator-id", "main-2",
-                ).stdout.strip()
-            )
-            second = json.loads(second_state_path.read_text(encoding="utf-8"))
-            self.assertNotEqual(first["run_id"], second["run_id"])
-            self.assertNotEqual(first["team_name"], second["team_name"])
-            self.assertFalse((root / ".codebuddy/teams" / second["team_name"]).exists())
-
-    def test_fresh_team_resume_abandons_old_in_progress_executor(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            state_path = Path(
-                run_script(
-                    "workflow_state.py", "init", "--project-root", root,
-                    "--slug", "legacy-team", "--size", "medium", "--mode", "auto",
-                    "--execution-mode", "isolated", "--host-adapter", "codebuddy",
-                    "--coordinator-id", "main-1",
-                ).stdout.strip()
-            )
-            state = json.loads(state_path.read_text(encoding="utf-8"))
-            old_team = "multi-agents-devflow-legacy-team"
-            state.pop("run_id", None)
-            state["team_name"] = old_team
-            state_path.write_text(json.dumps(state), encoding="utf-8")
-
-            run_script(
-                "workflow_state.py", "prepare", "--state", state_path,
-                "--stage", "REQUIREMENT",
-            )
-            run_script(
-                "workflow_state.py", "start", "--state", state_path,
-                "--stage", "REQUIREMENT",
-            )
-            self.fill_stage_artifacts(state_path, "REQUIREMENT")
-            run_script(
-                "workflow_state.py", "finish", "--state", state_path,
-                "--stage", "REQUIREMENT", "--result", "completed",
-            )
-            run_script(
-                "workflow_state.py", "approve", "--state", state_path,
-                "--stage", "REQUIREMENT", "--user-confirmed",
-            )
-            run_script(
-                "workflow_state.py", "prepare", "--state", state_path,
-                "--stage", "DESIGN",
-            )
-            run_script(
-                "workflow_state.py", "assign", "--state", state_path,
-                "--stage", "DESIGN", "--role", "devflow-architect",
-                "--executor-type", "devflow-stage-team-member",
-                "--executor-id", "old-design-member", "--dispatch-tool", "task",
-                "--team-name", old_team,
-            )
-            run_script(
-                "workflow_state.py", "start", "--state", state_path,
-                "--stage", "DESIGN",
-            )
-            resume = json.loads(run_script(
-                "workflow_state.py", "resume", "--project-root", root,
-                "--slug", "legacy-team", "--fresh-team"
-            ).stdout)
-            self.assertEqual("rotate-team", resume["action"])
-            self.assertEqual(old_team, resume["delete_team_name"])
-
-            rotated = json.loads(run_script(
-                "workflow_state.py", "rotate-team", "--state", state_path
-            ).stdout)
-            self.assertEqual(old_team, rotated["old_team_name"])
-            self.assertRegex(
-                rotated["team_name"],
-                r"^multi-agents-devflow-legacy-team-[0-9a-f]{12}$",
-            )
-            state = json.loads(state_path.read_text(encoding="utf-8"))
-            self.assertEqual("pending", state["stages"]["DESIGN"]["status"])
-            self.assertIsNone(state["stages"]["DESIGN"]["executor_id"])
-            run_script("workflow_state.py", "validate", "--state", state_path)
-
-    def test_missing_resume_state_returns_one_cleanup_action_without_retry(self):
-        with tempfile.TemporaryDirectory() as directory:
-            result = json.loads(run_script(
-                "workflow_state.py", "resume", "--project-root", directory,
-                "--slug", "missing-task", "--fresh-team"
-            ).stdout)
-            self.assertFalse(result["ok"])
-            self.assertEqual("restart-required", result["action"])
-            self.assertEqual(
-                "multi-agents-devflow-missing-task", result["delete_team_name"]
-            )
-            self.assertNotIn("command", result)
-
-    def test_codebuddy_cleanup_deletes_only_the_exact_team(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            teams = root / ".codebuddy/teams"
-            target = teams / "multi-agents-devflow-target"
-            sibling = teams / "multi-agents-devflow-sibling"
-            target.mkdir(parents=True)
-            sibling.mkdir(parents=True)
-            (target / "config.json").write_text("{}", encoding="utf-8")
-            run_script(
-                "../adapters/codebuddy/cleanup_team.py", "--project-root", root,
-                "--team-name", target.name,
-            )
-            self.assertFalse(target.exists())
-            self.assertTrue(sibling.exists())
-
     def test_requirement_confirmation_is_mandatory_in_auto_mode(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -732,7 +568,7 @@ class LifecycleTests(unittest.TestCase):
                 run_script(
                     "workflow_state.py", "init", "--project-root", root,
                     "--slug", "requirement-gate", "--size", "medium", "--mode", "auto",
-                    "--execution-mode", "isolated", "--host-adapter", "codebuddy",
+                    "--execution-mode", "isolated", "--host-adapter", "claude",
                     "--coordinator-id", "main-1",
                 ).stdout.strip()
             )
@@ -781,64 +617,3 @@ class LifecycleTests(unittest.TestCase):
             self.assertEqual("in_progress", state["status"])
             self.assertIsNone(state["awaiting_approval"])
 
-    def test_policy_v2_codebuddy_state_remains_resumable(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            state_path = Path(
-                run_script(
-                    "workflow_state.py", "init", "--project-root", root,
-                    "--slug", "legacy-v2", "--size", "medium", "--mode", "auto",
-                    "--execution-mode", "isolated", "--host-adapter", "codebuddy",
-                    "--coordinator-id", "main-1",
-                ).stdout.strip()
-            )
-            state = json.loads(state_path.read_text(encoding="utf-8"))
-            state["execution_policy_version"] = 2
-            state["stages"]["REQUIREMENT"].update(
-                status="completed", artifacts=["01-requirement/requirement-report.md"]
-            )
-            state.update(current_stage="REQUIREMENT", next_stage="DESIGN")
-            state_path.write_text(json.dumps(state), encoding="utf-8")
-            run_script("workflow_state.py", "prepare", "--state", state_path, "--stage", "DESIGN")
-            run_script(
-                "workflow_state.py", "assign", "--state", state_path, "--stage", "DESIGN",
-                "--role", "devflow-architect", "--executor-type", "devflow-stage-executor",
-                "--executor-id", "legacy-agent", "--dispatch-tool", "task",
-            )
-            resume = json.loads(run_script("workflow_state.py", "resume", "--state", state_path).stdout)
-            self.assertEqual("start-assigned", resume["action"])
-            self.assertEqual("devflow-stage-executor", resume["executor_type"])
-
-    def test_unassigned_policy_v2_codebuddy_state_can_upgrade_to_team(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            state_path = Path(
-                run_script(
-                    "workflow_state.py", "init", "--project-root", root,
-                    "--slug", "upgrade-v2", "--size", "medium", "--mode", "auto",
-                    "--execution-mode", "isolated", "--host-adapter", "codebuddy",
-                    "--coordinator-id", "main-1",
-                ).stdout.strip()
-            )
-            state = json.loads(state_path.read_text(encoding="utf-8"))
-            state["execution_policy_version"] = 2
-            state.pop("executor_topology", None)
-            state.pop("team_name", None)
-            state.pop("run_id", None)
-            state_path.write_text(json.dumps(state), encoding="utf-8")
-            resume = json.loads(run_script("workflow_state.py", "resume", "--state", state_path).stdout)
-            self.assertEqual("upgrade-team", resume["action"])
-            self.assertNotIn("team_name", resume)
-            upgraded = json.loads(
-                run_script("workflow_state.py", "upgrade-team", "--state", state_path).stdout
-            )
-            self.assertEqual(3, upgraded["execution_policy_version"])
-            self.assertEqual("team", upgraded["executor_topology"])
-            state = json.loads(state_path.read_text(encoding="utf-8"))
-            self.assertRegex(state["run_id"], r"^[0-9a-f]{12}$")
-            self.assertEqual(upgraded["team_name"], state["team_name"])
-            self.assertEqual("coordinator", state["stages"]["REQUIREMENT"]["executor_topology"])
-
-
-if __name__ == "__main__":
-    unittest.main()

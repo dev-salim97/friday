@@ -20,7 +20,7 @@ import (
 )
 
 // assistantCLIInvocation is one prepared chat CLI process. translate turns a
-// CLI's own stdout line into CodeBuddy-style stream-json lines; nil means the
+// CLI's own stdout line into Claude-style stream-json lines; nil means the
 // CLI already speaks stream-json. sessionRef is the ID the CLI names in
 // "No conversation found with session ID: …".
 type assistantCLIInvocation struct {
@@ -41,6 +41,9 @@ type assistantEngineInvocationOpts struct {
 	// ReviewOnly is a one-shot call without MCP servers or session history,
 	// such as a title summary.
 	ReviewOnly bool
+	// ReportOnly is a short tool-less call that may only use the MCP server
+	// it is given, such as a notification report.
+	ReportOnly bool
 	User       runtime.ProviderCredential
 }
 
@@ -51,21 +54,14 @@ func assistantEngineConfigDir(engine string) string {
 	case assistantEngineClaude:
 		return ".claude"
 	default:
-		return ".codebuddy"
+		return ".claude"
 	}
 }
 
 // resolveAssistantEngineBin locates the codex / claude executable the same
-// way resolveCodeBuddyBin does: explicit override, managed inventory, PATH,
+// way: explicit override, managed inventory, PATH,
 // well-known install locations, then a CLI installed from a failed conversation.
 func resolveAssistantEngineBin(engine string) (string, error) {
-	if engine == assistantEngineCodeBuddy {
-		bin, err := resolveCodeBuddyBin()
-		if err != nil && (strings.Contains(err.Error(), "未找到") || strings.Contains(err.Error(), "尚未安装")) {
-			return "", assistantCLIMissingError{engine: engine, binary: "codebuddy"}
-		}
-		return bin, err
-	}
 	binary, override, managed := "codex", "AGENTFLOW_CODEX_BIN", "codex"
 	if engine == assistantEngineClaude {
 		binary, override, managed = "claude", "AGENTFLOW_CLAUDE_BIN", "claude-code"
@@ -118,7 +114,7 @@ func (e assistantCLIMissingError) Is(target error) bool {
 	return target == errAssistantCLIMissing
 }
 
-// assistantCredentialError is the authorization failure of a CLI other than CodeBuddy;
+// assistantCredentialError is the authorization failure of a CLI;
 // it matches errAssistantCredentialRejected so callers stop retrying.
 type assistantCredentialError struct{ engine string }
 
@@ -141,7 +137,7 @@ func assistantAuthFailureText(text string) bool {
 	return assistantAuthFailureRe.MatchString(text)
 }
 
-// Claude Code adds tools CodeBuddy does not have. Task is its subagent tool,
+// Claude Code tools that act on the control plane. Task is its subagent tool,
 // so it stays available for project roles.
 const claudeAssistantDisallowedTools = "Bash,PowerShell,Monitor,Write,Edit,MultiEdit,NotebookEdit,WebFetch,WebSearch,KillShell,CronCreate,CronList,CronDelete,EnterWorktree,ExitWorktree,Workflow,ScheduleWakeup,DesignSync,RemoteTrigger,PushNotification"
 
@@ -176,7 +172,7 @@ func prepareAssistantClaudeInvocation(o assistantEngineInvocationOpts) (assistan
 	if err != nil {
 		return assistantCLIInvocation{}, err
 	}
-	// Claude Code rejects CodeBuddy's per-tool defer_loading extension.
+	// Claude Code rejects the per-tool defer_loading extension.
 	for _, server := range servers {
 		delete(server, "tools")
 	}
@@ -195,21 +191,28 @@ func prepareAssistantClaudeInvocation(o assistantEngineInvocationOpts) (assistan
 		return assistantCLIInvocation{}, err
 	}
 	sessionID := assistantClaudeSessionID(o.SessionID)
+	maxTurns, disallowed := nativeAssistantUnlimitedTurns, claudeAssistantDisallowedTools
+	if o.ReportOnly {
+		maxTurns = "6"
+		disallowed += ",Read,Grep,Glob,Skill,TodoWrite,AskUserQuestion,EnterPlanMode,ExitPlanMode"
+	}
 	argv := []string{o.Bin, "-p", "--verbose", "--output-format", "stream-json", "--include-partial-messages",
-		"--max-turns", nativeAssistantUnlimitedTurns, "--system-prompt", o.SystemPrompt,
+		"--max-turns", maxTurns, "--system-prompt", o.SystemPrompt,
 		"--mcp-config", mcpPath, "--strict-mcp-config", "--settings", settingsPath, "--setting-sources", "user",
 		"--permission-mode", "bypassPermissions"}
 	if o.Model != "" {
 		argv = append(argv, "--model", o.Model)
 	}
 	if !o.Workspace {
-		argv = append(argv, "--disallowedTools", claudeAssistantDisallowedTools)
+		argv = append(argv, "--disallowedTools", disallowed)
 	}
 	if effort := strings.TrimSpace(o.Effort); effort != "" {
 		argv = append(argv, "--effort", effort)
 	}
 	if o.ReviewOnly {
 		argv = append(argv, "--tools", "", "--no-session-persistence")
+	} else if o.ReportOnly {
+		argv = append(argv, "--no-session-persistence")
 	}
 	if o.Resume {
 		argv = append(argv, "--resume", sessionID)
@@ -311,5 +314,3 @@ func writeCodexThread(root, sessionID, threadID string) error {
 	}
 	return os.WriteFile(codexThreadsPath(root), data, 0o600)
 }
-
-var errAssistantEngineUnsupported = errors.New("该调用只支持 CodeBuddy 模型")

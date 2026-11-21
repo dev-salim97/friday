@@ -46,7 +46,7 @@ def description(text: str, fallback: str) -> str:
 
 def adapt(text: str, host: str) -> str:
     hidden = f".{host}"
-    result = text.replace(".codebuddy", hidden).replace(".codex", hidden)
+    result = text.replace(".codex", hidden)
     result = result.replace("Codex", "Cursor" if host == "cursor" else "Claude Code")
     if host == "cursor":
         result = result.replace("multi_agent_v1.spawn_agent", "Task")
@@ -127,7 +127,7 @@ def render_agent(role: str, host: str) -> str:
     source = ROOT / ".codex/agents" / f"{role}.md"
     raw = source.read_text(encoding="utf-8")
     body = adapt(strip_frontmatter(raw), host)
-    desc = description((ROOT / ".codebuddy/agents" / f"{role}.md").read_text(encoding="utf-8"), role)
+    desc = description((ROOT / "classic-reference/agents" / f"{role}.md").read_text(encoding="utf-8"), role)
     fields = [
         "---",
         f"name: devflow-{role}",
@@ -161,20 +161,20 @@ def expected(host: str) -> Dict[str, bytes]:
     files: Dict[str, bytes] = {}
     for role in ROLES:
         files[f"agents/devflow-{role}.md"] = render_agent(role, host).encode("utf-8")
-    for command in sorted((ROOT / ".codebuddy/commands").glob("*.md")):
+    for command in sorted((ROOT / "classic-reference/commands").glob("*.md")):
         files[f"commands/{command.name}"] = render_command(command, host).encode("utf-8")
     add_tree(files, ROOT / ".codex/assets", "assets", host)
     add_tree(files, ROOT / ".codex/checklists", "checklists", host)
     add_tree(files, ROOT / ".codex/runtime", "runtime", host)
     add_tree(files, ROOT / ".codex/workflows", "workflows", host)
-    add_tree(files, ROOT / ".codebuddy/skills", "skills", host)
+    add_tree(files, ROOT / "classic-reference/skills", "skills", host)
     for rule in sorted((ROOT / ".codex/rules").glob("*.mdc")):
         suffix = ".mdc" if host == "cursor" else ".md"
         files[f"rules/{rule.stem}{suffix}"] = adapt(rule.read_text(encoding="utf-8"), host).encode("utf-8")
     host_name = "Cursor" if host == "cursor" else "Claude Code"
     readme = f"""# DevFlow Classic for {host_name}
 
-本目录是由 `.codebuddy` 参考工作流和 Classic 公共契约生成的 {host_name} 宿主包。
+本目录是由 `classic-reference` 参考工作流和 Classic 公共契约生成的 {host_name} 宿主包。
 它属于 Classic edition，不依赖 `skills/devflow` Portable edition。不要直接修改；
 修改参考工作流或适配规则后运行 `python3 scripts/build-classic-hosts.py --write`。
 

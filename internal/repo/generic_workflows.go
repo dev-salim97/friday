@@ -15,16 +15,16 @@ const (
 	GenericDockerSandboxID     = "generic-docker"
 )
 
-// Role identifiers used by the stored LoopForge backend template. Cloning a
+// Role identifiers used by the stored Friday backend template. Cloning a
 // generic template copies these roles into the target project.
 const (
-	GenericAgentRequirement = "loopforge-requirement"
-	GenericAgentDesign      = "loopforge-design"
-	GenericAgentImplement   = "loopforge-implement"
-	GenericAgentReview      = "loopforge-review"
-	GenericAgentTest        = "loopforge-test"
-	GenericAgentMR          = "loopforge-mr"
-	GenericAgentSummary     = "loopforge-summary"
+	GenericAgentRequirement = "friday-requirement"
+	GenericAgentDesign      = "friday-design"
+	GenericAgentImplement   = "friday-implement"
+	GenericAgentReview      = "friday-review"
+	GenericAgentTest        = "friday-test"
+	GenericAgentMR          = "friday-mr"
+	GenericAgentSummary     = "friday-summary"
 )
 
 // Requirement keys a generic template may declare. Studio maps them onto live
@@ -37,7 +37,7 @@ const (
 )
 
 // Product and frontend harness templates share the same generic_templates
-// table as the LoopForge backend SOP.
+// table as the Friday backend SOP.
 const (
 	GenericProductDeliveryWorkflowID  = "generic-product-delivery"
 	GenericFrontendDeliveryWorkflowID = "generic-frontend-delivery"
@@ -63,17 +63,17 @@ const (
 // Template-owned rule ids. These are cloned into the adopting project and
 // referenced by the template roles.
 const (
-	GenericRuleCore           = "loopforge-core"
-	GenericRuleBackendProfile = "loopforge-backend-profile"
+	GenericRuleCore           = "friday-core"
+	GenericRuleBackendProfile = "friday-backend-profile"
 )
 
-// Template-owned skill ids, one per LoopForge stage capability.
+// Template-owned skill ids, one per Friday stage capability.
 const (
-	GenericSkillClarifyRequirements = "loopforge-clarify-requirements"
-	GenericSkillBrainstorming       = "loopforge-brainstorming"
-	GenericSkillTechDesign          = "loopforge-tech-design"
-	GenericSkillWritingPlans        = "loopforge-writing-plans"
-	GenericSkillKnowledgeDistill    = "loopforge-knowledge-distillation"
+	GenericSkillClarifyRequirements = "friday-clarify-requirements"
+	GenericSkillBrainstorming       = "friday-brainstorming"
+	GenericSkillTechDesign          = "friday-tech-design"
+	GenericSkillWritingPlans        = "friday-writing-plans"
+	GenericSkillKnowledgeDistill    = "friday-knowledge-distillation"
 )
 
 // GenericTemplate bundles a project-independent SOP with the roles it needs.

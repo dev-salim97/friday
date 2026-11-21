@@ -52,14 +52,13 @@ func (h *usersHandlers) probeCLIModels(c *gin.Context) {
 		// while "" means the official endpoint.
 		BaseURL *string `json:"baseUrl"`
 		// Protocol is the agent CLI's form value; null keeps the stored one.
-		Protocol    *string `json:"protocol"`
-		Environment *string `json:"environment"`
+		Protocol *string `json:"protocol"`
 	}
 	if !decode(c, &req) {
 		return
 	}
 	engine := strings.TrimSpace(req.Engine)
-	if engine != assistantEngineCodeBuddy && !slices.Contains(assistantCLIEngines(), engine) {
+	if !slices.Contains(assistantCLIEngines(), engine) {
 		c.JSON(http.StatusBadRequest, cliModelProbeResult{Error: "不支持的 CLI：" + engine})
 		return
 	}
@@ -67,7 +66,7 @@ func (h *usersHandlers) probeCLIModels(c *gin.Context) {
 		c.JSON(http.StatusOK, cliModelProbeResult{Error: errInvalidCLIBaseURL})
 		return
 	}
-	apiKey, baseURL, protocol, environment := strings.TrimSpace(req.APIKey), "", "", ""
+	apiKey, baseURL, protocol := strings.TrimSpace(req.APIKey), "", ""
 	if h.repo != nil {
 		if stored, found := h.repo.User(id); found {
 			storedKey, storedURL := assistantEngineCredential(stored, engine)
@@ -75,7 +74,6 @@ func (h *usersHandlers) probeCLIModels(c *gin.Context) {
 				apiKey = storedKey
 			}
 			baseURL, protocol = storedURL, assistantEngineProtocol(stored, engine)
-			environment = stored.CodeBuddyInternetEnvironment
 		}
 	}
 	if req.BaseURL != nil {
@@ -86,34 +84,6 @@ func (h *usersHandlers) probeCLIModels(c *gin.Context) {
 		protocol = runtime.AgentCLIProtocol(engine, *req.Protocol)
 	}
 	c.Header("Cache-Control", "private, no-store")
-	if engine == assistantEngineCodeBuddy {
-		if req.Environment != nil {
-			var ok bool
-			environment, ok = domain.NormalizeCodeBuddyInternetEnvironment(*req.Environment)
-			if !ok {
-				c.JSON(http.StatusBadRequest, cliModelProbeResult{Error: "请选择有效的 CodeBuddy 网络环境"})
-				return
-			}
-		}
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
-		defer cancel()
-		var models []domain.CLIModel
-		for _, id := range discoverCLIModels(ctx, environment, apiKey) {
-			if !codeBuddyIsDefaultModel(id) && assistantValidEngineModel(id) {
-				models = append(models, domain.CLIModel{ID: id})
-			}
-		}
-		if len(models) == 0 {
-			c.JSON(http.StatusOK, cliModelProbeResult{Error: "CodeBuddy CLI 没有返回模型，请检查 CLI 和个人凭据"})
-			return
-		}
-		source := "official"
-		if apiKey == "" {
-			source = "builtin"
-		}
-		c.JSON(http.StatusOK, cliModelProbeResult{Models: cliModelsWithEfforts(engine, models, ""), Source: source})
-		return
-	}
 	if engine == runtime.AgentCLICursor {
 		h.probeCursorModels(c, apiKey)
 		return
@@ -302,10 +272,7 @@ func cliModelsOf(models []assistantDiscoveredModel) []domain.CLIModel {
 // levels this CLI can actually pass to its provider.
 func cliModelsWithEfforts(engine string, models []domain.CLIModel, baseURL string) []domain.CLIModel {
 	for i := range models {
-		id := models[i].ID
-		if engine != assistantEngineCodeBuddy {
-			id = engine + ":" + id
-		}
+		id := engine + ":" + models[i].ID
 		levels := append([]string{}, assistantModelEffortsForBaseURL(id, models, baseURL)...)
 		models[i].DiscoveredReasoningEfforts = &levels
 	}

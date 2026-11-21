@@ -20,7 +20,7 @@ func TestRunnerRegistryValidationRuntimeAndPreferences(t *testing.T) {
 		SessionTokenHash: "session-hash", SessionExpiresAt: &expires, Labels: []string{"one"},
 		Runtimes: []domain.RunnerRuntime{
 			{Provider: "codex", Status: domain.RuntimeStatusOnline, AuthMode: domain.RuntimeAuthLocal},
-			{Provider: "codebuddy", Status: domain.RuntimeStatusOnline, AuthMode: domain.RuntimeAuthPersonal},
+			{Provider: "opencode", Status: domain.RuntimeStatusOnline, AuthMode: domain.RuntimeAuthPersonal},
 		},
 		LastSeenAt: &now,
 	}
@@ -63,8 +63,8 @@ func TestRunnerRegistryValidationRuntimeAndPreferences(t *testing.T) {
 	if err := s.SetRunnerRuntimeAuthMode(runner.ID, "codex", "bad", now); err == nil {
 		t.Fatal("invalid auth mode accepted")
 	}
-	if err := s.SetRunnerRuntimeAuthMode(runner.ID, "codebuddy", domain.RuntimeAuthLocal, now); err == nil {
-		t.Fatal("local CodeBuddy auth accepted")
+	if err := s.SetRunnerRuntimeAuthMode(runner.ID, "opencode", domain.RuntimeAuthLocal, now); err == nil {
+		t.Fatal("local agent CLI auth accepted")
 	}
 	if err := s.SetRunnerRuntimeAuthMode(runner.ID, "missing", domain.RuntimeAuthPersonal, now); err == nil {
 		t.Fatal("missing runtime auth changed")
@@ -81,7 +81,7 @@ func TestRunnerRegistryValidationRuntimeAndPreferences(t *testing.T) {
 	if err := s.SetRunnerRuntimeStatus(runner.ID, "codex", domain.RuntimeStatusDisabled, now); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.RunnerHeartbeat(runner.ID, []domain.RunnerRuntime{{Provider: "codex"}, {Provider: "claude-code"}, {Provider: "codebuddy"}}, " 1.2.3 ", now.Add(time.Minute), expires); err != nil {
+	if err := s.RunnerHeartbeat(runner.ID, []domain.RunnerRuntime{{Provider: "codex"}, {Provider: "claude-code"}, {Provider: "opencode"}}, " 1.2.3 ", now.Add(time.Minute), expires); err != nil {
 		t.Fatal(err)
 	}
 	heartbeat, _ := s.Runner(runner.ID)

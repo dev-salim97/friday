@@ -359,9 +359,9 @@ footer.note code{font-family:"IBM Plex Mono",monospace; background:var(--surface
 
   <footer class="note">
     数据来源：<code>python3 ../build_dashboard_data.py --project-root &lt;devflow 项目根目录&gt;</code> 会读取该项目下
-    <code>.codebuddy/skills/agent-observability/logs/metrics.ndjson</code>、<code>.state.json</code>、
+    <code>.codex/skills/agent-observability/logs/metrics.ndjson</code>、<code>.state.json</code>、
     <code>artifacts/*/workflow-state.json</code>（Classic/Portable 两种 schema 自动识别）与
-    <code>.codebuddy/hooks/logs/auto-dispatch.log</code>，聚合成同目录下的 <code>dashboard-data.json</code>。
+    <code>.codex/hooks/logs/auto-dispatch.log</code>，聚合成同目录下的 <code>dashboard-data.json</code>。
     这个页面只读那份快照，不直接碰任何日志/状态文件——重新生成快照后刷新页面即可看到最新数据。
     全部处理在本机完成，不发往任何外部服务。
   </footer>
@@ -475,7 +475,7 @@ footer.note code{font-family:"IBM Plex Mono",monospace; background:var(--surface
       text: unpricedCount>0
         ? ("有 <b>"+unpricedCount+"</b> 个模型未命中价格表（<b>"+unpricedEvents+"</b> 条 usage 事件缺少成本）："
             +unpricedNames+(unpricedCount>3 ? " 等 "+unpricedCount+" 个" : "")
-            +"。可写入 <code>.codebuddy/agent-observability/pricing.overrides.json</code>，"
+            +"。可写入 <code>.codex/agent-observability/pricing.overrides.json</code>，"
             +"或用 <code>AOBS_PRICING_OVERRIDES_PATH</code> 指定覆盖文件补充单价；"
             +"补充后只影响之后的新事件，不回溯已落盘的历史成本。")
         : "所有出现的模型都已命中价格表，成本估算完整。"

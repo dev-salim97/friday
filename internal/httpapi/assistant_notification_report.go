@@ -5,7 +5,6 @@ import (
 	"agentflow/internal/notification"
 	"context"
 	"path/filepath"
-	"strings"
 )
 
 func (h *assistantHandlers) generateSOPReport(ctx context.Context, run domain.Run, model, prompt string) (domain.AINotificationContent, error) {
@@ -13,11 +12,11 @@ func (h *assistantHandlers) generateSOPReport(ctx context.Context, run domain.Ru
 }
 func (h *assistantHandlers) generateReport(ctx context.Context, run domain.Run, model, prompt, system string) (domain.AINotificationContent, error) {
 	user, ok := h.repo.User(run.ExecutionContext.ResponsibleUserID)
-	if !ok || strings.TrimSpace(user.CodeBuddyAPIKey) == "" {
+	if !ok || !assistantModelCredentialConfigured(user, model) {
 		return domain.AINotificationContent{}, notification.ErrReportCredentials
 	}
-	catalog := loadAssistantModels(ctx, user.CodeBuddyInternetEnvironment)
-	if assistantAllowedModel(model, catalog) != model {
+	catalog := loadAssistantModels(ctx)
+	if assistantAllowedUserModel(model, catalog, user) != model {
 		return domain.AINotificationContent{}, notification.ErrReportModel
 	}
 
@@ -49,9 +48,9 @@ func (h *assistantHandlers) generateReport(ctx context.Context, run domain.Run, 
 		_, cliErr := generate(modelCtx, input, user)
 		if result, ok := session.takeFinal(); ok && result.Report != nil {
 			report := *result.Report
-			report.Title = redactAssistantSecrets(strings.ReplaceAll(report.Title, user.CodeBuddyAPIKey, "[redacted]"), user)
-			report.Summary = redactAssistantSecrets(strings.ReplaceAll(report.Summary, user.CodeBuddyAPIKey, "[redacted]"), user)
-			report.Body = redactAssistantSecrets(strings.ReplaceAll(report.Body, user.CodeBuddyAPIKey, "[redacted]"), user)
+			report.Title = redactAssistantSecrets(report.Title, user)
+			report.Summary = redactAssistantSecrets(report.Summary, user)
+			report.Body = redactAssistantSecrets(report.Body, user)
 			return report, nil
 		}
 		if ctx.Err() != nil {

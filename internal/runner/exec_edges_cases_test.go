@@ -210,7 +210,7 @@ func TestRunSandboxKeysAndRequirements(t *testing.T) {
 	task.Sandbox.Requirements = nil
 	task.Workspace = "runs/run/workspace"
 	task.Invocation = &domain.RunnerInvocation{CredentialSource: domain.RuntimeAuthLocal}
-	for _, provider := range []string{"codex", "claude-code", "codebuddy", "mock"} {
+	for _, provider := range []string{"codex", "claude-code", "mock"} {
 		task.Provider = provider
 		req, _ := taskSandboxSpec(task)
 		if provider != "mock" && len(req.CLIStates) != 1 {

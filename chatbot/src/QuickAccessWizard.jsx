@@ -14,34 +14,14 @@ import SlidingTabs from "./SlidingTabs";
 import { api, canChatInProject, canManageProjectRepos, write } from "./api";
 import { usePanelPresence } from "./usePanelPresence";
 import {
-  CODEBUDDY_ENVIRONMENTS,
-  codeBuddyEnvironment,
-  codeBuddyEnvironmentIntent,
-  codeBuddyEnvironmentLegacy,
-  codeBuddyKeyURL,
-  codeBuddyKeyWarning,
   openCredentialSettings,
 } from "./credentials";
 import "./quick-access-wizard.css";
 
 const DEFAULT_SOP_ID = "generic-backend-delivery";
 
-// Display names for the models users without their own key may use.
-export function sharedModelNames(models, fallback = "") {
-  const list = Array.isArray(models) && models.length ? models : fallback ? [fallback] : [];
-  return list
-    .map((id) => (id === "deepseek-v4.1-flash" ? "Deepseek-V4.1-Flash" : id))
-    .join("、");
-}
-
-// The users API omits an empty (国际站) environment, so a full user response
-// must clear one that was switched to 国际站 elsewhere instead of keeping it.
 export function mergeFreshUser(prev, fresh) {
-  return {
-    ...prev,
-    ...fresh,
-    codeBuddyInternetEnvironment: fresh?.codeBuddyInternetEnvironment || "",
-  };
+  return { ...prev, ...fresh };
 }
 
 const STEPS = [
@@ -69,7 +49,7 @@ const STEPS = [
 
 const FALLBACK_ROLES = [
   {
-    id: "loopforge-requirement",
+    id: "friday-requirement",
     name: "需求定型",
     description: "澄清需求边界与验收标准",
     prompt: "根据需求输入与代码库现状，确认目标、范围、排除项与验收标准，产出结构化需求说明与执行计划。\n\n任务输入：{{input}}",
@@ -77,7 +57,7 @@ const FALLBACK_ROLES = [
     artifactPath: "requirement-report.md",
   },
   {
-    id: "loopforge-design",
+    id: "friday-design",
     name: "方案设计",
     description: "产出技术方案与实现计划",
     prompt: "分析受影响模块与调用链，设计接口、数据模型与最小改动方案，明确风险与验证范围。\n\n任务输入：{{input}}",
@@ -85,7 +65,7 @@ const FALLBACK_ROLES = [
     artifactPath: "tech-design.md",
   },
   {
-    id: "loopforge-implement",
+    id: "friday-implement",
     name: "代码实现",
     description: "在工作分支实现并自测",
     prompt: "按方案与计划完成代码实现，运行受影响模块的单元测试并记录变更报告。\n\n任务输入：{{input}}",
@@ -93,7 +73,7 @@ const FALLBACK_ROLES = [
     artifactPath: "change-report.md",
   },
   {
-    id: "loopforge-review",
+    id: "friday-review",
     name: "独立评审",
     description: "审查改动质量与规范",
     prompt: "独立审查代码改动的正确性、回归风险、安全边界与测试证据，给出评审结论。\n\n任务输入：{{input}}",
@@ -101,7 +81,7 @@ const FALLBACK_ROLES = [
     artifactPath: "review-report.md",
   },
   {
-    id: "loopforge-test",
+    id: "friday-test",
     name: "测试验证",
     description: "运行测试并给出验收结论",
     prompt: "按验收标准执行自动化或回归测试，核对每条验收项并输出测试报告。\n\n任务输入：{{input}}",
@@ -109,7 +89,7 @@ const FALLBACK_ROLES = [
     artifactPath: "test-report.md",
   },
   {
-    id: "loopforge-mr",
+    id: "friday-mr",
     name: "发起 MR",
     description: "推送分支并创建合并请求",
     prompt: "将工作分支推送到代码仓库，创建或更新 Pull Request 并整理变更摘要。\n\n任务输入：{{input}}",
@@ -117,7 +97,7 @@ const FALLBACK_ROLES = [
     artifactPath: "mr-body.md",
   },
   {
-    id: "loopforge-summary",
+    id: "friday-summary",
     name: "交付汇总",
     description: "汇总产物与沉淀知识",
     prompt: "汇总本次交付的改动、验证结果与 MR 链接，提炼可复用的项目经验。\n\n任务输入：{{input}}",
@@ -127,13 +107,13 @@ const FALLBACK_ROLES = [
 ];
 
 const FALLBACK_NODES = [
-  { id: "requirement", name: "需求定型", type: "agent", agentId: "loopforge-requirement", metricStage: "clarification" },
-  { id: "design", name: "方案设计", type: "agent", agentId: "loopforge-design", metricStage: "development" },
-  { id: "implement", name: "代码实现", type: "agent", agentId: "loopforge-implement", metricStage: "development" },
-  { id: "review", name: "独立评审", type: "agent", agentId: "loopforge-review", metricStage: "testing" },
-  { id: "test", name: "测试验证", type: "agent", agentId: "loopforge-test", metricStage: "testing" },
-  { id: "mr", name: "发起 MR", type: "agent", agentId: "loopforge-mr", metricStage: "development" },
-  { id: "summary", name: "交付汇总", type: "agent", agentId: "loopforge-summary", metricStage: "none" },
+  { id: "requirement", name: "需求定型", type: "agent", agentId: "friday-requirement", metricStage: "clarification" },
+  { id: "design", name: "方案设计", type: "agent", agentId: "friday-design", metricStage: "development" },
+  { id: "implement", name: "代码实现", type: "agent", agentId: "friday-implement", metricStage: "development" },
+  { id: "review", name: "独立评审", type: "agent", agentId: "friday-review", metricStage: "testing" },
+  { id: "test", name: "测试验证", type: "agent", agentId: "friday-test", metricStage: "testing" },
+  { id: "mr", name: "发起 MR", type: "agent", agentId: "friday-mr", metricStage: "development" },
+  { id: "summary", name: "交付汇总", type: "agent", agentId: "friday-summary", metricStage: "none" },
 ];
 
 const BRANCH_OPTIONS = [
@@ -581,9 +561,9 @@ function parseGitHubRepo(raw) {
 // SSH preview first (it leaves github.com to the GitHub parser, matching the
 // server); self-hosted legacy repositories keep the git.example.com form.
 export function parseGongfengRepo(raw) {
-  const httpsInfo = globalThis.LoopForgeGitHTTPS(raw);
+  const httpsInfo = globalThis.FridayGitHTTPS(raw);
   if (httpsInfo) return httpsInfo;
-  const sshInfo = globalThis.LoopForgeGitSSH(raw);
+  const sshInfo = globalThis.FridayGitSSH(raw);
   if (sshInfo) return sshInfo;
   const github = parseGitHubRepo(raw);
   if (github) return github;
@@ -700,7 +680,7 @@ async function provisionFallbackProjectSOP(projectId, workflowId, owner) {
         name: role.name,
         projectId,
         version: 1,
-        executorId: "codebuddy",
+        executorId: "claude",
         description: role.description,
         prompt: role.prompt,
         artifactOutputs: [
@@ -773,8 +753,6 @@ export default function QuickAccessWizard({
   user,
   projects = [],
   projectId = "",
-  sponsoredModel = "",
-  sponsoredModels = [],
   onClose,
   onCompleted,
   onCredentialsSaved,
@@ -793,9 +771,6 @@ export default function QuickAccessWizard({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [gitToken, setGitToken] = useState("");
-  const [codeBuddyApiKey, setCodeBuddyApiKey] = useState("");
-  // null follows the saved setting until the user picks an environment here.
-  const [codeBuddyEnvChoice, setCodeBuddyEnvChoice] = useState(null);
   const [verifyingGit, setVerifyingGit] = useState(false);
   const [gitVerify, setGitVerify] = useState(null);
   const [projectMode, setProjectMode] = useState("existing");
@@ -947,8 +922,6 @@ export default function QuickAccessWizard({
     setPhase("wizard");
     setError("");
     setGitToken("");
-    setCodeBuddyApiKey("");
-    setCodeBuddyEnvChoice(null);
     setGitVerify(null);
     setCompletedSummary(null);
     setBindRepoNow(true);
@@ -1190,25 +1163,10 @@ export default function QuickAccessWizard({
   const selectedSSHRepo = parsedRepo || parseGongfengRepo(defaultRepo?.cloneUrl);
   const sshKeysLoaded = sshCredentials.userId === user?.id && sshCredentials.keys !== null;
   const hasSSHKey = (remote) => sshKeysLoaded && !sshCredentials.error && sshCredentials.keys.some(
-    (key) => globalThis.LoopForgeGitSSHHost(key.host) === remote?.host,
+    (key) => globalThis.FridayGitSSHHost(key.host) === remote?.host,
   );
   const sshReady = hasSSHKey(selectedSSHRepo);
   const sshRepository = (parsedRepo || defaultRepo)?.provider === "ssh";
-  const codeBuddyReady = Boolean(
-    storedUser?.codeBuddyApiKeyConfigured || codeBuddyApiKey.trim(),
-  );
-  // The CLI gets the stored text as-is: an old value such as china preselects
-  // what it meant, and still differs from it, so 下一步 rewrites it.
-  const storedCodeBuddyEnvRaw = String(
-    storedUser?.codeBuddyInternetEnvironment || "",
-  ).trim();
-  const storedCodeBuddyEnv =
-    codeBuddyEnvironmentIntent(storedCodeBuddyEnvRaw)?.value ?? "";
-  const codeBuddyEnvLegacy = codeBuddyEnvironmentLegacy(storedCodeBuddyEnvRaw);
-  const codeBuddyEnv = codeBuddyEnvChoice ?? storedCodeBuddyEnv;
-  const codeBuddyEnvInfo =
-    codeBuddyEnvironment(codeBuddyEnv) || CODEBUDDY_ENVIRONMENTS[0];
-  const codeBuddyWarning = codeBuddyKeyWarning(codeBuddyApiKey);
   const nodes =
     activeWorkflow?.nodes?.filter((node) => node.type === "agent") ||
     FALLBACK_NODES;
@@ -1221,7 +1179,6 @@ export default function QuickAccessWizard({
 
   async function saveTypedCredentials() {
     if (!user?.id) return storedUser;
-    const payload = {};
     let savedGit = false;
     if (gitToken.trim()) {
       const endpoint = `/api/users/${encodeURIComponent(user.id)}/git-http-credentials`;
@@ -1230,26 +1187,10 @@ export default function QuickAccessWizard({
       await write(endpoint, { ...(existing ? {id:existing.id} : {}), host:"github.com", platform:"github", name:"GitHub", username:"x-access-token", token:gitToken.trim() }, "PUT");
       savedGit = true;
     }
-    if (codeBuddyApiKey.trim())
-      payload.codeBuddyApiKey = codeBuddyApiKey.trim();
-    // A key is always saved with the environment it was issued for.
-    if (codeBuddyApiKey.trim() || codeBuddyEnv !== storedCodeBuddyEnvRaw)
-      payload.codeBuddyInternetEnvironment = codeBuddyEnv;
-    if (!Object.keys(payload).length && !savedGit) return storedUser;
-    const saved = await write(
-      `/api/users/${encodeURIComponent(user.id)}/credentials`,
-      payload,
-      "PUT",
-    );
-    const merged = { ...storedUser, ...saved };
-    // The server omits an empty environment, so 国际站 must overwrite the old value here.
-    if ("codeBuddyInternetEnvironment" in payload)
-      merged.codeBuddyInternetEnvironment =
-        saved?.codeBuddyInternetEnvironment || "";
+    if (!savedGit) return storedUser;
+    const merged = { ...storedUser };
     setStoredUser(merged);
     setGitToken("");
-    setCodeBuddyApiKey("");
-    setCodeBuddyEnvChoice(null);
     void onCredentialsSaved?.();
     window.parent !== window &&
       window.parent.postMessage(
@@ -1287,8 +1228,8 @@ export default function QuickAccessWizard({
     if (saving) return;
     setError("");
     if (activeStep.id === "auth") {
-      if (!gitReady && !hasSSHKeys && !codeBuddyReady && !sponsoredModel) {
-        setError("请先配置 GitHub Git Token、Git SSH 密钥或 CodeBuddy API Key。");
+      if (!gitReady && !hasSSHKeys) {
+        setError("请先配置 GitHub Git Token 或 Git SSH 密钥。");
         return;
       }
       setSaving(true);
@@ -1519,10 +1460,6 @@ export default function QuickAccessWizard({
         workflow: provisionedWorkflow || activeWorkflow,
         rolesCount: roles.length,
         gitReady: Boolean(boundRepo?.provider === "ssh" ? hasSSHKey(parseGongfengRepo(boundRepo.cloneUrl)) : latestUser?.gitHubCredentialConfigured),
-        codeBuddyReady: Boolean(
-          latestUser?.codeBuddyApiKeyConfigured ||
-            storedUser?.codeBuddyApiKeyConfigured,
-        ),
       });
       setPhase("success");
       await onCompleted?.(targetProject?.id || "");
@@ -1699,30 +1636,6 @@ export default function QuickAccessWizard({
                               : "未配置，克隆/推送私有仓库前可在个人配置补齐"}
                           </span>
                         </li>
-                        <li
-                          className={
-                            completedSummary?.codeBuddyReady || sponsoredModel
-                              ? "is-ok"
-                              : "is-warn"
-                          }
-                        >
-                          <HarnessIcon
-                            name={
-                              completedSummary?.codeBuddyReady
-                                ? "check"
-                                : "info"
-                            }
-                            size={14}
-                          />
-                          <span>
-                            CodeBuddy API Key：
-                            {completedSummary?.codeBuddyReady
-                              ? "已配置"
-                              : sponsoredModel
-                                ? `未配置。对话和 SOP 都会使用平台共享 Key（可用模型：${sharedModelNames(sponsoredModels, sponsoredModel)}），可以直接开始；配置自己的 Key 后可选用任意模型`
-                                : "未配置。对话可用平台默认模型，但运行 SOP 时节点需要它调模型，请先在个人配置补齐"}
-                          </span>
-                        </li>
                         <li className="is-ok">
                           <HarnessIcon name="check" size={14} />
                           <span>
@@ -1891,68 +1804,6 @@ export default function QuickAccessWizard({
                             />
                           ) : null}
                           </details>
-                        </div>
-                      </section>
-
-                      <section className="qa-cred-card">
-                        <header className="qa-cred-head">
-                          <div>
-                            <strong>CodeBuddy API Key</strong>
-                            <span>
-                              {sponsoredModel
-                                ? "可选：未配置时对话和 SOP 使用平台共享模型，配置后可选用其他模型"
-                                : "AI 对话与 SOP 节点调用模型时使用"}
-                            </span>
-                          </div>
-                          <StatusPill ok={codeBuddyReady} />
-                        </header>
-                        <div className="qa-cred-body">
-                          <div className="qa-field">
-                            <span className="qa-label">网络环境</span>
-                            <HarnessSelect
-                              value={codeBuddyEnv}
-                              options={CODEBUDDY_ENVIRONMENTS.map((env) => ({
-                                value: env.value,
-                                label: env.label,
-                                hint: env.site,
-                              }))}
-                              onChange={setCodeBuddyEnvChoice}
-                              ariaLabel="CodeBuddy 网络环境"
-                            />
-                          </div>
-                          <div className="qa-input-row">
-                            <input
-                              type="password"
-                              className="qa-input"
-                              value={codeBuddyApiKey}
-                              onChange={(e) =>
-                                setCodeBuddyApiKey(e.target.value)
-                              }
-                              placeholder={
-                                storedUser?.codeBuddyApiKeyConfigured
-                                  ? "已配置，留空保持不变"
-                                  : "粘贴 CodeBuddy API Key"
-                              }
-                              aria-label="CodeBuddy API Key"
-                              autoComplete="new-password"
-                            />
-                            <a
-                              className="qa-link"
-                              data-hover-ink-control=""
-                              href={codeBuddyKeyURL(codeBuddyEnv)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              获取 API Key ↗
-                            </a>
-                          </div>
-                          <p
-                            className={`qa-hint${codeBuddyWarning ? " is-warn" : ""}`}
-                            role="status"
-                          >
-                            {codeBuddyWarning ||
-                              `${codeBuddyEnvLegacy && codeBuddyEnvChoice === null ? `原来填写的「${storedCodeBuddyEnvRaw}」无法识别，CodeBuddy 实际按国际站连接，点下一步改为当前选择。` : ""}Key 只能在创建它的站点使用：当前选择${codeBuddyEnvInfo.label}（${codeBuddyEnvInfo.site}），「获取 API Key」会打开该站点的密钥页。`}
-                          </p>
                         </div>
                       </section>
                     </div>
@@ -2346,16 +2197,10 @@ export default function QuickAccessWizard({
                             <dt>凭据</dt>
                             <dd>
                               <span
-                                className={`qa-dot ${(sshRepository ? sshReady : gitReady) && (codeBuddyReady || sponsoredModel) ? "is-ok" : ""}`}
+                                className={`qa-dot ${(sshRepository ? sshReady : gitReady) ? "is-ok" : ""}`}
                               />
                               <span>
                                 {sshRepository ? "Git SSH" : "GitHub"} {(sshRepository ? sshReady : gitReady) ? "已配置" : "未配置"} ·
-                                CodeBuddy{" "}
-                                {codeBuddyReady
-                                  ? "已配置"
-                                  : sponsoredModel
-                                    ? "使用平台共享模型"
-                                    : "未配置"}
                               </span>
                             </dd>
                           </div>

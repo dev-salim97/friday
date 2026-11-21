@@ -52,20 +52,20 @@ func TestExecutorModelsCatalogListsPerCLI(t *testing.T) {
 	h := New(s, engine.New(s, runtime.NewManager(filepath.Join(t.TempDir(), "workspaces"))), tracker.NewService(), "", "")
 	// The catalog is a public, non-sensitive list served without login.
 	catalogs := requestEmptyJSON[map[string]executorModelCatalog](t, h, http.MethodGet, "/api/executor-models", http.StatusOK)
-	cb, ok := catalogs["codebuddy"]
+	cb, ok := catalogs["claude"]
 	if !ok || len(cb.Models) == 0 || cb.Default == "" {
-		t.Fatalf("codebuddy catalog = %+v", cb)
+		t.Fatalf("claude catalog = %+v", cb)
 	}
 	if cb.Models[0].Credits != "" {
 		t.Fatal("unconfigured public model must not claim a private price")
 	}
 	for _, model := range cb.Models {
 		if model.ID == assistantDefaultModel {
-			t.Fatal("the CodeBuddy CLI default must not be listed as a model")
+			t.Fatal("the Claude CLI default must not be listed as a model")
 		}
 	}
-	if cb.Models[0].ID != "fast-model" || cb.Models[0].Family != "codebuddy" {
-		t.Fatalf("CodeBuddy routing model = %+v", cb.Models[0])
+	if cb.Models[0].ID != "fast-model" || cb.Models[0].Family != "other" {
+		t.Fatalf("Claude routing model = %+v", cb.Models[0])
 	}
 	codex := catalogs["codex"]
 	if len(codex.Models) < 2 || codex.Models[0].ID != "gpt-6.1-sol" || codex.Models[1].ID != "gpt-6.1-terra" || codex.Models[1].Name != "GPT-6.1 Terra" {
@@ -460,7 +460,7 @@ func TestSharingAgentCascadesToOwnedRulesAndSkills(t *testing.T) {
 	h := New(s, engine.New(s, runtime.NewManager(filepath.Join(t.TempDir(), "workspaces"))), tracker.NewService(), "", "")
 	requestJSON[domain.AgentDefinition](t, h, http.MethodPut, "/api/agents", domain.AgentDefinition{
 		ID: "shared-role", Name: "Shared", Version: 1, ProjectID: "gslb", Shared: true,
-		Rules: []string{"owned-rule"}, Skills: []string{"owned-skill"}, ExecutorID: "codebuddy",
+		Rules: []string{"owned-rule"}, Skills: []string{"owned-skill"}, ExecutorID: "claude",
 	}, http.StatusOK)
 	rule, _ := s.Rule("owned-rule")
 	skill, _ := s.Skill("owned-skill")
@@ -480,14 +480,14 @@ func TestPutAgentRejectsCommandGateWithoutExecutionScope(t *testing.T) {
 	}
 	h := New(s, engine.New(s, runtime.NewManager(filepath.Join(t.TempDir(), "workspaces"))), tracker.NewService(), "", "")
 	errBody := requestJSON[map[string]string](t, h, http.MethodPut, "/api/agents", domain.AgentDefinition{
-		ID: "scoped-role", Name: "Scoped", Version: 1, ProjectID: "gslb", ExecutorID: "codebuddy",
+		ID: "scoped-role", Name: "Scoped", Version: 1, ProjectID: "gslb", ExecutorID: "claude",
 		Verification: []domain.VerificationGate{{ID: "plan", Name: "plan", Mode: "command", Commands: []string{`test -f fix-plan.md`}}},
 	}, http.StatusBadRequest)
 	if !strings.Contains(errBody["error"], "executionScope") {
 		t.Fatalf("error = %#v", errBody)
 	}
 	saved := requestJSON[domain.AgentDefinition](t, h, http.MethodPut, "/api/agents", domain.AgentDefinition{
-		ID: "scoped-role", Name: "Scoped", Version: 1, ProjectID: "gslb", ExecutorID: "codebuddy",
+		ID: "scoped-role", Name: "Scoped", Version: 1, ProjectID: "gslb", ExecutorID: "claude",
 		Verification: []domain.VerificationGate{{ID: "plan", Name: "plan", Mode: "command", ExecutionScope: domain.ExecutionScopeRun, Commands: []string{`test -f fix-plan.md`}}},
 	}, http.StatusOK)
 	if len(saved.Verification) != 1 || saved.Verification[0].ExecutionScope != domain.ExecutionScopeRun {
@@ -653,7 +653,7 @@ func TestNewProjectDefaultsToGenericBackendDeliverySOP(t *testing.T) {
 	h := New(s, engine.New(s, runtime.NewManager(filepath.Join(t.TempDir(), "workspaces"))), tracker.NewService(), "", "")
 	created := requestJSON[domain.Project](t, h, http.MethodPost, "/api/projects", domain.Project{ID: "fresh", Key: "FRESH", Name: "Fresh"}, http.StatusOK)
 	if created.WorkflowID != repo.GenericBackendDeliveryWorkflowID {
-		t.Fatalf("new project should default to the LoopForge SOP, got %q", created.WorkflowID)
+		t.Fatalf("new project should default to the Friday SOP, got %q", created.WorkflowID)
 	}
 	assertProjectHasDefaultTrackerMCPs(t, s, "fresh")
 	// 显式指定或修改 SOP 不被覆盖。

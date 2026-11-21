@@ -15,11 +15,11 @@ const { apiMock, writeMock } = vi.hoisted(() => {
     if (options?.method === "DELETE") return {};
     if (path === "/mcp")
       return { result: { structuredContent: { data: { id: "saved" } } } };
-    if (path === "/api/auth/current") return { user: { id: 1, loginName: "tester", codeBuddyApiKeyConfigured: true } };
+    if (path === "/api/auth/current") return { user: { id: 1, loginName: "tester" } };
     if (path === "/api/projects") return [{ id: "p1", name: "项目一", ownerId: 1, members: [1] }];
     if (path === "/api/assistant/models?executor=codex") return { default: "default", models: [{ id: "default", name: "CLI default", family: "gpt" }, { id: "gpt-5", name: "GPT-5", family: "gpt", efforts: ["high", "xhigh"] }] };
-    if (path === "/api/assistant/models") return { default: "m1", sponsoredModel: "m1", models: [{ id: "m1", name: "模型一", effort: true }] };
-    if (path === "/api/users") return [{ id: 1, loginName: "tester", codeBuddyApiKeyConfigured: true }];
+    if (path === "/api/assistant/models") return { default: "m1", models: [{ id: "m1", name: "模型一", effort: true }] };
+    if (path === "/api/users") return [{ id: 1, loginName: "tester" }];
     if (path === "/api/runners?mine=1") return [{ id: "mac", status: "online" }];
     if (path === "/api/runners/default") return { runnerId: "mac" };
     if (path === "/api/assistant/sessions") return [baseSession];
@@ -78,16 +78,15 @@ describe("conversation hooks", () => {
   });
 
   test("switches Main Bot to another CLI and sends its executor", async () => {
-    localStorage.removeItem("loopforge.assistant.executor");
+    localStorage.removeItem("friday.assistant.executor");
     const { result } = renderHook(() => useChat());
     await waitFor(() => expect(result.current.ready).toBe(true));
-    expect(result.current.executor).toBe("codebuddy");
+    expect(result.current.executor).toBe("claude-code");
     expect(result.current.executors.map((item) => item.id)).toEqual(EXECUTORS.map((item) => item.id));
     act(() => result.current.setExecutor("codex"));
     await waitFor(() => expect(result.current.models.map((m) => m.id)).toEqual(["gpt-5"]));
     expect(result.current.model).toBe("gpt-5");
     expect(result.current.effort).toBe("");
-    expect(result.current.sponsored).toBe(false);
     act(() => result.current.setExecutor("unknown"));
     expect(result.current.executor).toBe("codex");
     await act(() => result.current.send({ text: "你好" }));
@@ -95,14 +94,14 @@ describe("conversation hooks", () => {
       "/api/assistant/generations",
       expect.objectContaining({ executor: "codex", model: "gpt-5", effort: "" }),
     );
-    act(() => result.current.setExecutor("codebuddy"));
+    act(() => result.current.setExecutor("claude-code"));
     expect(result.current.model).toBe("m1");
-    localStorage.removeItem("loopforge.assistant.executor");
+    localStorage.removeItem("friday.assistant.executor");
   });
 
   test("restores the CLI and model saved by an earlier version", async () => {
-    localStorage.setItem("loopforge.assistant.executor", "codex");
-    localStorage.setItem("loopforge.assistant.model.codex", "gpt-5");
+    localStorage.setItem("friday.assistant.executor", "codex");
+    localStorage.setItem("friday.assistant.model.codex", "gpt-5");
     const { result } = renderHook(() => useChat());
     await waitFor(() => expect(result.current.ready).toBe(true));
     expect(result.current.executor).toBe("codex");
@@ -120,7 +119,7 @@ describe("conversation hooks", () => {
       expect(writeMock).not.toHaveBeenCalled();
     } finally {
       view.unmount();
-      localStorage.removeItem("loopforge.assistant.executor");
+      localStorage.removeItem("friday.assistant.executor");
     }
   });
 
@@ -171,9 +170,9 @@ describe("conversation hooks", () => {
       view.unmount();
       apiMock.mockImplementation(originalAPI);
       writeMock.mockImplementation(originalWrite);
-      localStorage.removeItem("loopforge.assistant.executor");
-      localStorage.removeItem("loopforge.assistant.model.agy");
-      localStorage.removeItem("loopforge.assistant.effort.agy.claude-sonnet-5-5-medium");
+      localStorage.removeItem("friday.assistant.executor");
+      localStorage.removeItem("friday.assistant.model.agy");
+      localStorage.removeItem("friday.assistant.effort.agy.claude-sonnet-5-5-medium");
       history.replaceState({}, "", "/");
     }
   });
@@ -216,9 +215,9 @@ describe("conversation hooks", () => {
       view.unmount();
       apiMock.mockImplementation(originalAPI);
       writeMock.mockImplementation(originalWrite);
-      localStorage.removeItem("loopforge.assistant.executor");
-      localStorage.removeItem("loopforge.assistant.model.agy");
-      localStorage.removeItem("loopforge.assistant.effort.agy.gemini-3.8-flash-low");
+      localStorage.removeItem("friday.assistant.executor");
+      localStorage.removeItem("friday.assistant.model.agy");
+      localStorage.removeItem("friday.assistant.effort.agy.gemini-3.8-flash-low");
     }
   });
 
@@ -269,37 +268,8 @@ describe("conversation hooks", () => {
     }
   });
 
-  test("without an own key chat is limited to the administrator's shared models", async () => {
-    localStorage.removeItem("loopforge.assistant.executor");
-    const original = apiMock.getMockImplementation();
-    apiMock.mockImplementation(async (path, options) => {
-      if (path === "/api/auth/current") return { user: { id: 1, loginName: "tester", codeBuddyApiKeyConfigured: false } };
-      if (path === "/api/users") return [{ id: 1, loginName: "tester", codeBuddyApiKeyConfigured: false }];
-      if (path === "/api/assistant/models")
-        return { default: "glm-5.1", sponsoredModel: "glm-5.1", sponsoredModels: ["glm-5.1", "kimi-k2.6"], models: [{ id: "glm-5.1", name: "GLM" }, { id: "kimi-k2.6", name: "Kimi" }] };
-      return original(path, options);
-    });
-    try {
-      const { result } = renderHook(() => useChat());
-      await waitFor(() => expect(result.current.ready).toBe(true));
-      expect(result.current.sponsored).toBe(true);
-      expect(result.current.sponsoredModels).toEqual(["glm-5.1", "kimi-k2.6"]);
-      expect(result.current.model).toBe("glm-5.1");
-      let accepted;
-      act(() => { accepted = result.current.setModel("kimi-k2.6"); });
-      expect(accepted).toBe(true);
-      expect(result.current.model).toBe("kimi-k2.6");
-      act(() => { accepted = result.current.setModel("claude-opus-5"); });
-      expect(accepted).toBe(false);
-      expect(result.current.model).toBe("kimi-k2.6");
-      expect(result.current.error).toContain("glm-5.1、kimi-k2.6");
-    } finally {
-      apiMock.mockImplementation(original);
-    }
-  });
-
   test("restores model and effort choices in fresh chats and across catalog sources", async () => {
-    localStorage.setItem("loopforge.assistant.model.codebuddy", "default");
+    localStorage.setItem("friday.assistant.model.claude-code", "default");
     const original = apiMock.getMockImplementation();
     let personalCodexCatalog = false;
     apiMock.mockImplementation(async (path, options) => {
@@ -346,7 +316,7 @@ describe("conversation hooks", () => {
       await waitFor(() => expect(first.result.current.models.map((m) => m.id)).toEqual(["gpt-5"]));
       act(() => { first.result.current.setModel("gpt-5"); });
       act(() => first.result.current.setEffort("high"));
-      act(() => first.result.current.setExecutor("codebuddy"));
+      act(() => first.result.current.setExecutor("claude-code"));
       expect(first.result.current.model).toBe("claude-opus-5.5");
       expect(first.result.current.effort).toBe("max");
       act(() => first.result.current.setExecutor("codex"));
@@ -361,7 +331,7 @@ describe("conversation hooks", () => {
       expect(reloaded.result.current.executor).toBe("codex");
       expect(reloaded.result.current.model).toBe("codex:gpt-5");
       expect(reloaded.result.current.effort).toBe("high");
-      act(() => reloaded.result.current.setExecutor("codebuddy"));
+      act(() => reloaded.result.current.setExecutor("claude-code"));
       expect(reloaded.result.current.model).toBe("claude-opus-5.5");
       expect(reloaded.result.current.effort).toBe("max");
       act(() => reloaded.result.current.setModel("m1"));
@@ -370,7 +340,7 @@ describe("conversation hooks", () => {
       expect(reloaded.result.current.effort).toBe("max");
       act(() => reloaded.result.current.setEffort(""));
       // A remembered model that is no longer offered falls back to the list.
-      writeComposerPreference("model.codebuddy", "retired-model");
+      writeComposerPreference("model.claude-code", "retired-model");
       act(() => reloaded.result.current.newChat());
       expect(reloaded.result.current.model).toBe("m1");
       expect(reloaded.result.current.effort).toBe("low");
@@ -392,7 +362,7 @@ describe("conversation hooks", () => {
   });
 
   test("an open conversation on a CLI without a key keeps its model", async () => {
-    localStorage.removeItem("loopforge.assistant.executor");
+    localStorage.removeItem("friday.assistant.executor");
     const original = apiMock.getMockImplementation();
     const codexSession = {
       id: "s9", title: "Codex 会话", projectId: "p1", executor: "codex", model: "codex:gpt-5.6-sol", effort: "",
@@ -411,21 +381,21 @@ describe("conversation hooks", () => {
       expect(result.current.model).toBe("codex:gpt-5.6-sol");
     } finally {
       apiMock.mockImplementation(original);
-      localStorage.removeItem("loopforge.assistant.executor");
+      localStorage.removeItem("friday.assistant.executor");
     }
   });
 
   test("lists configured models only and points an empty list at 个人配置", async () => {
-    localStorage.removeItem("loopforge.assistant.executor");
+    localStorage.removeItem("friday.assistant.executor");
     const original = apiMock.getMockImplementation();
-    let codeBuddyConfigured = true;
+    let claudeConfigured = true;
     apiMock.mockImplementation(async (path, options) =>
       path === "/api/assistant/models"
         ? {
             default: "m1",
             models: [{ id: "m1", name: "模型一" }],
             engines: [
-              { id: "codebuddy", name: "CodeBuddy", configured: codeBuddyConfigured, credential: "codeBuddyApiKey" },
+              { id: "claude-code", name: "Claude Code", configured: claudeConfigured, credential: "claudeCodeApiKey" },
               { id: "codex", name: "Codex", configured: false, credential: "codexApiKey" },
               { id: "kimi", name: "Kimi Code", configured: false, credential: "agentCli.kimi" },
             ],
@@ -450,14 +420,14 @@ describe("conversation hooks", () => {
       await act(async () => {});
       expect(result.current.modelSetup?.credential).toBe("agentCli.kimi");
 
-      codeBuddyConfigured = false;
-      act(() => result.current.setExecutor("codebuddy"));
+      claudeConfigured = false;
+      act(() => result.current.setExecutor("claude-code"));
       window.dispatchEvent(new MessageEvent("message", { data: { type: "agentflow-credentials-changed" }, origin: location.origin, source: window.parent }));
-      await waitFor(() => expect(result.current.modelSetup?.credential).toBe("codeBuddyApiKey"));
+      await waitFor(() => expect(result.current.modelSetup?.credential).toBe("claudeCodeApiKey"));
       expect(result.current.models).toEqual([]);
     } finally {
       apiMock.mockImplementation(original);
-      localStorage.removeItem("loopforge.assistant.executor");
+      localStorage.removeItem("friday.assistant.executor");
     }
   });
 
@@ -776,13 +746,13 @@ describe("conversation hooks", () => {
     globalThis.EventSource = FakeEventSource;
     apiMock.mockImplementation(async (path) => {
       if (path === "/api/auth/current")
-        return { user: { id: 1, loginName: "tester", codeBuddyApiKeyConfigured: true } };
+        return { user: { id: 1, loginName: "tester" } };
       if (path === "/api/projects")
         return [{ id: "p1", name: "项目一", ownerId: 1, members: [1] }];
       if (path === "/api/assistant/models")
-        return { default: "m1", sponsoredModel: "m1", models: [{ id: "m1", name: "模型一" }] };
+        return { default: "m1", models: [{ id: "m1", name: "模型一" }] };
       if (path === "/api/users")
-        return [{ id: 1, loginName: "tester", codeBuddyApiKeyConfigured: true }];
+        return [{ id: 1, loginName: "tester" }];
       if (path === "/api/assistant/sessions") return [];
       if (path.includes("/generation"))
         return {

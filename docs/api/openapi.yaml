@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: LoopForge Platform REST API
+  title: Friday Platform REST API
   version: 1.0.0
   description: |
-    Public control-plane API exposed by LoopForge. Signed login cookies and
+    Public control-plane API exposed by Friday. Signed login cookies and
     user-owned Bearer tokens authenticate Studio, REST API, and MCP access. Legacy
     deployment-level Basic authentication remains available. Worker signals,
     OTLP ingestion, run leases, and sandbox-reclamation endpoints are intentionally
@@ -65,7 +65,7 @@ paths:
       operationId: chatAssistant
       summary: Ask the Studio AI assistant or generate platform resource drafts
       description: |
-        Uses the signed-in user's personal CodeBuddy API key. The model can
+        Uses the signed-in user's personal API key. The model can
         request bounded source lookups and project HTTP MCP calls (`mcpCalls`).
         The CLI itself cannot call MCP, modify the source snapshot, push, or
         deploy. The server invokes TAPD/Gongfeng-style HTTP MCP that the user
@@ -325,7 +325,7 @@ paths:
       tags: [Assistant]
       operationId: deleteAssistantSession
       summary: Delete one assistant conversation
-      description: Also removes the matching CodeBuddy CLI transcript under the user's private HOME.
+      description: Also removes the matching CLI transcript under the user's private HOME.
       responses:
         "200":
           description: Conversation and CLI transcript deleted
@@ -403,7 +403,7 @@ paths:
         These tasks make the Studio assistant run a user-written prompt on an
         interval, scoped to one Studio project. They persist in MySQL
         `assistant_tasks` and are not TAPD/Gongfeng SOP schedule jobs. Each run
-        starts a fresh CodeBuddy session and does not resume the previous run.
+        starts a fresh CLI session and does not resume the previous run.
         During execution the server may invoke that project's HTTP MCP servers
         (for example TAPD) on the model's `mcpCalls`.
       parameters:
@@ -436,7 +436,7 @@ paths:
                 intervalSec: {type: integer, minimum: 60, description: Used when cron is empty. Minimum 60 seconds.}
                 cron: {type: string, description: Optional 5-field cron (minute hour day month weekday) in Asia/Shanghai. When set, intervalSec is ignored.}
                 enabled: {type: boolean}
-                model: {type: string, description: CodeBuddy model id used when the task runs}
+                model: {type: string, description: Model id used when the task runs}
                 projectId: {type: string, description: Studio project that owns this assistant task}
       responses:
         "200":
@@ -675,9 +675,6 @@ paths:
             schema:
               type: object
               properties:
-                codeBuddyApiKey: {type: string, writeOnly: true}
-                codeBuddyApiKeyClear: {type: boolean}
-                codeBuddyInternetEnvironment: {type: string, description: "Edition that issued the CodeBuddy key: empty for International, \"internal\" for China, \"ioa\" for iOA (\"public\" and \"China\" are also accepted). Any other value is rejected with 400."}
                 codexApiKey: {type: string, writeOnly: true, description: "Blank preserves the stored key."}
                 codexApiKeyClear: {type: boolean}
                 codexBaseUrl: {type: string, description: "HTTP(S) Responses API base URL. Omitted preserves the value; empty uses the official endpoint."}
@@ -763,62 +760,6 @@ paths:
         "400": {description: Invalid password or not a password account}
         "403": {description: Platform administrator access or same-origin request required}
         "404": {description: Unknown account}
-  /api/platform/codebuddy-key:
-    get:
-      tags: [Users]
-      operationId: getPlatformCodeBuddyKey
-      summary: Show the shared CodeBuddy API Key settings
-      description: Platform administrators only. The key itself is never returned.
-      parameters:
-        - name: environment
-          in: query
-          description: Network environment whose models to list in catalog; defaults to the saved one.
-          schema: {type: string, enum: ["", internal, ioa]}
-      responses:
-        "200":
-          description: Shared key status and the models offered in the environment
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/PlatformCodeBuddyKey"}
-        "403": {description: Platform administrator access required}
-    put:
-      tags: [Users]
-      operationId: savePlatformCodeBuddyKey
-      summary: Share a CodeBuddy API Key with users who have none
-      description: >-
-        Platform administrators only; browser requests must be same-origin. Users without their own key
-        chat and run SOPs on this key, limited to models (the first is the default). It replaces the
-        AGENTFLOW_ASSISTANT_SPONSOR_LOGIN account while configured.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [models]
-              properties:
-                apiKey: {type: string, writeOnly: true, description: Blank keeps the stored key.}
-                internetEnvironment: {type: string, description: "Empty for International, \"internal\" for China, \"ioa\" for iOA."}
-                models: {type: array, minItems: 1, maxItems: 32, items: {type: string}}
-      responses:
-        "200":
-          description: Saved settings
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/PlatformCodeBuddyKey"}
-        "400": {description: Missing key or models, or an invalid environment or model ID}
-        "403": {description: Platform administrator access or same-origin request required}
-    delete:
-      tags: [Users]
-      operationId: clearPlatformCodeBuddyKey
-      summary: Stop sharing the CodeBuddy API Key
-      responses:
-        "200":
-          description: Settings after clearing
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/PlatformCodeBuddyKey"}
-        "403": {description: Platform administrator access or same-origin request required}
   /api/business-domains:
     get:
       tags: [BusinessDomains]
@@ -4327,28 +4268,7 @@ components:
         chineseName: {type: string}
         admin: {type: boolean}
         password: {type: boolean, description: False for accounts that sign in through GitHub or a gateway}
-        codeBuddyApiKeyConfigured: {type: boolean}
         createdAt: {type: string, format: date-time}
-    PlatformCodeBuddyKey:
-      type: object
-      properties:
-        configured: {type: boolean}
-        internetEnvironment: {type: string}
-        models: {type: array, items: {type: string}, description: Allowed models, the default first}
-        updatedAt: {type: string, format: date-time}
-        updatedBy: {type: string}
-        legacySponsor: {type: string, description: Account named by AGENTFLOW_ASSISTANT_SPONSOR_LOGIN, used while no key is configured here}
-        legacySponsorModel: {type: string}
-        catalog:
-          type: array
-          description: Models offered in the requested network environment (GET only)
-          items:
-            type: object
-            properties:
-              id: {type: string}
-              name: {type: string}
-              family: {type: string}
-              credits: {type: string}
     User:
       type: object
       required: [id, loginName]
@@ -4361,12 +4281,10 @@ components:
         deptName: {type: string}
         avatarUrl: {type: string}
         gitHubCredentialConfigured: {type: boolean, readOnly: true}
-        codeBuddyApiKeyConfigured: {type: boolean, readOnly: true}
         codexApiKeyConfigured: {type: boolean, readOnly: true}
         codexBaseUrl: {type: string}
         claudeCodeApiKeyConfigured: {type: boolean, readOnly: true}
         claudeCodeBaseUrl: {type: string}
-        codeBuddyInternetEnvironment: {type: string}
     RepositoryInput:
       type: object
       required: [projectId]
@@ -5351,7 +5269,7 @@ components:
           type: integer
           format: int64
           readOnly: true
-          description: User bound by the server to the last saver. Codex and Claude Code use configured account login on their online default personal Runner. Other configurations and offline Runners use the saver's personal API Key. CodeBuddy can use the shared key for allowed models if the personal key is missing. A bound user must retain write access to the project. Zero uses legacy owner selection.
+          description: User bound by the server to the last saver. Codex and Claude Code use configured account login on their online default personal Runner. Other configurations and offline Runners use the saver's personal API Key. A bound user must retain write access to the project. Zero uses legacy owner selection.
         runAsName:
           type: string
           readOnly: true

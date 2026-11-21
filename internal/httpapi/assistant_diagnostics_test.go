@@ -17,7 +17,7 @@ import (
 
 func TestAssistantDiagnosticsCaptureNativeFailureAndExit(t *testing.T) {
 	dir := t.TempDir()
-	bin := filepath.Join(dir, "codebuddy")
+	bin := filepath.Join(dir, "claude")
 	script := `#!/bin/sh
 echo 'Authorization: Bearer header-private-value' >&2
 echo 'OPENAI_API_KEY=known-private-value password="unknown-password" /Users/example/private/config.json' >&2
@@ -27,11 +27,11 @@ exit 7
 	if err := os.WriteFile(bin, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	g := domain.AssistantGeneration{ID: "diagnostic-turn", SessionID: "diagnostic-session", Status: "running", StartedAt: time.Now().UTC()}
 	d := newAssistantDiagnosticsCollector(g)
 	ctx := context.WithValue(context.Background(), assistantDiagnosticsKey{}, d)
-	user := domain.User{ID: 1, CodeBuddyAPIKey: "known-private-value"}
+	user := domain.User{ID: 1, ClaudeCodeAPIKey: "known-private-value"}
 	_, _, err := runAssistantCLI(ctx, assistantCLIRequest{Prompt: "private prompt must never be exported", SessionRoot: dir}, user, nil)
 	if err == nil {
 		t.Fatal("nonzero CLI was accepted")
@@ -57,7 +57,7 @@ exit 7
 		}
 	}
 	// Readers must receive immutable snapshots, even while another attempt runs.
-	d.begin("codebuddy", "second-model", true, user).stderr("new output")
+	d.begin("claude-code", "second-model", true, user).stderr("new output")
 	if len(report.Attempts) != 1 || len(report.Attempts[0].Stderr) != 2 {
 		t.Fatal("snapshot changed after another attempt")
 	}
@@ -80,7 +80,7 @@ git-secret refresh-secret agent-secret sk-abcdefghijklmnopqrstuvwxyz
 	g := domain.AssistantGeneration{ID: "bounded", Status: "running"}
 	d := newAssistantDiagnosticsCollector(g)
 	for i := 0; i < 20; i++ {
-		a := d.begin("codebuddy", "model", false, user)
+		a := d.begin("claude-code", "model", false, user)
 		for j := 0; j < 80; j++ {
 			a.stderr(strings.Repeat("x", 2048))
 			a.protocol(`{"type":"error","error":{"message":"sample failure","requestId":"req-example"},"input":{"password":"never keep tool input"}}`)
@@ -151,7 +151,7 @@ func TestAssistantDiagnosticClassifiesProviderMetadataBeforeTranslation(t *testi
 		a.protocol(line)
 	}
 	f := d.fail(context.Background(), errors.New("exit status 1"), domain.User{})
-	if f.Code != "AUTHENTICATION_FAILED" || strings.Contains(f.Message, "CodeBuddy") {
+	if f.Code != "AUTHENTICATION_FAILED" || strings.Contains(f.Message, "Claude") {
 		t.Fatalf("wrong provider failure: %+v", f)
 	}
 	g.Status, g.Failure = "failed", &f

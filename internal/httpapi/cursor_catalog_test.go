@@ -56,7 +56,6 @@ func TestCursorFamiliesSurviveRestart(t *testing.T) {
 	a, _ = st.User(a.ID)
 	b, _ = st.User(b.ID)
 
-	stubCLIModelDiscovery(t)
 	release := make(chan struct{})
 	previous := assistantCursorModels
 	t.Cleanup(func() { assistantCursorModels = previous; clearCursorModelsCache() })

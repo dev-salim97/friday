@@ -23,13 +23,12 @@ const chat = {
   issueId: "",
   model: "m1",
   effort: "",
-  executor: "codebuddy",
+  executor: "claude-code",
   executors: [
-    { id: "codebuddy", icon: "sparkles", label: "CodeBuddy", detail: "CodeBuddy" },
+    { id: "claude-code", icon: "brain", label: "Claude Code", detail: "Claude Code" },
     { id: "codex", icon: "terminal", label: "Codex", detail: "Codex" },
   ],
   setExecutor: vi.fn(),
-  sponsoredModel: "m1",
   generation: null,
   live: { answer: "", thinking: "", tools: [], activity: [] },
   error: "",
@@ -154,7 +153,7 @@ describe("App", () => {
       expect(trigger.closest(".composer-context")).not.toBeNull();
       trigger.getBoundingClientRect = () => ({ top: 500, bottom: 528, left: 200, right: 400, width: 200, height: 28 });
       await user.click(trigger);
-      expect(screen.queryByRole("option", { name: /LoopForge 云端/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("option", { name: /Friday 云端/ })).not.toBeInTheDocument();
       await user.click(screen.getByRole("option", { name: /开发 Mac/ }));
       expect(selectMachine).toHaveBeenCalledWith("mac");
       Object.assign(chat, { activeId: "s1", session: { id: "s1", messages: [] } });
@@ -583,12 +582,12 @@ describe("App", () => {
     // The first reply, still running, locks it the same way.
     Object.assign(chat, {
       busy: true,
-      executor: "codebuddy",
-      session: { id: "s2", title: "生成中", executor: "codebuddy", messages: [] },
+      executor: "pi",
+      session: { id: "s2", title: "生成中", executor: "pi", messages: [] },
     });
     view.rerender(<App />);
     expect(screen.queryByRole("button", { name: "CLI" })).not.toBeInTheDocument();
-    expect(document.querySelector(".conversation-engine")).toHaveTextContent("CodeBuddy");
+    expect(document.querySelector(".conversation-engine")).toHaveTextContent("Pi");
     Object.assign(chat, previous);
   });
 
@@ -600,7 +599,6 @@ describe("App", () => {
       session: null,
       sessions: [],
       projectId: "",
-      sponsoredModel: "",
       local: false,
       busy: false,
       generation: null,
@@ -608,12 +606,6 @@ describe("App", () => {
       error: "",
     });
     const view = render(<App />);
-    expect(screen.getByText(/当前执行器 CodeBuddy 需要先配置 CodeBuddy API Key/)).toBeInTheDocument();
-    expect(screen.getByText(/也可以在输入框下方把执行器切换过去/)).toBeInTheDocument();
-    chat.executor = "codex";
-    view.rerender(<App />);
-    expect(screen.queryByText(/当前执行器 CodeBuddy/)).toBeNull();
-    chat.executor = "codebuddy";
     chat.local = true;
     view.rerender(<App />);
     const fileInput = document.querySelector('input[type="file"]');

@@ -2,8 +2,8 @@
 
 ## Source of truth
 
-- Local workflows have two editions: Classic (`.codebuddy/.codex/.cursor/.claude`) and Portable (`skills/`). Do not mix their runtime assets.
-- Treat `.codebuddy` as the Classic reference behavior. `.cursor` and `.claude` are generated Classic host bundles; do not edit them directly.
+- Local workflows have two editions: Classic (`.codex/.cursor/.claude`) and Portable (`skills/`). Do not mix their runtime assets.
+- Treat `classic-reference/` (agents, commands, skills) plus `.codex/` as the Classic reference behavior. `.cursor` and `.claude` are generated Classic host bundles; do not edit them directly.
 - Treat `skills/devflow/` and `skills/devflow-clarify-requirements/` as the canonical Portable workflow.
 - Treat `tools/tcmcp/` as an independent optional tool (Python 3.11+). Do not mix it into Classic or Portable edition runtime files.
 - Keep logical roles in `skills/devflow/agents/manifest.json`, artifacts in `skills/devflow/templates/manifest.json`, rules in `skills/devflow/rules/manifest.json`, and host capabilities in each `skills/devflow/adapters/<host>/manifest.json`.

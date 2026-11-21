@@ -86,7 +86,7 @@ export function App() {
   const [generating, setGenerating] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const [installation, setInstallation] = useState<Installation | null>(null);
-  const [agentClient, setAgentClient] = useState<AgentClient>("codebuddy");
+  const [agentClient, setAgentClient] = useState<AgentClient>("cursor");
   const [copiedInstall, setCopiedInstall] = useState(false);
   const [installCopyError, setInstallCopyError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -571,7 +571,6 @@ export function App() {
                   <Field label="Agent 客户端">
                     <select value={agentClient} onChange={(e) => { setAgentClient(e.target.value as AgentClient); setCopiedInstall(false); }}>
                       <option value="cursor">Cursor</option>
-                      <option value="codebuddy">CodeBuddy</option>
                       <option value="codex">Codex</option>
                       <option value="workbuddy">WorkBuddy</option>
                     </select>

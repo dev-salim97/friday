@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var liveCLIOrder = []string{"codebuddy", "codex", "claude-code", "opencode", "cursor", "agy", "kimi", "pi", "dsh", "zcode"}
+var liveCLIOrder = []string{"codex", "claude-code", "opencode", "cursor", "agy", "kimi", "pi", "dsh", "zcode"}
 
 type liveCLIConfig struct {
 	Key         string `json:"key"`
@@ -23,8 +23,6 @@ type liveCLIConfig struct {
 
 func liveExecutorArgs(kind string) []string {
 	switch kind {
-	case "codebuddy":
-		return []string{"-p", "--output-format", "stream-json", "--include-partial-messages", "-y", "--setting-sources", "none"}
 	case "codex":
 		return []string{"exec", "--json", "--sandbox", "workspace-write", "--skip-git-repo-check"}
 	case "claude-code":

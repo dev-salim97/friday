@@ -86,24 +86,47 @@ function genericRequirementChips(w){
   if(!rows.length)return '';
   return `<div class="sop-requirements">${rows.map(r=>sopBadge(r.label,r.ok?'success':'warn',r.ok?'check':'alert',r.hint)).join('')}</div>`;
 }
+// SOP 执行 CLI (workflow.executorId): empty keeps every role on its own CLI;
+// a CLI id runs every role node of the SOP on it. The preview build node
+// always stays on Claude Code.
+const SOP_EXECUTOR_CHOICES=[['codex','Codex'],['claude','Claude Code'],['opencode','OpenCode'],['cursor','Cursor CLI'],['agy','Antigravity'],['kimi','Kimi Code'],['pi','Pi'],['dsh','DeepSeek Harness'],['zcode','ZCode']];
+function sopExecutorName(id){return (state.data?.executors||[]).find(x=>x.id===id)?.name||SOP_EXECUTOR_CHOICES.find(([key])=>key===id)?.[1]||id}
+function sopNodeExecutor(node,executorId){
+  if(isPreviewBuildNode(node.id))return node.executorId||'claude';
+  if(executorId)return executorId;
+  const role=(state.data?.agents||[]).find(a=>a.id===node.agentId);
+  return role?.executorId||node.executorId||'claude';
+}
+function sopRoleExecutorLabel(w){
+  const ids=[...new Set((w?.nodes||[]).filter(n=>n.type==='agent'&&!isPreviewBuildNode(n.id)).map(n=>sopNodeExecutor(n,'')))];
+  return ids.length?ids.map(sopExecutorName).join(' / '):lfT('无角色节点','no role nodes');
+}
+// Options of a 执行 CLI select. The empty choice names the CLI it falls back
+// to, so the inherited binding stays visible.
+function sopExecutorOptions(w,selected,emptyLabel){
+  const empty=emptyLabel||`${lfT('按角色配置','Per role')}（${sopRoleExecutorLabel(w)}）`;
+  return `<option value="" ${selected?'':'selected'}>${escapeHTML(empty)}</option>`+SOP_EXECUTOR_CHOICES.map(([id])=>`<option value="${escapeHTML(id)}" ${id===selected?'selected':''}>${escapeHTML(sopExecutorName(id))}</option>`).join('');
+}
 // Agent nodes run with the executor credentials of the requirement owner; a
 // bound repository only matters for templates that check out project code.
-function sopRunRequirements(w){
+// executorId overrides the SOP's own 执行 CLI ('' = per role); undefined
+// keeps the SOP setting.
+function sopRunRequirements(w,executorId){
   const nodes=w?.nodes||[],user=userById(state.currentUser?.id)||{};
+  const cli=executorId===undefined?(w?.executorId||''):executorId;
   const project=(state.data?.projects||[]).find(p=>p.id===(w?.projectId||state.projectFilter))||(state.data?.projects||[]).find(p=>p.id===state.projectFilter);
   const driver=((state.data?.sandboxes||[]).find(sb=>sb.id===w?.sandboxProfileId)||{}).driver||(/docker/i.test(w?.sandboxProfileId||'')?'docker':'');
   const usesRepo=(catalogGeneric(w)||(w?.tags||[]).some(t=>String(t).startsWith('generic-source:')))&&!!project?.defaultRepositoryId;
   const rows=[];
   const providers=new Set();
   for(const node of nodes.filter(n=>n.type==='agent')){
-    const role=(state.data?.agents||[]).find(a=>a.id===node.agentId);
-    const id=role?.executorId||node.executorId||'codebuddy';
+    const id=sopNodeExecutor(node,cli);
     const kind=(state.data?.executors||[]).find(e=>e.id===id)?.kind||id;
-    if(['codebuddy','codex','claude','claude-code','opencode','cursor','agy','kimi','pi','dsh','zcode'].includes(kind))providers.add(kind==='claude'?'claude-code':kind);
+    if(['codex','claude','claude-code','opencode','cursor','agy','kimi','pi','dsh','zcode'].includes(kind))providers.add(kind==='claude'?'claude-code':kind);
   }
   const agentLabels={opencode:'OpenCode',cursor:'Cursor CLI',agy:'Antigravity',kimi:'Kimi Code',pi:'Pi',dsh:'DeepSeek Harness',zcode:'ZCode'};
   for(const kind of providers){
-    const known={codebuddy:['CodeBuddy','codeBuddyApiKey','codeBuddyApiKeyConfigured'],codex:['Codex','codexApiKey','codexApiKeyConfigured'],'claude-code':['Claude Code','claudeCodeApiKey','claudeCodeApiKeyConfigured']}[kind];
+    const known={codex:['Codex','codexApiKey','codexApiKeyConfigured'],'claude-code':['Claude Code','claudeCodeApiKey','claudeCodeApiKeyConfigured']}[kind];
     const [label,field,flag]=known||[agentLabels[kind]||kind,'agentCli.'+kind,'agentCliConfigured'];
     if(!known){
       rows.push({key:'run-key-'+kind,field,fix:'settings',fixLabel:'去个人配置配置',label:label+' API Key',ok:!!user.agentCliCredentials?.[kind]?.apiKeyConfigured,hint:lfT('Agent 节点使用 '+label+'，请在个人配置里配置对应 API Key。','Agent nodes use '+label+'. Configure its API key in Settings.')});
@@ -396,9 +419,10 @@ function bindSOPCatalogEvents(root){
     activateSOPCard(e.target);
   });
 }
+function genericTemplateExecutor(){return $('#genericTemplateExecutor')?.value||''}
 function renderGenericRequirementRows(w){
   const host=$('#genericTemplateRequirements');if(!host)return;
-  const rows=[...sopRunRequirements(w).map(r=>({...r,fix:r.ok?'':r.fix||''})),...genericRequirementRows(w)];
+  const rows=[...sopRunRequirements(w,genericTemplateExecutor()).map(r=>({...r,fix:r.ok?'':r.fix||''})),...genericRequirementRows(w)];
   host.innerHTML=rows.map(r=>`<div class="req-row ${r.ok?'ok':'missing'}"><span class="req-mark">${r.ok?'✓':'!'}</span><div><b>${escapeHTML(r.label)}</b><p>${escapeHTML(r.hint)}${r.nodeId?` · 节点「${escapeHTML(workflowNodeName(w,r.nodeId))}」`:''}</p></div><span class="req-state">${r.ok?'已配置':'未配置'}</span>${r.fix?`<button type="button" class="button ghost small" data-fix-requirement="${escapeHTML(r.key)}">${escapeHTML(r.fixLabel)}</button>`:''}</div>`).join('')||'<div class="req-row ok"><span class="req-mark">✓</span><div><b>无额外依赖</b><p>复制到本项目后即可直接运行。</p></div></div>';
   host.querySelectorAll('[data-fix-requirement]').forEach(btn=>btn.onclick=()=>openGenericRequirementTarget(btn.dataset.fixRequirement));
 }
@@ -419,16 +443,18 @@ function openGenericTemplateModal(id){
   $('#genericTemplateIntro').textContent=w.description||'平台提供的通用流程模板，复制后归本项目所有。';
   const nodes=w.nodes||[],agentCount=nodes.filter(n=>n.type==='agent').length,gates=nodes.filter(n=>n.type==='approval').length;
   $('#genericTemplateStructure').innerHTML=`<span>${nodes.length} 个节点</span><span>${agentCount} 个角色节点</span><span>${gates} 个人工门禁</span>${nodes.some(n=>n.id==='mr')?'<span class="highlight">含「发起 PR」节点</span>':''}<span>复制=归本项目、可自由修改、不再跟随平台更新</span><span>直接运行=始终使用平台最新版</span>`;
+  const executor=$('#genericTemplateExecutor');
+  if(executor){executor.innerHTML=sopExecutorOptions(w,w.executorId||'');executor.onchange=()=>renderGenericRequirementRows(w)}
   renderGenericRequirementRows(w);
   $('#genericTemplateModal').classList.add('open');
 }
 function openGenericRequirementTarget(key){
   if(key==='run-key'||key.startsWith('run-key-')||key==='run-repo'){
     const w=(state.data?.workflows||[]).find(x=>x.id===state.genericTemplateId);
-    const row=sopRunRequirements(w).find(r=>r.key===key);
+    const row=sopRunRequirements(w,genericTemplateExecutor()).find(r=>r.key===key);
     $('#genericTemplateModal').classList.remove('open');
     if(row?.fix==='repository')return openRepositoryModal();
-    gotoCredential(row?.field||(key==='run-key'?'codeBuddyApiKey':'gitHttpCredentials'));
+    gotoCredential(row?.field||(key==='run-key'?'claudeCodeApiKey':'gitHttpCredentials'));
     return;
   }
   const meta=GENERIC_REQUIREMENT_CHECKS[key];if(!meta)return;
@@ -450,7 +476,7 @@ async function adoptGenericTemplate(){
   if(!state.projectFilter)return toast('请先在顶部选择一个项目');
   const button=$('#confirmGenericTemplate');button.disabled=true;button.textContent='复制中…';
   try{
-    const copied=await api(`/api/workflows/${encodeURIComponent(src.id)}/clone`,{method:'POST',body:JSON.stringify({id:uid('sop'),name:src.name.replace(/^通用/,''),owner:src.owner||'',projectId:state.projectFilter})});
+    const copied=await api(`/api/workflows/${encodeURIComponent(src.id)}/clone`,{method:'POST',body:JSON.stringify({id:uid('sop'),name:src.name.replace(/^通用/,''),owner:src.owner||'',projectId:state.projectFilter,executorId:genericTemplateExecutor()})});
     state.data.workflows.unshift(copied);
     state.workflow=clone(copied);state.selectedNode=null;state.sopScope='project';markWorkflowClean();
     $('#genericTemplateModal').classList.remove('open');

@@ -1119,15 +1119,6 @@ func bindInvocationCredentials(inv *domain.RunnerInvocation, bindings []runtime.
 	personal := inv.CredentialSource == domain.RuntimeAuthPersonal
 	for _, binding := range bindings {
 		switch binding {
-		case runtime.BindCodeBuddy:
-			key := strings.TrimSpace(inv.CodeBuddyAPIKey)
-			if key == "" {
-				return nil, nil, errors.New("CodeBuddy 个人 API Key 未配置")
-			}
-			env["CODEBUDDY_API_KEY"] = key
-			if net := strings.TrimSpace(inv.CodeBuddyInternetEnvironment); net != "" {
-				env["CODEBUDDY_INTERNET_ENVIRONMENT"] = net
-			}
 		case runtime.BindCodex:
 			if !personal {
 				continue

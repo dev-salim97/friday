@@ -101,11 +101,18 @@ func (h *runsHandlers) runs(c *gin.Context) {
 			WorkflowID string `json:"workflowId"`
 			Input      string `json:"input"`
 			ProjectID  string `json:"projectId"`
+			// ExecutorID is an optional run-only 执行 CLI that replaces the
+			// SOP's own setting for every role node of this run.
+			ExecutorID string `json:"executorId"`
 		}
 		if !decode(c, &req) {
 			return
 		}
 		req.ProjectID = strings.TrimSpace(req.ProjectID)
+		if err := validateWorkflowExecutor(req.ExecutorID); err != nil {
+			c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
 		var project domain.Project
 		if req.ProjectID != "" {
 			var ok bool
@@ -142,7 +149,7 @@ func (h *runsHandlers) runs(c *gin.Context) {
 			}
 			repositories = []domain.RepositoryContext{repositoryRunContext(repoDef)}
 		}
-		v, err := h.engine.StartWithRepositoriesContext(req.WorkflowID, req.Input, repositories, domain.TelemetryContext{ProjectID: req.ProjectID, ResponsibleUserID: responsibleUserID})
+		v, err := h.engine.StartWithExecutor(req.WorkflowID, req.Input, repositories, domain.TelemetryContext{ProjectID: req.ProjectID, ResponsibleUserID: responsibleUserID}, req.ExecutorID)
 		if err != nil {
 			respond(c, err)
 			return
@@ -226,7 +233,7 @@ func (h *runsHandlers) run(c *gin.Context) {
 		c.Header("Content-Type", "text/plain; charset=utf-8")
 		c.Header("Content-Disposition", `attachment; filename="`+id+`-worker-logs.txt"`)
 		c.Status(http.StatusOK)
-		fmt.Fprintf(c.Writer, "# LoopForge worker logs\n# run=%s\n# nodes=%s\n# count=%d\n\n", id, logDumpNodeLabel(nodeID), len(recs))
+		fmt.Fprintf(c.Writer, "# Friday worker logs\n# run=%s\n# nodes=%s\n# count=%d\n\n", id, logDumpNodeLabel(nodeID), len(recs))
 		for _, rec := range recs {
 			stamp := rec.Timestamp.Local().Format("15:04:05")
 			node := rec.Context.NodeID

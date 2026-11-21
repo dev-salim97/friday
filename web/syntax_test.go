@@ -10,7 +10,7 @@ import (
 )
 
 func TestCredentialBrandAssetsEmbedded(t *testing.T) {
-	for _, name := range []string{"gongfeng.svg", "codebuddy.svg", "codex.svg", "claude.svg"} {
+	for _, name := range []string{"gongfeng.svg", "codex.svg", "claude.svg"} {
 		data, err := fs.ReadFile(Files, "images/credentials/"+name)
 		if err != nil {
 			t.Fatalf("credential logo %s is not embedded: %v", name, err)
@@ -23,7 +23,7 @@ func TestCredentialBrandAssetsEmbedded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"https://github.com/settings/tokens", "https://www.codebuddy.ai/profile/keys", "https://copilot.tencent.com/profile/", "credential-description", "git-token-verify"} {
+	for _, want := range []string{"https://github.com/settings/tokens", "credential-description", "git-token-verify"} {
 		if !strings.Contains(string(app), want) {
 			t.Fatalf("credential UI is missing %q", want)
 		}
@@ -300,13 +300,13 @@ func TestMCPSetupInstructionsAreEmbedded(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(setup)
-	for _, want := range []string{"Cursor", "Claude Code", "CodeBuddy", "Codex", "API_TOKEN", "ENDPOINT", "tools/list", "失败排查", "汇报", "时间戳的备份"} {
+	for _, want := range []string{"Cursor", "Claude Code", "Codex", "API_TOKEN", "ENDPOINT", "tools/list", "失败排查", "汇报", "时间戳的备份"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("MCP setup instructions are missing %q", want)
 		}
 	}
 	if strings.Contains(text, "AgentFlow") {
-		t.Fatal("MCP setup instructions should name the product LoopForge, not AgentFlow")
+		t.Fatal("MCP setup instructions should name the product Friday, not AgentFlow")
 	}
 	embedSource, err := os.ReadFile("embed.go")
 	if err != nil {
@@ -368,7 +368,7 @@ func TestRenderUserBadgeScope(t *testing.T) {
 	script := `
 const fs = require("fs");
 const appCode = fs.readFileSync("` + appBundlePath(t) + `", "utf8");
-global.window = { location: { href: "http://loopforge.example.com/", pathname: "/", search: "", hash: "", hostname: "loopforge.example.com" } };
+global.window = { location: { href: "http://friday.example.com/", pathname: "/", search: "", hash: "", hostname: "friday.example.com" } };
 global.sessionStorage = { _s: {}, getItem(k){return this._s[k]||null;}, setItem(k,v){this._s[k]=String(v);}, removeItem(k){delete this._s[k];} };
 const makeEl = () => ({
   classList: { add(){}, remove(){} },
@@ -427,11 +427,11 @@ const cases = [
   [{isGuest:true, hostname:"localhost", loginUrl}, false],
   [{isGuest:true, hostname:"127.0.0.1", loginUrl}, false],
   [{isGuest:true, hostname:"[::1]", loginUrl}, false],
-  [{isGuest:true, hostname:"loopforge.example.com", loginUrl}, false],
-  [{isGuest:true, hostname:"loopforge.example.com", loginUrl}, false],
-  [{isGuest:true, hostname:"loopforge.example.com", loginUrl, bypassAutoAuth:true}, false],
-  [{isGuest:true, hostname:"loopforge.example.com", loginUrl, authErr:"exchange_failed"}, false],
-  [{isGuest:false, hostname:"loopforge.example.com", loginUrl}, false],
+  [{isGuest:true, hostname:"friday.example.com", loginUrl}, false],
+  [{isGuest:true, hostname:"friday.example.com", loginUrl}, false],
+  [{isGuest:true, hostname:"friday.example.com", loginUrl, bypassAutoAuth:true}, false],
+  [{isGuest:true, hostname:"friday.example.com", loginUrl, authErr:"exchange_failed"}, false],
+  [{isGuest:false, hostname:"friday.example.com", loginUrl}, false],
 ];
 for (const [input, want] of cases) {
   const got = shouldAutoSSORedirect(input);
@@ -502,21 +502,21 @@ const count = (html, needle) => html.split(needle).length - 1;
 // Groups list credentials in a fixed order.
 assert.deepEqual(cred.CREDENTIAL_GROUPS.map(g => g.id), ['platform', 'model']);
 assert.deepEqual(cred.CREDENTIAL_KINDS.filter(k => k.group === 'platform').map(k => k.key), ['gitToken', 'gitSshKey', 'gitHttpCredentials']);
-assert.deepEqual(cred.CREDENTIAL_KINDS.filter(k => k.group === 'model').map(k => k.key), ['codeBuddyApiKey', 'codexApiKey', 'claudeCodeApiKey', 'agentCli.opencode', 'agentCli.cursor', 'agentCli.agy', 'agentCli.kimi', 'agentCli.pi', 'agentCli.dsh', 'agentCli.zcode']);
+assert.deepEqual(cred.CREDENTIAL_KINDS.filter(k => k.group === 'model').map(k => k.key), ['codexApiKey', 'claudeCodeApiKey', 'agentCli.opencode', 'agentCli.cursor', 'agentCli.agy', 'agentCli.kimi', 'agentCli.pi', 'agentCli.dsh', 'agentCli.zcode']);
 
 // Progress, next-step hint, filter counts and per-group counts.
 const html = credentialPanelHTML(user);
-assert.ok(html.includes('<b>2</b> / 13 已配置'));
-assert.ok(html.includes('data-credential-setup="codeBuddyApiKey"'), 'next step follows Git → CodeBuddy');
-assert.ok(html.includes('1 / 3') && html.includes('1 / 10'));
-assert.ok(html.includes('已配置<span>2</span>') && html.includes('未配置<span>11</span>'));
-assert.equal(count(html, 'data-credential-row='), 13);
+assert.ok(html.includes('<b>2</b> / 12 已配置'));
+assert.ok(html.includes('data-credential-setup="claudeCodeApiKey"'), 'next step follows Git → Claude Code');
+assert.ok(html.includes('1 / 3') && html.includes('1 / 9'));
+assert.ok(html.includes('已配置<span>2</span>') && html.includes('未配置<span>10</span>'));
+assert.equal(count(html, 'data-credential-row='), 12);
 assert.ok(!html.includes('credential-grid') && !html.includes('credential-savebar') && !html.includes('userCredentialForm'));
 // Unconfigured rows only offer 去配置; configured rows carry an inline editor with delete.
-assert.equal(count(html, 'data-credential-act="setup"'), 11);
+assert.equal(count(html, 'data-credential-act="setup"'), 10);
 assert.equal(count(html, 'credential-editor-form'), 2);
 assert.equal(count(html, 'data-credential-act="delete"'), 2);
-for (const key of ['codeBuddyApiKey', 'claudeCodeApiKey']) {
+for (const key of ['claudeCodeApiKey', 'agentCli.opencode']) {
   const row = credentialRowHTML(cred.kind(key), user);
   assert.ok(row.includes('去配置') && !row.includes('credential-editor-form') && !row.includes('is-configured'), key);
   // The whole row is a hoverable button that opens the wizard; it has nothing to expand.
@@ -525,7 +525,7 @@ for (const key of ['codeBuddyApiKey', 'claudeCodeApiKey']) {
 assert.ok(credentialRowHTML(cred.kind('gitToken'), user).includes('class="credential-row-main credential-ink" role="button" tabindex="0" aria-expanded="false"'));
 assert.ok(!html.includes('点击任意行配置或编辑') && !html.includes('点击已配置的行展开编辑'));
 assert.ok(credentialRowHTML(cred.kind('gitToken'), user).includes('git-token-verify'), 'Git row keeps 重新校验');
-assert.ok(credentialPanelHTML({...user, codeBuddyApiKeyConfigured: true}).includes('推荐凭证已全部就绪'));
+assert.ok(credentialPanelHTML({...user, claudeCodeApiKeyConfigured: true}).includes('推荐凭证已全部就绪'));
 assert.equal(credentialNextKind({}).key, 'gitToken');
 
 // Each kind saves and deletes only its own fields.
@@ -536,8 +536,6 @@ assert.ok(!sshRow.includes('credential-editor-form'));
 const httpsRow = credentialRowHTML(cred.kind('gitHttpCredentials'), {...user, gitHttpCredentialsConfigured: true});
 assert.match(httpsRow, /aria-haspopup="dialog">管理令牌/);
 assert.ok(!httpsRow.includes('credential-editor-form'));
-assert.deepEqual(credentialSavePayload(cred.kind('codeBuddyApiKey'), {secret: '', extra: 'ioa'}), {codeBuddyApiKey: '', codeBuddyInternetEnvironment: 'ioa'});
-assert.deepEqual(credentialSavePayload(cred.kind('codeBuddyApiKey'), {secret: '', extra: ''}), {codeBuddyApiKey: '', codeBuddyInternetEnvironment: ''});
 assert.deepEqual(credentialSavePayload(cred.kind('codexApiKey'), {secret: 'sk-1'}), {codexApiKey: 'sk-1'});
 assert.deepEqual(credentialSavePayload(cred.kind('claudeCodeApiKey'), {secret: '', extra: '', models: [{id: ' hy4 ', name: '混元 4'}, {id: 'glm-5', name: 'glm-5'}]}), {claudeCodeApiKey: '', claudeCodeBaseUrl: '', claudeCodeModels: [{id: 'hy4', name: '混元 4'}, {id: 'glm-5'}]});
 assert.deepEqual(credentialSavePayload(cred.kind('codexApiKey'), {secret: '', extra: '', models: []}), {codexApiKey: '', codexBaseUrl: '', codexModels: []}, '恢复默认 sends an empty catalog');
@@ -578,49 +576,14 @@ assert.deepEqual(credentialCatalogError([{id: 'a'}, {id: '', name: 'x'}]), {inde
 assert.ok(credentialCatalogError([{id: 'a b'}]).error.includes('空格'));
 assert.ok(credentialCatalogError([{id: 'a'}, {id: 'a'}]).error.includes('重复'));
 assert.equal(credentialCatalogError([{id: 'a', name: 'n'.repeat(65)}]).field, 'name');
-assert.deepEqual(credentialClearPayload(cred.kind('codeBuddyApiKey')), {codeBuddyApiKeyClear: true, codeBuddyModels: []});
 assert.deepEqual(credentialClearPayload(cred.kind('gitToken')), {gitTokenClear: true});
 assert.equal(credentialSecretError(cred.kind('gitToken'), 'github_pat_1'), '');
 assert.ok(credentialExtraError(cred.kind('codexApiKey'), 'ftp://proxy'));
 assert.equal(credentialExtraError(cred.kind('codexApiKey'), ''), '');
 
-// CodeBuddy: the network environment is a fixed choice and the key link follows it.
-// The CLI gets the stored text as-is, so only exact values are recognized; aliases only guess what an old value meant.
-assert.deepEqual(['', ' internal ', 'ioa'].map(v => codeBuddyEnvironment(v)?.value), ['', 'internal', 'ioa']);
-assert.deepEqual(['public', 'INTL', 'iOA', '国内站', 'china', 'cn', 'private-net'].map(v => codeBuddyEnvironment(v)), [null, null, null, null, null, null, null]);
-assert.deepEqual(['', 'public', 'INTL', ' iOA ', 'internal', '国内站', 'china'].map(v => codeBuddyEnvironmentIntent(v)?.value), ['', '', '', 'ioa', 'internal', 'internal', 'internal']);
-assert.equal(codeBuddyEnvironmentIntent('private-net'), null);
-assert.deepEqual(['', 'internal', 'china', 'iOA', 'private-net'].map(codeBuddyEnvironmentLegacy), [false, false, true, true, true]);
-assert.equal(codeBuddyKeyURL(''), 'https://www.codebuddy.ai/profile/keys');
-assert.equal(codeBuddyKeyURL('internal'), 'https://copilot.tencent.com/profile/');
-assert.equal(codeBuddyKeyURL('ioa'), 'https://tencent.sso.copilot.tencent.com/profile/keys');
-assert.equal(codeBuddyKeyURL('typo'), 'https://www.codebuddy.ai/profile/keys');
-const cbKind = cred.kind('codeBuddyApiKey');
-assert.equal(credentialExtraValue(cbKind, 'iOA'), 'ioa');
-assert.equal(credentialExtraValue(cbKind, 'private-net'), '', 'an unknown value shows as 国际站, which is what the CLI uses');
 assert.equal(credentialExtraValue(cred.kind('codexApiKey'), 'https://p.example'), 'https://p.example');
-const cbEditor = credentialEditorHTML(cbKind, {codeBuddyApiKeyConfigured: true, codeBuddyInternetEnvironment: 'internal'});
-assert.ok(cbEditor.includes('<select name="extra">') && !cbEditor.includes('<input name="extra"'));
-assert.ok(cbEditor.includes('data-original="internal"') && cbEditor.includes('<option value="internal" selected>'));
-assert.ok(cbEditor.includes('href="https://copilot.tencent.com/profile/"') && cbEditor.includes('前往国内站获取 API Key'));
-const legacyEditor = credentialEditorHTML(cbKind, {codeBuddyApiKeyConfigured: true, codeBuddyInternetEnvironment: 'private-net'});
-assert.ok(legacyEditor.includes('data-original=""') && legacyEditor.includes('<option value="" selected>') && legacyEditor.includes('「private-net」无法识别'));
-assert.ok(legacyEditor.includes('data-legacy="true"') && !legacyEditor.includes('data-credential-act="save" disabled'), 'a legacy value can be saved as 国际站 without retyping the key');
-assert.ok(!cbEditor.includes('data-legacy') && cbEditor.includes('data-credential-act="save" disabled'));
-// An old alias preselects what it meant and stays savable: the CLI would otherwise keep connecting to 国际站.
-const chinaEditor = credentialEditorHTML(cbKind, {codeBuddyApiKeyConfigured: true, codeBuddyInternetEnvironment: 'china'});
-assert.ok(chinaEditor.includes('data-original="internal"') && chinaEditor.includes('<option value="internal" selected>') && chinaEditor.includes('「china」无法识别'));
-assert.ok(chinaEditor.includes('data-legacy="true"') && !chinaEditor.includes('data-credential-act="save" disabled'));
-assert.ok(credentialSubline(cbKind, {codeBuddyApiKeyConfigured: true, codeBuddyInternetEnvironment: 'china'}).includes('「china」无法识别'));
-assert.ok(credentialSubline(cbKind, {codeBuddyApiKeyConfigured: true, codeBuddyInternetEnvironment: 'ioa'}).includes('>iOA<'));
-assert.ok(credentialSubline(cbKind, {codeBuddyApiKeyConfigured: true}).includes('>国际站<'));
-assert.ok(credentialSubline(cbKind, {codeBuddyApiKeyConfigured: true, codeBuddyInternetEnvironment: 'private-net'}).includes('无法识别'));
-// Third-party keys are flagged but never blocked.
-assert.equal(credentialSecretWarning(cbKind, 'ck_abc'), '');
-assert.match(credentialSecretWarning(cbKind, 'sk-abc'), /第三方/);
-assert.match(credentialSecretWarning(cbKind, 'abc'), /ck_/);
 assert.equal(credentialSecretWarning(cred.kind('codexApiKey'), 'sk-abc'), '');
-assert.equal(credentialSecretError(cbKind, 'sk-abc'), '');
+assert.equal(credentialSecretError(cred.kind('codexApiKey'), 'sk-abc'), '');
 
 // Delete swaps the action bar for the confirm bar without sending anything.
 const pane = () => ({classList: {on: new Set(), toggle(name, on) { on ? this.on.add(name) : this.on.delete(name) }}});
@@ -640,10 +603,10 @@ assert.equal(calls.length, 0);
   cred.wizard = {step: 1, kind: null, direct: false, secret: '', extra: '', guide: {}, error: ''};
   const one = credentialWizardStepOneHTML(user);
   assert.ok(one.includes('data-wizard-kind="gitToken" disabled') && one.includes('data-wizard-kind="codexApiKey" disabled'));
-  assert.ok(!one.includes('data-wizard-kind="codeBuddyApiKey" disabled'));
+  assert.ok(!one.includes('data-wizard-kind="claudeCodeApiKey" disabled'));
   assert.ok(credentialWizardFootHTML().includes('data-wizard-next disabled'));
   // Going back to step 1 and picking another kind drops what was typed for the previous one.
-  cred.wizard = {step: 1, kind: 'codeBuddyApiKey', direct: false, secret: 'cb_CARRY', extra: '', guide: {0: true}, error: 'x'};
+  cred.wizard = {step: 1, kind: 'codexApiKey', direct: false, secret: 'cb_CARRY', extra: '', guide: {0: true}, error: 'x'};
   selectCredentialWizardKind('claudeCodeApiKey');
   assert.deepEqual([cred.wizard.kind, cred.wizard.secret, cred.wizard.guide, cred.wizard.error], ['claudeCodeApiKey', '', {}, '']);
   cred.wizard.secret = 'sk-KEEP';
@@ -652,26 +615,17 @@ assert.equal(calls.length, 0);
   assert.ok(!credentialFieldHTML({label: 'k', name: 'secret', value: 'sk-LEAK'}).includes('sk-LEAK'), 'secrets are never written into markup');
   assert.ok(credentialFieldHTML({label: 'u', name: 'extra', type: 'url', value: 'https://p.example'}).includes('value="https://p.example"'));
   // 去配置 jumps straight to step 2 with no back button.
-  cred.wizard = {step: 2, kind: 'codeBuddyApiKey', direct: true, secret: '', extra: 'ioa', guide: {}, error: ''};
-  const cbStepTwo = credentialWizardStepTwoHTML(cred.kind('codeBuddyApiKey'));
-  assert.ok(cbStepTwo.indexOf('<select name="extra">') < cbStepTwo.indexOf('name="secret"'), 'the network environment is picked before the key');
-  assert.ok(cbStepTwo.includes('href="https://tencent.sso.copilot.tencent.com/profile/keys" target="_blank" rel="noopener noreferrer" data-wizard-link="1" data-environment-link>前往iOA获取 API Key'));
-  assert.ok(!cbStepTwo.includes('https://www.codebuddy.ai/"'));
-  cred.wizard.extra = '';
-  assert.ok(credentialWizardStepTwoHTML(cred.kind('codeBuddyApiKey')).includes('credential-description'));
+  cred.wizard = {step: 2, kind: 'claudeCodeApiKey', direct: true, secret: '', extra: '', guide: {}, error: ''};
+  assert.ok(credentialWizardStepTwoHTML(cred.kind('claudeCodeApiKey')).includes('credential-description'));
   assert.ok(!credentialWizardFootHTML().includes('data-wizard-back'));
   assert.ok(credentialWizardFootHTML().includes('data-wizard-next disabled'), 'an empty key blocks next');
   cred.wizard.direct = false;
   assert.ok(credentialWizardFootHTML().includes('data-wizard-back'));
-  // Step 3 names the environment and repeats the third-party key warning without echoing the key.
-  cred.wizard = {step: 3, kind: 'codeBuddyApiKey', direct: true, secret: 'sk-third', extra: 'internal', guide: {}, error: ''};
-  const cbStepThree = credentialWizardStepThreeHTML(cred.kind('codeBuddyApiKey'));
-  assert.ok(cbStepThree.includes('国内站 · copilot.tencent.com') && cbStepThree.includes('credential-vline is-warn') && !cbStepThree.includes('sk-third'));
   // Step 3 never echoes the secret.
-  cred.wizard = {step: 3, kind: 'codeBuddyApiKey', direct: true, secret: 'cb_SECRET', extra: '', guide: {}, error: ''};
-  assert.ok(!credentialWizardStepThreeHTML(cred.kind('codeBuddyApiKey')).includes('SECRET'));
+  cred.wizard = {step: 3, kind: 'claudeCodeApiKey', direct: true, secret: 'cb_SECRET', extra: '', guide: {}, error: ''};
+  assert.ok(!credentialWizardStepThreeHTML(cred.kind('claudeCodeApiKey')).includes('SECRET'));
   await advanceCredentialWizard();
-  assert.deepEqual(calls.at(-1), {path: '/api/users/1/credentials', method: 'PUT', body: {codeBuddyApiKey: 'cb_SECRET', codeBuddyInternetEnvironment: ''}});
+  assert.deepEqual(calls.at(-1), {path: '/api/users/1/credentials', method: 'PUT', body: {claudeCodeApiKey: 'cb_SECRET', claudeCodeBaseUrl: ''}});
   assert.ok(cred.wizard.done && cred.wizard.secret === '');
   // A failed Git token verification in the wizard saves nothing.
   const before = calls.filter(c => c.method === 'PUT').length;
@@ -717,19 +671,19 @@ const credentialKind = key => key === 'agentCli.kimi' ? {key} : null;
 eval(code.slice(code.indexOf('let credentialFocusRequest=0;'), code.indexOf('const CREDENTIAL_RULES=')));
 gotoCredential('gitToken');
 assert.deepEqual(revealed, ['gitToken'], 'configured credentials expand in place');
-gotoCredential('codeBuddyApiKey');
-assert.deepEqual(opened, ['codeBuddyApiKey'], 'missing credentials open the wizard on step 2');
+gotoCredential('claudeCodeApiKey');
+assert.deepEqual(opened, ['claudeCodeApiKey'], 'missing credentials open the wizard on step 2');
 visible = false;
 gotoCredential('codexApiKey');
 view = 'issues'; visible = true;
 gotoCredential('codexApiKey');
-assert.deepEqual(opened, ['codeBuddyApiKey'], 'hidden panel or a different route does nothing');
+assert.deepEqual(opened, ['claudeCodeApiKey'], 'hidden panel or a different route does nothing');
 assert.deepEqual(revealed, ['gitToken']);
 view = 'settings';
 gotoCredential('agentCli.kimi');
-assert.deepEqual(opened, ['codeBuddyApiKey', 'agentCli.kimi'], 'agent CLI keys open their own card');
+assert.deepEqual(opened, ['claudeCodeApiKey', 'agentCli.kimi'], 'agent CLI keys open their own card');
 gotoCredential('agentCli.unknown');
-assert.deepEqual(opened, ['codeBuddyApiKey', 'agentCli.kimi'], 'unknown agent CLI keys only open settings');
+assert.deepEqual(opened, ['claudeCodeApiKey', 'agentCli.kimi'], 'unknown agent CLI keys only open settings');
 `
 	out, err := exec.Command(node, "-e", script).CombinedOutput()
 	if err != nil {
@@ -761,14 +715,14 @@ const main = row => {
 const click = target => panel.onclick({target, stopPropagation() {}});
 const key = (target, k) => { let prevented = false; panel.onkeydown({target, key: k, preventDefault() { prevented = true }}); return prevented; };
 
-const empty = rowOf('codeBuddyApiKey', false), done = rowOf('gitToken', true);
+const empty = rowOf('claudeCodeApiKey', false), done = rowOf('gitToken', true);
 click(main(empty));
-assert.deepEqual(opened, ['codeBuddyApiKey'], 'clicking an unconfigured row opens the wizard');
+assert.deepEqual(opened, ['claudeCodeApiKey'], 'clicking an unconfigured row opens the wizard');
 click(main(done));
 assert.deepEqual(toggled, ['gitToken'], 'clicking a configured row toggles its editor');
 const emptyMain = main(empty);
 assert.ok(key(emptyMain, 'Enter') && key(emptyMain, ' '));
-assert.deepEqual(opened, ['codeBuddyApiKey', 'codeBuddyApiKey', 'codeBuddyApiKey'], 'Enter and Space open the wizard too');
+assert.deepEqual(opened, ['claudeCodeApiKey', 'claudeCodeApiKey', 'claudeCodeApiKey'], 'Enter and Space open the wizard too');
 key(main(done), 'Enter');
 assert.deepEqual(toggled, ['gitToken', 'gitToken']);
 // 去配置 runs its own action once and never falls through to the row.
@@ -831,7 +785,7 @@ assert.ok(code.includes('sop-generic'));
 	}
 }
 
-func TestLegacyExecutorIsNotSilentlyDisplayedAsCodeBuddy(t *testing.T) {
+func TestLegacyExecutorIsNotSilentlyDisplayed(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
 		t.Skip("node not installed; skipping executor UI check")
@@ -841,7 +795,6 @@ const assert = require('node:assert/strict');
 const code = require('node:fs').readFileSync('` + appBundlePath(t) + `', 'utf8');
 global.escapeHTML = value => String(value);
 global.state = {data: {executors: [
-  {id: 'codebuddy', name: 'CodeBuddy'},
   {id: 'codex', name: 'Codex'},
   {id: 'claude', name: 'Claude Code'},
   {id: 'opencode', name: 'OpenCode'},
@@ -861,7 +814,7 @@ assert.ok(!executorOptions('codex').includes('value="mock"'));
 const legacy = executorOptions('legacy-codex');
 assert.ok(legacy.includes('历史执行器 legacy-codex'));
 assert.ok(legacy.includes('value="legacy-codex" selected disabled'));
-assert.ok(!legacy.includes('value="codebuddy" selected'));
+assert.ok(!legacy.includes('value="claude" selected'));
 assert.ok(executorOptions('codex').includes('value="codex" selected'));
 `
 	out, err := exec.Command(node, "-e", script).CombinedOutput()
@@ -2193,10 +2146,10 @@ const end = code.indexOf('async function resolvePreviewSessionURL(');
 assert.ok(start >= 0 && end > start);
 eval(code.slice(start, end));
 
-global.window = { location: { href: 'https://loopforge-test.example.com/runs', protocol: 'https:' } };
-assert.equal(previewCandidateHttpsURL('http://loopforge-test.example.com/preview/token/'), 'https://loopforge-test.example.com/preview/token/');
-assert.equal(previewCandidateHttpsURL('http://loopforge-test.example.com:80/preview/token/'), 'https://loopforge-test.example.com/preview/token/');
-assert.equal(previewCandidateHttpsURL('https://loopforge-test.example.com/preview/token/'), 'https://loopforge-test.example.com/preview/token/');
+global.window = { location: { href: 'https://friday-test.example.com/runs', protocol: 'https:' } };
+assert.equal(previewCandidateHttpsURL('http://friday-test.example.com/preview/token/'), 'https://friday-test.example.com/preview/token/');
+assert.equal(previewCandidateHttpsURL('http://friday-test.example.com:80/preview/token/'), 'https://friday-test.example.com/preview/token/');
+assert.equal(previewCandidateHttpsURL('https://friday-test.example.com/preview/token/'), 'https://friday-test.example.com/preview/token/');
 assert.equal(previewCandidateHttpsURL(''), '');
 `
 	out, err := exec.Command(node, "-e", script).CombinedOutput()

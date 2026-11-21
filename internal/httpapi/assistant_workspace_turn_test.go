@@ -205,7 +205,7 @@ func workspaceTurnFixture(t *testing.T) (*assistantHandlers, domain.User, *Agent
 	}
 	t.Cleanup(st.Close)
 	id := fmt.Sprintf("turn-%d", time.Now().UnixNano())
-	if err := st.PutUser(domain.User{LoginName: id, CodeBuddyAPIKey: "test-only"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: id, ClaudeCodeAPIKey: "test-only"}); err != nil {
 		t.Fatal(err)
 	}
 	user, _ := st.UserByLoginName(id)

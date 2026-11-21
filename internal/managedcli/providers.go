@@ -26,10 +26,6 @@ var providerSpecs = map[string]providerSpec{
 		Package: "@openai/codex", Binary: "codex", Help: []string{"exec", "--help"},
 		Flags: []string{"--json", "--sandbox", "--skip-git-repo-check", "--model"},
 	},
-	"codebuddy": {
-		Package: "@tencent-ai/codebuddy-code", Binary: "codebuddy", Help: []string{"--help"},
-		Flags: []string{"--print", "--output-format", "--permission-mode", "--setting-sources", "--system-prompt-file", "--mcp-config", "--strict-mcp-config", "--settings", "--resume", "--plugin-dir"},
-	},
 	"claude-code": {
 		Package: "@anthropic-ai/claude-code", Binary: "claude", Help: []string{"--help"},
 		Flags: []string{"--print", "--output-format", "--verbose", "--permission-mode", "--setting-sources", "--system-prompt-file", "--mcp-config", "--settings", "--resume", "--plugin-dir"},

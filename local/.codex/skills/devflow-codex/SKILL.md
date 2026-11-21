@@ -5,11 +5,7 @@ description: 在 Codex 中运行 devflow。用户提到 devflow、start/resume/s
 
 # DevFlow Codex 工作流
 
-这是 Codex 原生工作流入口。Codex 运行时只读取 `.codex/`，不读取
-`.codebuddy/`。
-
-`.codex/` 与 `.codebuddy/` 是两套独立工作流资产；二者应保持流程契约一致，
-但互不作为运行时依赖。
+这是 Codex 原生工作流入口。Codex 运行时只读取 `.codex/`。
 
 ## 必读文件
 
@@ -45,7 +41,7 @@ $devflow-codex abort TASK_SLUG
 
 - 主 Codex 线程是唯一 orchestrator。
 - `workflow-state.json` 是阶段交接和审计的唯一持久化状态。
-- 不使用 CodeBuddy 的 `team_create`、`send_message`、`team_delete`。
+- 不使用 `team_create`、`send_message`、`team_delete`。
 - medium/large 的 TASK-01 必须使用 `superpowers:brainstorming` 做需求澄清，
   且必须等待用户明确回答或确认后才能进入 TASK-02。
 - TASK-02 及之后的角色阶段必须通过 Codex `multi_agent_v1.spawn_agent`

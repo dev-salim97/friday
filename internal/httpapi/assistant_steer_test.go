@@ -60,7 +60,6 @@ func TestSteerDuringTurnFinalization(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h, user := workbenchFixture(t)
-			stubCLIModelDiscovery(t)
 			const followUp = "continue with this instruction"
 			s := domain.AssistantSession{ID: "steer-at-finish", ProjectID: "workbench", Model: "default", Messages: []assistantMessage{
 				{Role: "user", Content: "original"},
@@ -130,7 +129,6 @@ func TestSteerDuringTurnFinalization(t *testing.T) {
 
 func TestSteerKeepsNewAttachmentsAndReferencesWithSameText(t *testing.T) {
 	h, user := workbenchFixture(t)
-	stubCLIModelDiscovery(t)
 	const projectID, sessionID = "workbench", "same-text-steer"
 	const question = "请查看这份文件"
 	upload := func(name string) domain.AssistantAttachment {
@@ -285,19 +283,18 @@ func TestSteerKeepsConversationCLI(t *testing.T) {
 		{"cursor prefixed", "cursor", "cursor:old", "cursor:selected", "cursor:selected", false, false, 200},
 		{"cursor unprefixed", "cursor", "cursor:old", "selected", "cursor:selected", false, false, 200},
 		{"cursor legacy", "cursor", "old", "selected", "cursor:selected", false, false, 200},
-		{"codebuddy", "codebuddy", "default", "default", "default", false, false, 200},
+		{"claude-code", "claude-code", "default", "default", "default", false, false, 200},
 		{"codex missing key", "codex", "codex:gpt-old", "gpt-selected", "", false, true, 400},
 		{"cursor missing key", "cursor", "cursor:old", "selected", "", false, true, 400},
 		{"codex to cursor", "codex", "codex:gpt-old", "cursor:selected", "", true, false, 409},
 		{"cursor to codex", "cursor", "cursor:old", "codex:gpt-selected", "", false, false, 409},
-		{"codex to codebuddy", "codex", "codex:gpt-old", "codebuddy:default", "", true, false, 409},
-		{"codebuddy to codex", "codebuddy", "default", "codex:gpt-selected", "", false, false, 409},
+		{"codex to claude", "codex", "codex:gpt-old", "claude-code:default", "", true, false, 409},
+		{"claude to codex", "claude-code", "default", "codex:gpt-selected", "", false, false, 409},
 		{"invalid codex model", "codex", "codex:gpt-old", "codex:bad model", "", true, false, 400},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h, user := workbenchFixture(t)
-			stubCLIModelDiscovery(t)
-			credentials := repo.UserCredentialUpdate{CodeBuddyAPIKeyClear: tc.executor != "codebuddy"}
+			credentials := repo.UserCredentialUpdate{ClaudeCodeAPIKeyClear: tc.executor != "claude-code"}
 			if !tc.missingKey && !tc.runnerLogin {
 				credentials.CodexAPIKey = "test-codex"
 				credentials.AgentCLICredentials = map[string]repo.AgentCLICredentialUpdate{"cursor": {APIKey: "test-cursor"}}

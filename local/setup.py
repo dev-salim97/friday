@@ -5,7 +5,7 @@ from setuptools import setup
 
 
 ROOT = Path(__file__).parent
-ASSET_ROOTS = ["skills", ".codebuddy", ".codex", ".cursor", ".claude"]
+ASSET_ROOTS = ["skills", ".codex", ".cursor", ".claude"]
 
 
 def data_files():

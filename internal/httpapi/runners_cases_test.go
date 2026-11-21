@@ -105,8 +105,8 @@ func TestRunnerManagementAndMachineLifecycle(t *testing.T) {
 }
 
 func TestRunnerNormalizationAndBindCodeBranches(t *testing.T) {
-	reported := []domain.RunnerRuntime{{Provider: "codebuddy", Status: "online"}, {Provider: "codex", Status: "online"}, {Provider: "opencode", Status: "online"}}
-	existing := []domain.RunnerRuntime{{Provider: "codebuddy", Status: domain.RuntimeStatusDisabled, AuthMode: domain.RuntimeAuthLocal}, {Provider: "codex", AuthMode: domain.RuntimeAuthPersonal}, {Provider: "opencode", AuthMode: domain.RuntimeAuthLocal}}
+	reported := []domain.RunnerRuntime{{Provider: "claude-code", Status: "online"}, {Provider: "codex", Status: "online"}, {Provider: "opencode", Status: "online"}}
+	existing := []domain.RunnerRuntime{{Provider: "claude-code", Status: domain.RuntimeStatusDisabled, AuthMode: domain.RuntimeAuthLocal}, {Provider: "codex", AuthMode: domain.RuntimeAuthPersonal}, {Provider: "opencode", AuthMode: domain.RuntimeAuthLocal}}
 	got := normalizeRunnerRuntimes(reported, existing)
 	if got[0].Status != domain.RuntimeStatusDisabled || got[0].AuthMode != domain.RuntimeAuthLocal || got[1].AuthMode != domain.RuntimeAuthPersonal || got[2].AuthMode != domain.RuntimeAuthPersonal {
 		t.Fatalf("normalized = %+v", got)
@@ -183,7 +183,7 @@ func TestRunnerErrorAndRegistrationBranches(t *testing.T) {
 	if err := json.Unmarshal(bind.Body.Bytes(), &bindOut); err != nil || bindOut.Code == "" {
 		t.Fatalf("bind response: %v %s", err, bind.Body.String())
 	}
-	registerBody := map[string]any{"name": "bound", "maxConcurrency": 99, "runtimes": []any{map[string]any{"provider": "codebuddy"}}}
+	registerBody := map[string]any{"name": "bound", "maxConcurrency": 99, "runtimes": []any{map[string]any{"provider": "claude-code"}}}
 	rec := requestWithHeaders(t, f.h, http.MethodPost, "/runners/register", registerBody, map[string]string{"X-Bootstrap-Token": bindOut.Code})
 	if rec.Code != 200 {
 		t.Fatalf("bind registration = %d: %s", rec.Code, rec.Body.String())

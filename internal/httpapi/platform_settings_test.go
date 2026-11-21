@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -52,27 +51,6 @@ func (p platformSettingsClient) signIn(login, password string) *http.Cookie {
 		p.t.Fatalf("sign in %s: %d %s", login, w.Code, w.Body.String())
 	}
 	return w.Result().Cookies()[0]
-}
-
-func platformSettingsFixture(t *testing.T) (*repo.Store, platformSettingsClient, *http.Cookie, *http.Cookie) {
-	t.Helper()
-	t.Setenv("AGENTFLOW_AUTH_REQUIRED", "true")
-	t.Setenv("AGENTFLOW_SCHEDULER_ENABLED", "false")
-	t.Setenv("AGENTFLOW_ALLOW_SIGNUP", "false")
-	t.Setenv(assistantSponsorLoginEnv, "")
-	s, err := repo.OpenTest()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(s.Close)
-	if _, err := s.CreateLocalAccount("owner", "owner-password", true); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.CreateLocalAccount("member", "member-password", false); err != nil {
-		t.Fatal(err)
-	}
-	client := platformSettingsClient{t: t, h: New(s, engine.New(s, runtime.NewManager(t.TempDir())), nil, "", "")}
-	return s, client, client.signIn("owner", "owner-password"), client.signIn("member", "member-password")
 }
 
 // With self-service signup closed, administrators create accounts and reset
@@ -163,90 +141,27 @@ func TestPlatformAdminsManageAccounts(t *testing.T) {
 	}
 }
 
-// The shared key is write-only: administrators see whether one is
-// configured, its network environment and models, never the key.
-func TestPlatformAdminsConfigureSharedCodeBuddyKey(t *testing.T) {
-	s, client, owner, member := platformSettingsFixture(t)
-	stubCLIModelDiscovery(t)
-	const origin = "http://localhost"
-	save := `{"apiKey":"ck_platform_secret","internetEnvironment":"internal","models":["glm-5.1"," kimi-k2.6 ","glm-5.1"]}`
-
-	if w := client.call(member, "GET", "/api/platform/codebuddy-key", "", ""); w.Code != 403 {
-		t.Fatalf("member read: %d", w.Code)
-	}
-	if w := client.call(member, "PUT", "/api/platform/codebuddy-key", origin, save); w.Code != 403 {
-		t.Fatalf("member save: %d", w.Code)
-	}
-	if w := client.call(owner, "PUT", "/api/platform/codebuddy-key", "https://attacker.invalid", save); w.Code != 403 {
-		t.Fatalf("cross-origin save: %d", w.Code)
-	}
-	for body, want := range map[string]string{
-		`{"apiKey":"","internetEnvironment":"","models":["glm-5.1"]}`:                "API Key",
-		`{"apiKey":"ck_x","internetEnvironment":"","models":[]}`:                     "至少选择",
-		`{"apiKey":"ck_x","internetEnvironment":"private-net","models":["glm-5.1"]}`: "网络环境",
-		`{"apiKey":"ck_x","internetEnvironment":"","models":["bad model"]}`:          "模型 ID",
-		`{"apiKey":"ck x","internetEnvironment":"","models":["glm-5.1"]}`:            "API Key",
-	} {
-		if w := client.call(owner, "PUT", "/api/platform/codebuddy-key", origin, body); w.Code != 400 || !strings.Contains(w.Body.String(), want) {
-			t.Fatalf("invalid %s: %d %s", body, w.Code, w.Body.String())
-		}
-	}
-	w := client.call(owner, "PUT", "/api/platform/codebuddy-key", origin, save)
-	if w.Code != 200 || strings.Contains(w.Body.String(), "ck_platform_secret") {
-		t.Fatalf("save: %d %s", w.Code, w.Body.String())
-	}
-	key, ok := s.SharedCodeBuddyKey()
-	if !ok || key.APIKey != "ck_platform_secret" || key.InternetEnvironment != "internal" || strings.Join(key.Models, ",") != "glm-5.1,kimi-k2.6" {
-		t.Fatalf("stored key = %+v", key)
-	}
-
-	// Changing the models keeps the stored key when none is typed.
-	if w := client.call(owner, "PUT", "/api/platform/codebuddy-key", origin, `{"internetEnvironment":"internal","models":["kimi-k2.6"]}`); w.Code != 200 {
-		t.Fatalf("update models: %d %s", w.Code, w.Body.String())
-	}
-	w = client.call(owner, "GET", "/api/platform/codebuddy-key", "", "")
-	var status platformCodeBuddyKeyResponse
-	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &status) != nil || !status.Configured || status.InternetEnvironment != "internal" || strings.Join(status.Models, ",") != "kimi-k2.6" || status.UpdatedBy != "owner" || len(status.Catalog) == 0 {
-		t.Fatalf("status: %d %s", w.Code, w.Body.String())
-	}
-	if strings.Contains(w.Body.String(), "ck_platform_secret") {
-		t.Fatal("status must not reveal the key")
-	}
-	if w := client.call(owner, "GET", "/api/platform/codebuddy-key?environment=bogus", "", ""); w.Code != 400 {
-		t.Fatalf("bogus environment: %d", w.Code)
-	}
-	if key, _ := s.SharedCodeBuddyKey(); key.APIKey != "ck_platform_secret" || strings.Join(key.Models, ",") != "kimi-k2.6" {
-		t.Fatalf("models-only update = %+v", key)
-	}
-
-	if w := client.call(owner, "DELETE", "/api/platform/codebuddy-key", origin, ""); w.Code != 200 || strings.Contains(w.Body.String(), `"configured":true`) {
-		t.Fatalf("clear: %d %s", w.Code, w.Body.String())
-	}
-	if _, ok := s.SharedCodeBuddyKey(); ok {
-		t.Fatal("cleared key must not be lent")
-	}
-	if w := client.call(owner, "PUT", "/api/platform/codebuddy-key", origin, `{"internetEnvironment":"","models":["glm-5.1"]}`); w.Code != 400 {
-		t.Fatalf("a cleared key needs a new one: %d", w.Code)
-	}
-}
-
 func itoa(v int64) string {
 	b, _ := json.Marshal(v)
 	return string(b)
 }
 
-// stubCLIModelDiscovery keeps tests from running the CodeBuddy CLI.
-func stubCLIModelDiscovery(t *testing.T) {
+func platformSettingsFixture(t *testing.T) (*repo.Store, platformSettingsClient, *http.Cookie, *http.Cookie) {
 	t.Helper()
-	old := discoverCLIModels
-	discoverCLIModels = func(context.Context, string, string) []string { return nil }
-	cliModelMu.Lock()
-	cliModelCache = map[string]cliModelEntry{}
-	cliModelMu.Unlock()
-	t.Cleanup(func() {
-		discoverCLIModels = old
-		cliModelMu.Lock()
-		cliModelCache = map[string]cliModelEntry{}
-		cliModelMu.Unlock()
-	})
+	t.Setenv("AGENTFLOW_AUTH_REQUIRED", "true")
+	t.Setenv("AGENTFLOW_SCHEDULER_ENABLED", "false")
+	t.Setenv("AGENTFLOW_ALLOW_SIGNUP", "false")
+	s, err := repo.OpenTest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	if _, err := s.CreateLocalAccount("owner", "owner-password", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreateLocalAccount("member", "member-password", false); err != nil {
+		t.Fatal(err)
+	}
+	client := platformSettingsClient{t: t, h: New(s, engine.New(s, runtime.NewManager(t.TempDir())), nil, "", "")}
+	return s, client, client.signIn("owner", "owner-password"), client.signIn("member", "member-password")
 }

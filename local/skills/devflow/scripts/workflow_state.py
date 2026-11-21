@@ -30,9 +30,7 @@ ALL_STAGES = {"PHASE-0", "SOLO", "REQUIREMENT", "DESIGN", "IMPLEMENT", "REVIEW",
 STATUSES = {"pending", "in_progress", "completed", "failed", "skipped"}
 WORKFLOW_STATUSES = {"in_progress", "awaiting_approval", "blocked", "completed"}
 LEGACY_STAGE_ROLES = {"REQUIREMENT": {"devflow-requirement-analyst"}}
-LEGACY_V2_EXECUTORS = {
-    "codebuddy": ("devflow-stage-executor", "devflow-research-helper"),
-}
+LEGACY_V2_EXECUTORS: dict = {}
 
 
 def now() -> str:
@@ -976,12 +974,8 @@ def command_resume(args: argparse.Namespace) -> int:
             "ok": False,
             "action": "restart-required",
             "state": str(state_path),
-            "message": "状态文件不存在，不能 resume；删除同名旧 Team 后重新提交原始需求",
+            "message": "状态文件不存在，不能 resume；请重新提交原始需求",
         }
-        if args.fresh_team and args.slug:
-            action["delete_team_name"] = (
-                (TEAM_NAME_PREFIXES.get("codebuddy") or "") + args.slug
-            )
         print(json.dumps(action, ensure_ascii=False, indent=2))
         return 0
     data = load(state_path)

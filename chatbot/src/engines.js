@@ -1,10 +1,10 @@
 // CLIs that AI 对话 can run on. The list comes from GET /api/assistant/models
-// (`engines`); models without `engine` run on CodeBuddy.
-export const defaultEngine = "codebuddy";
+// (`engines`); models without `engine` run on Claude Code.
+export const defaultEngine = "claude-code";
 
 // Bundled logo per CLI; an unknown CLI falls back to its model's brand.
 const brands = {
-  codebuddy: "codebuddy", codex: "codex", "claude-code": "claude",
+  codex: "codex", "claude-code": "claude",
   opencode: "opencode", cursor: "cursor", agy: "antigravity", kimi: "kimi-code", pi: "pi", dsh: "deepseek", zcode: "zhipu",
 };
 export const engineBrand = (id) => Object.hasOwn(brands, id) ? brands[id] : "";
@@ -28,7 +28,6 @@ export const engineModels = (models, engine) =>
 // The 个人配置 field that enables a CLI. Mirrors assistantEngineCredentialField
 // in internal/httpapi/assistant_engines.go.
 export function engineCredentialField(id) {
-  if (id === defaultEngine) return "codeBuddyApiKey";
   if (id === "codex") return "codexApiKey";
   if (id === "claude-code") return "claudeCodeApiKey";
   return `agentCli.${id}`;
@@ -41,7 +40,6 @@ export const machineLoginEngines = new Set(["codex", "claude-code", "agy"]);
 // Mirrors assistantEngineMissingKey in internal/httpapi/assistant_engines.go;
 // credentialHint turns it into a "去配置" button.
 export function engineMissingKeyMessage(engine) {
-  if (engine.id === defaultEngine) return "请先在个人配置中配置自己的 CodeBuddy API Key";
   return `请先在个人配置中配置 ${engine.name} API Key 后再使用 ${engine.name} 模型`;
 }
 

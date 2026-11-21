@@ -27,8 +27,8 @@ func TestAnalyticsTokenPricing(t *testing.T) {
 		{"Kimi K3.1 Pro TokenHub RMB price", "kimi-k3.1-pro", TokenUsage{InputTokens: 1e6, OutputTokens: 1e6, CacheReadTokens: 1e6, CacheWriteTokens: 1e6}, false, 13 + 68 + 1.3 + 13, true},
 		{"MiMo V2.6 Pro RMB price", "mimo-v2.6-pro", TokenUsage{InputTokens: 1e6, OutputTokens: 1e6, CacheReadTokens: 1e6}, false, 3 + 6 + .025, true},
 		{"custom-local uses vendor public price", "custom-local:deepseek-v4-flash", TokenUsage{InputTokens: 1e6, OutputTokens: 1e6}, false, 2 + 8, true},
-		{"CodeBuddy Hy3 is free", "hy3-ioa", TokenUsage{InputTokens: 1e6}, false, 0, true},
-		{"CodeBuddy Hy4 is free", "hy4std", TokenUsage{InputTokens: 1e6, OutputTokens: 1e6}, false, 0, true},
+		{"Hy3 is free", "hy3-ioa", TokenUsage{InputTokens: 1e6}, false, 0, true},
+		{"Hy4 is free", "hy4std", TokenUsage{InputTokens: 1e6, OutputTokens: 1e6}, false, 0, true},
 		{"Hy4 preview ignores reported amount", "hy4-preview-ioa", TokenUsage{InputTokens: 1e6, CostUSD: .001, CostStatus: "reported"}, false, 0, true},
 		{"no model call", "", TokenUsage{}, false, 0, true},
 	} {

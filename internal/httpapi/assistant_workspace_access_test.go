@@ -30,7 +30,7 @@ func TestWorkspaceOpenRefusesSOPWorkspaceForViewer(t *testing.T) {
 	h, owner, _ := chatSandboxFixture(t)
 	gateway := workspaceAccessGateway(t, h)
 
-	if err := h.repo.PutUser(domain.User{LoginName: "ws-viewer", CodeBuddyAPIKey: "test-only"}); err != nil {
+	if err := h.repo.PutUser(domain.User{LoginName: "ws-viewer", ClaudeCodeAPIKey: "test-only"}); err != nil {
 		t.Fatal(err)
 	}
 	viewer, _ := h.repo.UserByLoginName("ws-viewer")

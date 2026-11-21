@@ -185,7 +185,7 @@ func TestNativeClarifyCommandKeepsReadAndSessionMCP(t *testing.T) {
 	}
 	t.Cleanup(files.Cleanup)
 	command, err := prepareClarifyCommandWith(clarifyCommandOpts{
-		Bin: "codebuddy", Model: clarifyDefaultModel, Prompt: "p", RunID: "r", SessionID: "af1",
+		Bin: "claude", Model: clarifyDefaultModel, Prompt: "p", RunID: "r", SessionID: "af1",
 		Native: true, MCPConfig: files.MCPConfig, Settings: files.Settings,
 	})
 	if err != nil {
@@ -193,7 +193,7 @@ func TestNativeClarifyCommandKeepsReadAndSessionMCP(t *testing.T) {
 	}
 	tools, ok := argvFlagValue(command.Argv, "--tools")
 	if ok && tools != "" && tools != "default" {
-		t.Fatalf("native clarify --tools %q hides MCP; CodeBuddy applies --tools to MCP tools", tools)
+		t.Fatalf("native clarify --tools %q hides MCP; Claude applies --tools to MCP tools", tools)
 	}
 	denied, ok := argvFlagValue(command.Argv, "--disallowedTools")
 	if !ok || !strings.Contains(denied, "Bash") || !strings.Contains(denied, "Write") || !strings.Contains(denied, "Edit") {
@@ -219,33 +219,6 @@ func TestNativeClarifyCommandKeepsReadAndSessionMCP(t *testing.T) {
 	info, err := os.Stat(files.MCPConfig)
 	if err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatalf("mcp.json mode = %v", info.Mode())
-	}
-}
-
-func TestNativeAssistantCommandDisablesBuiltinWrites(t *testing.T) {
-	dir := t.TempDir()
-	files, err := writeAgentToolFiles(dir, strings.Repeat("ab", 32))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(files.Cleanup)
-	command, err := prepareAssistantCommand(assistantCommandOpts{Bin: "codebuddy", Config: files.MCPConfig, Settings: files.Settings, Prompt: "hi", Native: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	tools, _ := argvFlagValue(command.Argv, "--tools")
-	if tools != "" && tools != "default" {
-		t.Fatalf("assistant --tools %q hides MCP; CodeBuddy applies --tools to MCP tools", tools)
-	}
-	if strings.Contains(tools, "Bash") || strings.Contains(tools, "Write") {
-		t.Fatalf("assistant tools = %q", tools)
-	}
-	denied, _ := argvFlagValue(command.Argv, "--disallowedTools")
-	if !strings.Contains(denied, "Bash") || !strings.Contains(denied, "Write") || !strings.Contains(denied, "Edit") {
-		t.Fatalf("assistant deny = %q", denied)
-	}
-	if len(command.CredentialBindings) != 1 || command.CredentialBindings[0] != "codebuddy" {
-		t.Fatalf("bindings=%v", command.CredentialBindings)
 	}
 }
 

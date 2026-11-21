@@ -73,7 +73,7 @@ func materializeInvocationForDriver(workspace, invocationID string, ex domain.Ex
 	if err := os.WriteFile(filepath.Join(root, "run-context.json"), raw, 0o600); err != nil {
 		return compiled, err
 	}
-	if len(effectiveHookDefinitions) > 0 || ex.Kind == "codebuddy" {
+	if len(effectiveHookDefinitions) > 0 {
 		observationRoot := filepath.Join(root, "observability")
 		if err := os.MkdirAll(observationRoot, 0o700); err != nil {
 			return compiled, err

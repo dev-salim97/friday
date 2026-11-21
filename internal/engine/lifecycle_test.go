@@ -334,8 +334,8 @@ func TestPassRejectsPausedAgentNode(t *testing.T) {
 func TestRefreshRunSOPPreservesCompletedNodesAndAddsLatestNodes(t *testing.T) {
 	t.Parallel()
 	e, s := newRecoveryEngine(t)
-	old := domain.WorkflowDefinition{ID: "refresh-paused", Name: "old", Version: 1, Revision: 2, SandboxProfileID: "frozen", Nodes: []domain.WorkflowNode{{ID: "done", Name: "done"}, {ID: "work", Name: "work"}}}
-	latest := domain.WorkflowDefinition{ID: old.ID, Name: "latest", Version: 2, Revision: 1, SandboxProfileID: "new-environment", Nodes: []domain.WorkflowNode{{ID: "done", Name: "done latest"}, {ID: "work", Name: "work latest"}, {ID: "verify", Name: "verify"}}, Edges: []domain.WorkflowEdge{{ID: "e", Source: "work", Target: "verify", When: "success"}}}
+	old := domain.WorkflowDefinition{ID: "refresh-paused", Name: "old", Version: 1, Revision: 2, SandboxProfileID: "frozen", ExecutorID: "codex", Nodes: []domain.WorkflowNode{{ID: "done", Name: "done"}, {ID: "work", Name: "work"}}}
+	latest := domain.WorkflowDefinition{ID: old.ID, Name: "latest", Version: 2, Revision: 1, SandboxProfileID: "new-environment", ExecutorID: "claude", Nodes: []domain.WorkflowNode{{ID: "done", Name: "done latest"}, {ID: "work", Name: "work latest"}, {ID: "verify", Name: "verify"}}, Edges: []domain.WorkflowEdge{{ID: "e", Source: "work", Target: "verify", When: "success"}}}
 	for _, sandbox := range []domain.SandboxProfile{{ID: "frozen", Name: "frozen", Driver: "local"}, {ID: "new-environment", Name: "new", Driver: "local"}} {
 		if err := s.PutSandbox(sandbox); err != nil {
 			t.Fatal(err)
@@ -360,6 +360,9 @@ func TestRefreshRunSOPPreservesCompletedNodesAndAddsLatestNodes(t *testing.T) {
 	}
 	if got.WorkflowSnapshot.SandboxProfileID != "frozen" {
 		t.Fatalf("sandbox profile changed mid-run: %q", got.WorkflowSnapshot.SandboxProfileID)
+	}
+	if got.WorkflowSnapshot.ExecutorID != "codex" {
+		t.Fatalf("SOP CLI changed mid-run: %q", got.WorkflowSnapshot.ExecutorID)
 	}
 	if got.Nodes["done"].Status != "succeeded" || got.Nodes["work"].Status != "waiting_approval" || got.Nodes["verify"].Status != "pending" {
 		t.Fatalf("refreshed nodes = %+v", got.Nodes)

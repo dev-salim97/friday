@@ -31,39 +31,8 @@ func TestAssistantScheduledModelKeepsCLIModels(t *testing.T) {
 	}
 }
 
-// The CodeBuddy model list is empty after a restart: a scheduled run refreshes
-// it with the owner's key and never swaps an unavailable model for the default.
-func TestScheduledRunModelRefreshesAndNeverFallsBack(t *testing.T) {
-	old := discoverCLIModels
-	discoverCLIModels = func(_ context.Context, environment, apiKey string) []string {
-		if environment == "internal" && apiKey == "owner-key" {
-			return []string{"deepseek-v4.1-flash"}
-		}
-		return nil
-	}
-	cliModelMu.Lock()
-	cliModelCache = map[string]cliModelEntry{}
-	cliModelMu.Unlock()
-	t.Cleanup(func() {
-		discoverCLIModels = old
-		cliModelMu.Lock()
-		cliModelCache = map[string]cliModelEntry{}
-		cliModelMu.Unlock()
-	})
-	owner := domain.User{CodeBuddyAPIKey: "owner-key", CodeBuddyInternetEnvironment: "internal"}
-	if got, err := scheduledRunModel(context.Background(), "deepseek-v4.1-flash", owner); err != nil || got != "deepseek-v4.1-flash" {
-		t.Fatalf("model = %q, %v", got, err)
-	}
-	if got, err := scheduledRunModel(context.Background(), "", owner); err != nil || got != assistantFixedCatalog().Default {
-		t.Fatalf("empty model = %q, %v", got, err)
-	}
-	if got, err := scheduledRunModel(context.Background(), "gone-model", owner); err == nil || !strings.Contains(err.Error(), "gone-model") {
-		t.Fatalf("unavailable model = %q, %v", got, err)
-	}
-}
-
 // A scheduled task on another CLI runs with that CLI's own key, needs no
-// CodeBuddy key, and records the CLI on its conversation.
+// Claude key, and records the CLI on its conversation.
 func TestScheduledTaskRunsOnTaskCLI(t *testing.T) {
 	st := cvAStore(t)
 	_ = st.PutProject(domain.Project{ID: "cli-project", Name: "CLI"})
@@ -88,8 +57,8 @@ func TestScheduledTaskRunsOnTaskCLI(t *testing.T) {
 		t.Fatalf("missing claude key = %v %q", err, task.LastError)
 	}
 	task.Model = ""
-	if err := h.executeAssistantTask(context.Background(), user, &task); err == nil || !strings.Contains(task.LastError, "CodeBuddy API Key") {
-		t.Fatalf("missing codebuddy key = %v %q", err, task.LastError)
+	if err := h.executeAssistantTask(context.Background(), user, &task); err == nil || !strings.Contains(task.LastError, "Claude Code API Key") {
+		t.Fatalf("missing claude key = %v %q", err, task.LastError)
 	}
 }
 
@@ -100,11 +69,11 @@ func TestScheduleJobAssistantUserNeedsModelCLIKey(t *testing.T) {
 	_ = st.PutProject(domain.Project{ID: "owner-project", Name: "Owner", OwnerID: owner.ID})
 	h := &assistantHandlers{deps: &deps{repo: st}}
 	job := domain.ScheduleJob{ProjectID: "owner-project"}
-	if got, shared, err := h.scheduleJobAssistantUser(job, "codex:gpt-6-sol"); err != nil || got.ID != owner.ID || shared != nil {
-		t.Fatalf("codex owner = %+v %v %v", got, shared, err)
+	if got, err := h.scheduleJobAssistantUser(job, "codex:gpt-6-sol"); err != nil || got.ID != owner.ID {
+		t.Fatalf("codex owner = %+v %v", got, err)
 	}
-	if _, _, err := h.scheduleJobAssistantUser(job, "glm-5.3-ioa"); err == nil || !strings.Contains(err.Error(), "CodeBuddy") {
-		t.Fatalf("codebuddy without key = %v", err)
+	if _, err := h.scheduleJobAssistantUser(job, "glm-5.3-ioa"); err == nil || !strings.Contains(err.Error(), "Claude") {
+		t.Fatalf("claude without key = %v", err)
 	}
 }
 
@@ -125,15 +94,15 @@ func TestScheduledTaskWritesProjectSkills(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	bin := filepath.Join(t.TempDir(), "codebuddy")
+	bin := filepath.Join(t.TempDir(), "claude")
 	script := `#!/bin/sh
-skills=$(ls "$HOME/.codebuddy/skills" 2>/dev/null | tr '\n' ' ')
+skills=$(ls "$HOME/.claude/skills" 2>/dev/null | tr '\n' ' ')
 printf '{"type":"result","result":"skills: %s"}\n' "$skills"
 `
 	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	task := assistantTask{ID: "skill-job", Name: "skill", ProjectID: "workbench", Prompt: "加载 skill"}
 	if err := h.executeAssistantTask(context.Background(), user, &task); err != nil {
 		t.Fatalf("run = %v %+v", err, task)
@@ -163,7 +132,7 @@ func joinScheduledProject(t *testing.T, st *repo.Store, projectID string, userID
 func TestScheduledTaskRunsAsChatTurn(t *testing.T) {
 	st := cvAStore(t)
 	_ = st.PutProject(domain.Project{ID: "turn-project", Name: "Turn"})
-	_ = st.PutUser(domain.User{LoginName: "turn-user", CodeBuddyAPIKey: "secret"})
+	_ = st.PutUser(domain.User{LoginName: "turn-user", ClaudeCodeAPIKey: "secret"})
 	user, _ := st.UserByLoginName("turn-user")
 	h := &assistantHandlers{deps: &deps{repo: st}}
 	task := assistantTask{ID: "turn-job", Name: "巡检", Prompt: "检查", ProjectID: "turn-project", IntervalSec: 60, Enabled: true}
@@ -209,7 +178,7 @@ func TestScheduledTaskRunsAsChatTurn(t *testing.T) {
 func TestScheduledTaskStopFromPage(t *testing.T) {
 	st := cvAStore(t)
 	_ = st.PutProject(domain.Project{ID: "stop-project", Name: "Stop"})
-	_ = st.PutUser(domain.User{LoginName: "stop-user", CodeBuddyAPIKey: "secret"})
+	_ = st.PutUser(domain.User{LoginName: "stop-user", ClaudeCodeAPIKey: "secret"})
 	user, _ := st.UserByLoginName("stop-user")
 	h := &assistantHandlers{deps: &deps{repo: st}}
 	task := assistantTask{ID: "stop-job", Name: "巡检", Prompt: "检查", ProjectID: "stop-project", IntervalSec: 60, Enabled: true}

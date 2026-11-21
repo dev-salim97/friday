@@ -41,7 +41,7 @@ func (h *assistantHandlers) startGenerationWithTarget(c *gin.Context, workbench 
 	}
 	stored, ok := h.repo.User(current.ID)
 	if !ok {
-		c.JSON(400, gin.H{"error": "请先配置个人 CodeBuddy API Key"})
+		c.JSON(400, gin.H{"error": "请先配置个人 API Key"})
 		return
 	}
 	var req assistantRequest
@@ -139,11 +139,7 @@ func (h *assistantHandlers) startGenerationWithTarget(c *gin.Context, workbench 
 		c.JSON(403, gin.H{"error": err.Error()})
 		return
 	}
-	catalogEngine, _ := assistantModelEngine(req.Model)
-	catalog := assistantChatCatalog(c.Request.Context(), user.CodeBuddyInternetEnvironment, nil)
-	if catalogEngine == assistantEngineCodeBuddy {
-		catalog = h.turnCatalog(c.Request.Context(), user, req.Model)
-	}
+	catalog := h.turnCatalog(c.Request.Context(), user, req.Model)
 	if !runnerLogin {
 		req.Model = assistantAllowedUserModel(req.Model, catalog, user)
 	}
@@ -230,8 +226,7 @@ func (h *assistantHandlers) startGenerationWithTarget(c *gin.Context, workbench 
 			runnerID: loginRunner.ID, model: req.Model, effort: req.Effort, resolved: cliModel,
 		})
 	}
-	_, sharedModels, _ := h.assistantChatUser(stored)
-	h.scheduleAssistantTitle(h.helperExecutionContext(parent, ownerID, req.ExecutionTarget), ownerID, user, old, req.SessionID, req.Messages, req.Model, sharedModels)
+	h.scheduleAssistantTitle(h.helperExecutionContext(parent, ownerID, req.ExecutionTarget), ownerID, user, old, req.SessionID, req.Messages, req.Model)
 	done := inflightTasks.Add()
 	go func() {
 		defer done()
@@ -505,7 +500,7 @@ func (h *assistantHandlers) steerGeneration(c *gin.Context) {
 	}
 	stored, ok := h.repo.User(current.ID)
 	if !ok {
-		c.JSON(400, gin.H{"error": "请先配置个人 CodeBuddy API Key"})
+		c.JSON(400, gin.H{"error": "请先配置个人 API Key"})
 		return
 	}
 	ownerID, _, err := h.conversationScope(c, c.Param("id"), "", "", stored.ID)
@@ -544,8 +539,6 @@ func (h *assistantHandlers) steerGeneration(c *gin.Context) {
 	model := strings.TrimSpace(firstNonEmpty(body.Model, session.Model))
 	if !assistantModelHasEnginePrefix(model) {
 		model = assistantRequestModel(cliEngine, model)
-	} else if id, explicit := strings.CutPrefix(model, assistantEngineCodeBuddy+":"); explicit {
-		model = strings.TrimSpace(id)
 	}
 	// Refuse a switch before recording cancellation, even without credentials
 	// for the requested CLI. The current reply must keep running on refusal.
@@ -561,16 +554,11 @@ func (h *assistantHandlers) steerGeneration(c *gin.Context) {
 		c.JSON(400, gin.H{"error": refusal})
 		return
 	}
-	if engine, id := assistantModelEngine(model); engine != assistantEngineCodeBuddy && !assistantValidEngineModel(id) {
+	if _, id := assistantModelEngine(model); !assistantValidEngineModel(id) {
 		c.JSON(400, gin.H{"error": "模型 ID 无效"})
 		return
 	}
-	// A CodeBuddy model this instance has not listed yet refreshes the list
-	// first, like a new turn, instead of silently becoming the default.
-	catalog := assistantChatCatalog(c.Request.Context(), user.CodeBuddyInternetEnvironment, nil)
-	if engine, _ := assistantModelEngine(model); engine == assistantEngineCodeBuddy {
-		catalog = h.turnCatalog(c.Request.Context(), user, model)
-	}
+	catalog := h.turnCatalog(c.Request.Context(), user, model)
 	if !runnerLogin {
 		model = assistantAllowedUserModel(model, catalog, user)
 	}

@@ -550,7 +550,7 @@ func TestCatalogRevisionRestoreAndValidation(t *testing.T) {
 	if err := f.s.PutSandbox(domain.SandboxProfile{ID: "cvb-r2-private-box", Name: "Private", ProjectID: other.ID, Driver: "bwrap"}); err != nil {
 		t.Fatal(err)
 	}
-	agent := domain.AgentDefinition{ID: "cvb-r2-agent", Name: "Agent", ProjectID: project.ID, ExecutorID: "codebuddy", Version: 1}
+	agent := domain.AgentDefinition{ID: "cvb-r2-agent", Name: "Agent", ProjectID: project.ID, ExecutorID: "claude", Version: 1}
 	if err := f.s.PutAgent(agent); err != nil {
 		t.Fatal(err)
 	}

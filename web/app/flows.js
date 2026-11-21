@@ -22,8 +22,8 @@ function workflowPreviewModel(wf){
 }
 function previewModelChoices(){
   const api=window.AgentFlowAssistantModels;
-  // The preview build node runs on CodeBuddy (executorId codebuddy).
-  const models=api?.codeBuddyModels?.()||api?.catalog?.()?.models;
+  // The preview build node runs on the default CLI.
+  const models=api?.primaryModels?.()||api?.catalog?.()?.models;
   if(models&&models.length)return models.map(m=>({id:m.id,name:m.name||m.id}));
   return PREVIEW_MODEL_FALLBACK.slice();
 }
@@ -43,7 +43,7 @@ function ensurePreviewContract(){
     ...prev,
     enabled:true,
     kind:'static',
-    executorId:'codebuddy',
+    executorId:'claude',
     model,
     sourcePath:prev.sourcePath||'dist',
     indexFile:prev.indexFile||'index.html',
@@ -81,7 +81,7 @@ function syncPreviewBuildGraph(){
     name:'构建静态站点',
     type:'agent',
     agentId:PREVIEW_BUILD_AGENT_ID,
-    executorId:'codebuddy',
+    executorId:'claude',
     executionScope:'run',
     onFailure:'fail',
     retryStrategy:'targeted_fix',
@@ -147,7 +147,7 @@ function renderWorkflowMeta(){
   const options=wf&&!workflows.some(w=>w.id===wf.id)?[wf,...workflows]:workflows;
   $('#workflowSelect').innerHTML=options.map(w=>`<option value="${escapeHTML(w.id)}" ${wf&&w.id===wf.id?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
   if(!wf){
-    $('#workflowName').value='';$('#workflowDescription').value='';$('#workflowOwner').value='';$('#workflowSandbox').innerHTML='';
+    $('#workflowName').value='';$('#workflowDescription').value='';$('#workflowOwner').value='';$('#workflowSandbox').innerHTML='';$('#workflowExecutor')&&($('#workflowExecutor').innerHTML='');
     $('#workflowStatus').value='draft';$('#workflowTags').value='';$('#workflowMetricCategory').value='';$('#workflowSOPLane').value='';
     const pill=$('#flowSettingsPill');if(pill)pill.textContent='未选择流程';
     renderFlowHeader();
@@ -160,6 +160,7 @@ function renderWorkflowMeta(){
   $('#workflowOwner').value=wf.owner||'';$('#workflowStatus').value=wf.status||'draft';$('#workflowTags').value=(wf.tags||[]).join(', ');$('#workflowMetricCategory').value=wf.metricCategory||'';$('#workflowSOPLane').value=wf.sopLane||'';
   const previewOn=!!wf.preview?.enabled, hasPreviewNode=(wf.nodes||[]).some(n=>isPreviewBuildNode(n.id));
   if(previewOn!==hasPreviewNode)syncPreviewBuildGraph();
+  const executor=$('#workflowExecutor');if(executor)executor.innerHTML=sopExecutorOptions(wf,wf.executorId||'');
   $('#workflowSandbox').innerHTML=(state.data.sandboxes||[]).filter(s=>catalogVisible(s.projectId,s.shared)).map(s=>`<option value="${escapeHTML(s.id)}" ${s.id===wf.sandboxProfileId?'selected':''}>${escapeHTML(s.name)}${catalogForeign(s.projectId)?' · 共享':''}</option>`).join('');
   const pill=$('#flowSettingsPill');if(pill)pill.textContent=catalogGeneric(wf)?(isPlatformAdmin()?'通用模板 · 可编辑':'通用模板'):`${wf.status==='published'?'已发布':'草稿'} · v${wf.version} · ${wf.nodes.length} 步`;
   renderFlowHeader();
@@ -196,7 +197,7 @@ function addNode(type,opts={}){
     if(existing){state.selectedNode=existing.id;renderCanvas();renderProperties();return toast('预览节点已存在，可拖拽连线调整它的位置')}
     flowHistory.record();
     ensurePreviewContract();
-    state.workflow.nodes.push({id:PREVIEW_BUILD_NODE_ID,name:'构建静态站点',type:'agent',agentId:PREVIEW_BUILD_AGENT_ID,executorId:'codebuddy',executionScope:'run',onFailure:'fail',retryStrategy:'targeted_fix',maxAttempts:2,maxReworks:1,position:at,artifactOutputs:[{name:'frontend-preview',path:'dist/index.html',required:true}]});
+    state.workflow.nodes.push({id:PREVIEW_BUILD_NODE_ID,name:'构建静态站点',type:'agent',agentId:PREVIEW_BUILD_AGENT_ID,executorId:'claude',executionScope:'run',onFailure:'fail',retryStrategy:'targeted_fix',maxAttempts:2,maxReworks:1,position:at,artifactOutputs:[{name:'frontend-preview',path:'dist/index.html',required:true}]});
     state.selectedNode=PREVIEW_BUILD_NODE_ID;
     dirty();renderCanvas();renderProperties();
     return;
@@ -283,17 +284,24 @@ function flowNodeTint(n){
   return {agent:'79 107 255',script:'139 92 246',sop:'14 165 233',preview:'217 119 6',approval:'16 163 127'}[kind];
 }
 function flowNodeEl(id){return document.querySelector(`#nodes .flow-node[data-id="${CSS.escape(id)}"]`)}
+// Model label of a role node: under an SOP 执行 CLI that differs from the
+// role's own, the role model does not apply and the CLI default runs.
+function nodeModelLabel(a,n){
+  const cli=state.workflow?.executorId,own=a?.executorId||n?.executorId||'claude';
+  if(cli&&cli!==own)return `${sopExecutorName(cli)}（SOP 执行 CLI）`;
+  const e=(state.data.executors||[]).find(x=>x.id===own);
+  return a?.model||e?.model||e?.name||'';
+}
 function nodeMeta(n){
-  if(isPreviewBuildNode(n.id))return {kind:'preview',subtitle:'CodeBuddy 静态站点构建',tags:[{text:workflowPreviewModel(state.workflow)}]};
+  if(isPreviewBuildNode(n.id))return {kind:'preview',subtitle:'静态站点构建',tags:[{text:workflowPreviewModel(state.workflow)}]};
   if(n.type==='agent'){
     const a=workflowAgent(n.agentId),generic=catalogGeneric(state.workflow);
-    const e=(state.data.executors||[]).find(x=>x.id===(a?.executorId||n.executorId));
     const subtitle=a?.name||(n.agentId?(generic?n.agentId:'角色不可用'):'未绑定角色');
     const tags=[];
     if(!n.agentId)tags.push({text:'未绑定角色',warn:true});
     else if(!a)tags.push({text:generic?'通用模板角色':'角色不可用',warn:!generic});
     else{
-      const model=a.model||e?.model||e?.name||'';
+      const model=nodeModelLabel(a,n);
       tags.push(model?{text:model}:{text:'未选模型',warn:!generic});
       tags.push({text:`${effectiveNodeArtifacts(n,a).length} 产物`});
       tags.push({text:a.loop?.enabled?`${a.loop.maxIterations||1} 轮 Loop`:'单轮'});
@@ -390,7 +398,7 @@ function flowDiagnostics(){
   const nodes=state.workflow.nodes||[],edges=state.workflow.edges||[],incoming=new Map(nodes.map(n=>[n.id,0])),items=[];edges.forEach(e=>incoming.has(e.target)&&incoming.set(e.target,incoming.get(e.target)+1));
   const starts=nodes.filter(n=>incoming.get(n.id)===0);items.push({level:!nodes.length?'error':starts.length===1?'ok':'warn',title:'流程入口',detail:!nodes.length?'至少添加一个节点':starts.length===1?`从「${starts[0].name}」开始`:`检测到 ${starts.length} 个入口；这些节点会并行启动`});
   items.push({level:state.data.sandboxes?.some(s=>s.id===state.workflow.sandboxProfileId)?'ok':'error',title:'运行沙箱',detail:state.workflow.sandboxProfileId?`整条流程使用 ${state.workflow.sandboxProfileId}`:'尚未选择 Workflow 运行沙箱'});
-  nodes.forEach(n=>{if(isPreviewBuildNode(n.id)){const inDeg=edges.filter(e=>e.target===n.id).length;items.push({level:inDeg?'ok':'warn',title:n.name,detail:inDeg?`插在流程中间：CodeBuddy ${workflowPreviewModel(state.workflow)} 构建静态站点，运行成功后归档预览`:'还没有前序依赖，会作为流程入口直接运行；请从上游节点连线到此'});return}if(n.type==='agent'){const missing=[];const agent=workflowAgent(n.agentId);const generic=catalogGeneric(state.workflow);if(!n.agentId)missing.push('角色');else if(!agent)missing.push(generic?'通用模板角色未加载':'角色不属于当前项目或未共享');else if(!generic&&!(agent.executorId||n.executorId))missing.push('角色未选模型');if(!(n.artifactOutputs||[]).length&&!(agent?.artifactOutputs||[]).length)missing.push('角色产物契约');items.push({level:missing.length?'warn':'ok',title:n.name,detail:missing.length?`尚未配置：${missing.join('、')}`:generic?'已绑定通用模板角色；任务书与门禁在角色定义中':'已绑定角色；任务书与门禁在角色定义中'})}if(n.type==='sop'){const missing=[];const wf=sopWorkflowChoices(state.workflow.id).find(w=>w.id===n.sopWorkflowId)||(state.data.workflows||[]).find(w=>w.id===n.sopWorkflowId);if(!n.sopWorkflowId)missing.push('要跑的 SOP');else if(!wf)missing.push('引用的 SOP 不存在');if(n.sopWorkflowId===state.workflow.id)missing.push('不能引用自己');items.push({level:missing.length?'error':'ok',title:n.name,detail:missing.length?`尚未配置：${missing.join('、')}`:`引用「${wf.name}」，产物交给下一步`})}if(n.rejectTo&&!nodes.some(x=>x.id===n.rejectTo))items.push({level:'error',title:n.name,detail:'失败打回目标不存在'})});
+  nodes.forEach(n=>{if(isPreviewBuildNode(n.id)){const inDeg=edges.filter(e=>e.target===n.id).length;items.push({level:inDeg?'ok':'warn',title:n.name,detail:inDeg?`插在流程中间：${workflowPreviewModel(state.workflow)} 构建静态站点，运行成功后归档预览`:'还没有前序依赖，会作为流程入口直接运行；请从上游节点连线到此'});return}if(n.type==='agent'){const missing=[];const agent=workflowAgent(n.agentId);const generic=catalogGeneric(state.workflow);if(!n.agentId)missing.push('角色');else if(!agent)missing.push(generic?'通用模板角色未加载':'角色不属于当前项目或未共享');else if(!generic&&!(agent.executorId||n.executorId))missing.push('角色未选模型');if(!(n.artifactOutputs||[]).length&&!(agent?.artifactOutputs||[]).length)missing.push('角色产物契约');items.push({level:missing.length?'warn':'ok',title:n.name,detail:missing.length?`尚未配置：${missing.join('、')}`:generic?'已绑定通用模板角色；任务书与门禁在角色定义中':'已绑定角色；任务书与门禁在角色定义中'})}if(n.type==='sop'){const missing=[];const wf=sopWorkflowChoices(state.workflow.id).find(w=>w.id===n.sopWorkflowId)||(state.data.workflows||[]).find(w=>w.id===n.sopWorkflowId);if(!n.sopWorkflowId)missing.push('要跑的 SOP');else if(!wf)missing.push('引用的 SOP 不存在');if(n.sopWorkflowId===state.workflow.id)missing.push('不能引用自己');items.push({level:missing.length?'error':'ok',title:n.name,detail:missing.length?`尚未配置：${missing.join('、')}`:`引用「${wf.name}」，产物交给下一步`})}if(n.rejectTo&&!nodes.some(x=>x.id===n.rejectTo))items.push({level:'error',title:n.name,detail:'失败打回目标不存在'})});
   if(nodes.length>1&&edges.length===0)items.push({level:'warn',title:'成功路径',detail:'多个节点之间没有依赖关系，将同时启动'});if(!items.some(x=>x.level==='error'))items.push({level:'ok',title:'结构校验',detail:'未发现阻止保存或试运行的结构错误'});return items;
 }
 function setFlowView(mode){$$('.canvas-view-toggle button').forEach(b=>b.classList.toggle('active',b.dataset.flowView===mode));$('#canvas').hidden=mode!=='canvas';$('#flowCheckPanel').hidden=mode!=='check';$('#flowStageWrap')?.classList.toggle('check-mode',mode==='check');if(mode==='check')$('#flowCheckPanel').innerHTML=`<div class="page-heading" style="margin-bottom:14px"><div><h1 style="font-size:17px">配置检查</h1><p>运行前检查入口、CLI、产物契约和返工路径。</p></div></div><div class="flow-check-grid">${flowDiagnostics().map(x=>`<div class="flow-check-item ${x.level}"><b>${escapeHTML(x.title)}</b><p>${escapeHTML(x.detail)}</p></div>`).join('')}</div>`;else flowViewport.renderMinimap()}
@@ -868,7 +876,7 @@ function renderAgentAssetsPanel(a){
   const d=ensureAgentDraft(a);
   const generic=catalogGeneric(state.workflow);
   const col=(title,sub,name,items,selected)=>{const vis=name==='mcpServers'?(generic?(items||[]):visibleMCPAssets(items)):(name==='rules'||name==='skills'?(items||[]).filter(item=>catalogVisible(item.projectId,item.shared)):visibleAssets(items));const picked=vis.filter(item=>name==='mcpServers'&&generic?genericMCPChecked(item.id,selected):(selected||[]).includes(item.id)).length;const empty=name==='mcpServers'?(generic?'通用模板绑定市场别名（如 github），运行时落到当前项目已安装的 MCP':'这个项目或你的个人范围还没有 MCP，先到「MCP 管理」里添加'):name==='rules'?'这个项目还没有可用规则，先到「规则管理」里添加或共享':name==='skills'?'这个项目还没有可用技能，先到「技能管理」里添加或共享':'这个项目还没有此类配置，先到「环境资产」里添加';return `<div class="as-asset-col"><div class="as-asset-col-head"><b>${title}</b><span>${sub}${picked?` · 已选 ${picked}`:''}</span></div><div class="as-asset-search"><span>⌕</span><input type="search" data-asset-filter="${name}" placeholder="搜索名称…"></div><div class="as-asset-list" data-asset-list="${name}">${vis.map(x=>`<label class="as-asset-item"><input type="checkbox" name="${name}" value="${escapeHTML(x.id)}" ${(name==='mcpServers'&&generic?genericMCPChecked(x.id,selected):(selected||[]).includes(x.id))?'checked':''}><div><b>${escapeHTML(x.name)}</b><small>${escapeHTML(x.description||x.id)}${x.shared&&x.projectId!==state.projectFilter?' · 共享':''}</small></div></label>`).join('')||`<div class="as-empty">${empty}</div>`}</div></div>`};
-  host.innerHTML=`<section class="as-section-block as-platform-mcp-section"><div class="as-section-head"><b>平台能力</b><small>独立开关，不占用 MCP 列表</small></div><label class="as-switch-row"><span><b>接入平台 MCP（LoopForge）</b><small>开启后，这个角色运行时通过平台 MCP（agentflow-platform）直接调用平台侧功能：需求、任务、运行、项目等平台操作。</small></span><input type="checkbox" name="platformMcp" ${d.platformMcp?'checked':''} role="switch"></label><label class="as-switch-row"><span><b>接入团队知识库</b><small>开启后，这个角色运行时可只读检索团队知识库（agentflow-knowledge），并自动附带「知识库使用规范」规则；产出的 knowledge.md 会进入知识沉淀审核队列。</small></span><input type="checkbox" name="knowledgeBase" ${d.knowledgeBase?'checked':''} role="switch"></label></section><div class="as-assets">${col('必须遵守','规则','rules',state.data.rules,d.rules)}${col('怎么干活','技能','skills',state.data.skills,d.skills)}${col('外部工具','MCP','mcpServers',generic?genericTemplateMCPOptions(d.mcpServers):state.data.mcpServers,d.mcpServers)}</div><section class="as-section-block as-hook-section"><div class="as-section-head"><b>运行时 Hook</b><small>在工具调用前后插一段脚本，比如拦危险命令。一般可以先不配。</small></div><div id="agentHookPanel"></div></section>`;
+  host.innerHTML=`<section class="as-section-block as-platform-mcp-section"><div class="as-section-head"><b>平台能力</b><small>独立开关，不占用 MCP 列表</small></div><label class="as-switch-row"><span><b>接入平台 MCP（Friday）</b><small>开启后，这个角色运行时通过平台 MCP（agentflow-platform）直接调用平台侧功能：需求、任务、运行、项目等平台操作。</small></span><input type="checkbox" name="platformMcp" ${d.platformMcp?'checked':''} role="switch"></label><label class="as-switch-row"><span><b>接入团队知识库</b><small>开启后，这个角色运行时可只读检索团队知识库（agentflow-knowledge），并自动附带「知识库使用规范」规则；产出的 knowledge.md 会进入知识沉淀审核队列。</small></span><input type="checkbox" name="knowledgeBase" ${d.knowledgeBase?'checked':''} role="switch"></label></section><div class="as-assets">${col('必须遵守','规则','rules',state.data.rules,d.rules)}${col('怎么干活','技能','skills',state.data.skills,d.skills)}${col('外部工具','MCP','mcpServers',generic?genericTemplateMCPOptions(d.mcpServers):state.data.mcpServers,d.mcpServers)}</div><section class="as-section-block as-hook-section"><div class="as-section-head"><b>运行时 Hook</b><small>在工具调用前后插一段脚本，比如拦危险命令。一般可以先不配。</small></div><div id="agentHookPanel"></div></section>`;
   host.querySelectorAll('[data-asset-filter]').forEach(input=>input.oninput=()=>{const q=input.value.trim().toLowerCase();input.closest('.as-asset-col').querySelectorAll('.as-asset-item').forEach(row=>row.hidden=!!q&&!row.textContent.toLowerCase().includes(q))});
   host.querySelectorAll('input[type=checkbox]').forEach(el=>el.onchange=()=>{renderAgentSummary();dirty()});
   const platformToggle=host.querySelector('input[name="platformMcp"]');
@@ -954,7 +962,6 @@ function sectionHead(title,hint,count,unit){
 }
 function agentBindCard(n){
   const agent=workflowAgent(n.agentId);
-  const exec=(state.data.executors||[]).find(x=>x.id===(agent?.executorId||n.executorId));
   const generic=catalogGeneric(state.workflow);
   const projectId=state.workflow?.projectId||state.projectFilter||'',projects=state.data.projects||[];
   const invalid=n.agentId&&!agent?'<option value="" selected disabled>当前绑定角色不可用，请重新选择</option>':'';
@@ -968,7 +975,7 @@ function agentBindCard(n){
   if(!agent)return `<div class="fd-field"><label>这个步骤用哪个角色</label><select class="select" data-p="agentId">${opts}</select><p class="prop-hint">${hint}</p><p class="prop-hint">先选一个已定义的角色。画布只编排顺序和打回，不改编排角色内部的任务。</p></div>`;
   const arts=effectiveNodeArtifacts(n,agent),gates=roleGates(agent);
   const duty=String(agent.description||'').trim(),taskHint=duty?(duty.length>48?`${duty.slice(0,48)}…`:duty):'还没写职责，可在角色定义里补';
-  const model=agent.model||exec?.model||exec?.name||'未选模型';
+  const model=nodeModelLabel(agent,n)||'未选模型';
   return `<div class="fd-field"><label>这个步骤用哪个角色</label><select class="select" data-p="agentId">${opts}</select><p class="prop-hint">${hint}</p></div>
     <div class="fd-role"><div class="fd-role-h"><span class="fd-tile" style="--tint:${flowPalette.roleTint(agent.id)}">${escapeHTML(flowPalette.initial(agent.name))}</span><span class="fd-role-t"><b>${escapeHTML(agent.name)}</b><small>${escapeHTML(taskHint)}</small></span><button type="button" class="fd-btn ghost sm" id="openBoundAgent">编辑角色 prompt</button></div><div class="fd-stats"><div title="${escapeHTML(model)}"><b class="txt">${escapeHTML(model)}</b><small>模型</small></div><div><b>${arts.length}</b><small>产物</small></div><div><b>${gates.length}</b><small>门禁</small></div><div><b>${agent.loop?.enabled?`${agent.loop.maxIterations||1} 轮`:'单轮'}</b><small>Loop</small></div></div></div>`;
 }
@@ -990,7 +997,7 @@ function renderPreviewBuildProperties(host,n){
     <div class="fd-db">
       <section class="fd-sec"><div class="fd-sec-h"><span class="fd-sec-t">主配置</span></div><div class="fd-sec-b">
         <p class="prop-hint">运行到该节点时用所选模型构建静态站点，不必再手写脚本节点；Run 成功后平台归档预览。它只有成功出口。</p>
-        <div class="fd-field"><label>CodeBuddy 模型</label><select class="select" id="previewNodeModel"></select></div>
+        <div class="fd-field"><label>构建模型</label><select class="select" id="previewNodeModel"></select></div>
         <label class="fd-check"><input type="checkbox" id="previewNodeSpa" ${spa?'checked':''}><span>单页应用回退（找不到路径时返回入口 HTML）</span></label>
       </div></section>
     </div>

@@ -774,8 +774,6 @@ func cleanupConversationCredentialFiles(root, provider string) error {
 
 func conversationBinary(provider string) string {
 	switch provider {
-	case "codebuddy":
-		return "codebuddy"
 	case "codex":
 		return "codex"
 	case "claude-code":

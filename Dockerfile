@@ -15,8 +15,8 @@ ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /src
 # Empty lets build-binaries.sh size parallelism from the builder's CPUs and memory.
-ARG LOOPFORGE_BUILD_JOBS=
-ENV LOOPFORGE_BUILD_JOBS=${LOOPFORGE_BUILD_JOBS}
+ARG FRIDAY_BUILD_JOBS=
+ENV FRIDAY_BUILD_JOBS=${FRIDAY_BUILD_JOBS}
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 # Ref updates must not invalidate the Go build cache.
@@ -30,7 +30,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
 FROM node:22-bookworm
 RUN --mount=type=cache,target=/root/.npm apt-get update && apt-get install -y --no-install-recommends ca-certificates git openssh-client bash curl python3 ripgrep \
  && rm -rf /var/lib/apt/lists/* \
- && npm install -g @openai/codex@0.162.1 @tencent-ai/codebuddy-code@2.167.0 @deepseek-ai/dsh@0.2.2-rc.1 @wecom/cli@1.3.4 \
+ && npm install -g @openai/codex@0.162.1 @deepseek-ai/dsh@0.2.2-rc.1 @wecom/cli@1.3.4 \
  && wecom-cli --version
 # A relocatable Python that sandboxes of images without python3 mount for the
 # native CLI hooks (internal/runtime/toolchain.go). Its terminfo database has
@@ -59,10 +59,10 @@ COPY --from=build /out/ /app/bin/
 COPY LICENSE THIRD_PARTY_NOTICES.md /app/
 COPY third_party/go/ /app/third_party/go/
 ENV PATH="/app/bin:${PATH}"
-# An explicit LOOPFORGE_COMMIT wins. Otherwise read HEAD from the build context
+# An explicit FRIDAY_COMMIT wins. Otherwise read HEAD from the build context
 # so `docker build` stamps the same corner label as the release workflow.
-ARG LOOPFORGE_COMMIT=
+ARG FRIDAY_COMMIT=
 RUN --mount=type=bind,source=.,target=/ctx,ro \
-    sh /ctx/scripts/image-commit.sh /ctx /app/loopforge-commit
+    sh /ctx/scripts/image-commit.sh /ctx /app/friday-commit
 EXPOSE 8080
 ENTRYPOINT ["/app/bin/agentflow"]

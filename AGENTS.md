@@ -1,4 +1,4 @@
-# LoopForge platform
+# Friday platform
 
 Preserve the platform architecture; keep deployment-specific adapters isolated. Detailed source synchronization records are maintained locally and are not required for community changes. The original local workflow runtime lives in `local/`; follow `local/AGENTS.md` there. Never copy private deployment files, credentials, staff data, or internal infrastructure into this repository.
 
@@ -17,7 +17,6 @@ Preserve the platform architecture; keep deployment-specific adapters isolated. 
 | `ProjectsRepo` | projects、project members |
 | `IssuesRepo` | issues、issue comments |
 | `TasksRepo` | tasks（跨实例幂等记录） |
-| `UsersRepo` | users、credentials（含平台共享 CodeBuddy Key）、platform admins |
 | `TokensRepo` | API tokens |
 | `AssistantRepo` | Studio 助手会话、定时 prompts |
 | `RunsRepo` | runs 及其子资源、run leases、workflow metrics、run evals |

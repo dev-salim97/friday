@@ -17,13 +17,12 @@ func TestBindTelemetryEnvironmentSetsCollectorAndRunTags(t *testing.T) {
 	want := map[string]string{
 		"AGENTFLOW_RUN_ID":                   "run-1",
 		"AGENTFLOW_NODE_ID":                  "node-a",
-		"CODEBUDDY_CODE_ENABLE_TELEMETRY":    "1",
 		"CLAUDE_CODE_ENABLE_TELEMETRY":       "1",
 		"OTEL_TRACES_EXPORTER":               "otlp",
 		"OTEL_EXPORTER_OTLP_PROTOCOL":        "http/protobuf",
 		"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://collector.test/v1/traces",
 		"OTEL_LOG_TOOL_DETAILS":              "1",
-		"OTEL_RESOURCE_ATTRIBUTES":           "agentflow.run_id=run-1,agentflow.node_id=node-a,service.name=agentflow-codebuddy",
+		"OTEL_RESOURCE_ATTRIBUTES":           "agentflow.run_id=run-1,agentflow.node_id=node-a,service.name=agentflow-agent",
 	}
 	if len(env) != len(want) {
 		t.Fatalf("env = %#v, want %#v", env, want)

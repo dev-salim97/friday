@@ -3,14 +3,8 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
-
-	"agentflow/internal/domain"
-	"agentflow/internal/runtime"
 )
 
 func TestAssistantProgressSubmissionCannotEndToolExecution(t *testing.T) {
@@ -43,90 +37,6 @@ func TestAssistantProgressSubmissionCannotEndToolExecution(t *testing.T) {
 		if !ok || final.Assistant == nil || len(final.Assistant.Drafts) != 1 {
 			t.Fatal("lost valid confirmation draft")
 		}
-	}
-}
-
-func TestCodeBuddyTerminalToolsDoNotRequireDeferredSearch(t *testing.T) {
-	files, err := writeAgentToolFiles(t.TempDir(), strings.Repeat("ab", 32))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(files.Cleanup)
-	raw, err := os.ReadFile(files.MCPConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cfg struct {
-		Servers map[string]struct {
-			Type  string `json:"type"`
-			URL   string `json:"url"`
-			Defer *bool  `json:"defer_loading"`
-			Tools map[string]struct {
-				Defer *bool `json:"defer_loading"`
-			} `json:"tools"`
-		} `json:"mcpServers"`
-	}
-	if err := json.Unmarshal(raw, &cfg); err != nil {
-		t.Fatal(err)
-	}
-	server, ok := cfg.Servers[agentToolSessionMCPServerID]
-	if !ok || len(cfg.Servers) != 1 || server.Type != "http" || server.URL == "" {
-		t.Fatal("missing CodeBuddy session gateway")
-	}
-	if server.Defer != nil {
-		t.Fatal("business tools must retain normal deferred discovery")
-	}
-	names := []string{submitAssistantReplyTool, submitClarificationTool, submitNotificationReportTool, "workbench_tool_schema"}
-	if len(server.Tools) != len(names) {
-		t.Fatal("only terminal tools and draft schema helper should have a loading override")
-	}
-	for _, name := range names {
-		tool, ok := server.Tools[name]
-		if !ok || tool.Defer == nil || *tool.Defer {
-			t.Fatalf("terminal %s still depends on ToolSearch", name)
-		}
-	}
-	// These files only feed the host-side CodeBuddy path. Generic runtime
-	// providers retain their own materialized MCP files.
-	command, err := prepareAssistantCommand(assistantCommandOpts{Bin: "codebuddy", Config: files.MCPConfig, Settings: files.Settings, Prompt: "hi", Native: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if command.Provider != "codebuddy" {
-		t.Fatalf("unexpected provider %s", command.Provider)
-	}
-}
-
-// Pinned terminal tools are absent from the first model request when the
-// gateway connects after CodeBuddy's short headless MCP wait, and they are
-// not in the deferred index, so every session-gateway process must wait.
-func TestCodeBuddyWaitsForSessionGatewayBeforeFirstRequest(t *testing.T) {
-	root := t.TempDir()
-	bin := filepath.Join(root, "codebuddy")
-	script := "#!/bin/sh\nprintf '{\"type\":\"result\",\"result\":\"wait=%s\"}\\n' \"$CODEBUDDY_FIRST_RUN_MCP_PREWAIT_TIMEOUT_MS\"\n"
-	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
-	t.Setenv("AGENTFLOW_ASSISTANT_SESSION_DIR", filepath.Join(root, "sessions"))
-	files, err := writeAgentToolFiles(t.TempDir(), strings.Repeat("ab", 32))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(files.Cleanup)
-	want := "wait=" + strconv.FormatInt(agentToolSessionMCPStartupWait.Milliseconds(), 10)
-	user := domain.User{ID: 7, CodeBuddyAPIKey: "test-key"}
-	for _, resume := range []bool{false, true} {
-		raw, _, err := runAssistantCLI(context.Background(), assistantCLIRequest{Prompt: "hi", SessionID: "af-wait", Resume: resume, UserID: user.ID, Native: true, MCPConfig: files.MCPConfig, Settings: files.Settings}, user, nil)
-		if err != nil || raw != want {
-			t.Fatalf("assistant resume=%v: got %q err=%v, want %q", resume, raw, err, want)
-		}
-	}
-	h := &streamHandlers{}
-	_, out, _, err := h.runClarifyTurn(context.Background(), root, bin, clarifyDefaultModel, "p", "clarify-wait", "af-wait", filepath.Join(root, "clarify-home"), false,
-		runtime.RunCredentials{CodeBuddy: runtime.CodeBuddyCredential{APIKey: "test-key"}}, func(string, any) {}, clarifyTurnOpts{Native: true, MCPConfig: files.MCPConfig, Settings: files.Settings})
-	if err != nil || !strings.Contains(out, want) {
-		t.Fatalf("clarify: got %q err=%v, want %q", out, err, want)
 	}
 }
 

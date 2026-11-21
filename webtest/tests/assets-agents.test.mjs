@@ -84,16 +84,15 @@ test('agent catalog search, presets, validation, persistence, clone, and delete 
   const app = await loadApp();
   t.after(app.close);
   app.router.get('/api/executor-models', {
-    codebuddy: { models: [{ id: 'cb-model', name: 'CB model' }] },
-    codex: { models: [] }, claude: { models: [] },
+    codex: { models: [] }, claude: { models: [{ id: 'cb-model', name: 'CB model' }] },
   });
   app.evaluate(`afConfirm=async()=>true;afPrompt=async({defaultValue}={})=>defaultValue||'Developer copy'`);
   app.evaluate(`switchView('agents');renderAgents();openAgentWizard()`);
   await settle();
   app.evaluate(`applyAgentPreset('developer')`);
   const form = app.document.querySelector('#agentForm');
-  form.elements.executorId.append(new app.window.Option('CodeBuddy', 'codebuddy'));
-  form.elements.executorId.value = 'codebuddy';
+  form.elements.executorId.append(new app.window.Option('Claude Code', 'claude'));
+  form.elements.executorId.value = 'claude';
   assert.equal(form.elements.name.value, '研发工程师');
   assert.match(form.elements.id.value, /^role-/);
   app.evaluate(`setAgentCreateStep(3)`);
@@ -103,7 +102,7 @@ test('agent catalog search, presets, validation, persistence, clone, and delete 
   await app.evaluate(`persistAgent($('#agentForm'))`);
   const created = app.router.calls.find((c) => c.path === '/api/agents' && c.method === 'PUT');
   assert.equal(created.body.name, '研发工程师');
-  assert.equal(created.body.executorId, 'codebuddy');
+  assert.equal(created.body.executorId, 'claude');
   assert.equal(created.body.model, 'cb-model');
   assert.ok(app.evaluate(`state.data.agents.some(a=>a.name==='研发工程师')`));
 
@@ -121,14 +120,13 @@ test('role model picker reloads the editor catalog and preserves a CLI change wh
   let complete;
   const delayed = new Promise(resolve => { complete = resolve; });
   const catalog = (models) => ({
-    codebuddy: { models: [], efforts: [] },
     claude: { models: [], efforts: [] },
     codex: { customModel: true, models, efforts: [] },
   });
   app.router.get('/api/executor-models', () => delayed);
   app.evaluate(`
     state.data.executors=[
-      {id:'codebuddy',name:'CodeBuddy'},{id:'codex',name:'Codex'},{id:'claude',name:'Claude Code'}
+      {id:'codex',name:'Codex'},{id:'claude',name:'Claude Code'}
     ];
     openAgentWizard();
   `);
@@ -164,7 +162,7 @@ test('role model picker reloads the editor catalog and preserves a CLI change wh
 test('a new role saves the first model from the refreshed catalog', async (t) => {
   const app = await loadApp();
   t.after(app.close);
-  const catalog = id => ({ codebuddy: { models: [{ id }] }, codex: { models: [] }, claude: { models: [] } });
+  const catalog = id => ({ claude: { models: [{ id }] }, codex: { models: [] } });
   app.router.get('/api/executor-models', catalog('retired-model'));
   app.router.put('/api/agents', call => ({ status: 200, body: call.body }));
   app.evaluate(`openAgentWizard()`);
@@ -194,11 +192,11 @@ test('role effort picker follows each model and resets an unsupported level on m
   t.after(app.close);
   const xhigh = { value:'xhigh', label:'超高 xhigh' };
   app.router.get('/api/executor-models', {
-    codebuddy:{models:[],efforts:[]}, claude:{models:[],efforts:[]},
+    claude:{models:[],efforts:[]},
     codex:{customModel:true,models:[{id:'reasoner',name:'Reasoner',efforts:[xhigh]}, {id:'plain',name:'Plain',efforts:[]}],efforts:[{value:'low',label:'低 low'},xhigh]},
   });
   app.evaluate(`
-    state.data.executors=[{id:'codebuddy',name:'CodeBuddy'}, {id:'codex',name:'Codex'}];
+    state.data.executors=[{id:'claude',name:'Claude Code'}, {id:'codex',name:'Codex'}];
     openAgentWizard({id:'test-role',name:'Test',prompt:'Test',executorId:'codex',model:'reasoner',effort:'xhigh'});
   `);
   await settle();
@@ -217,7 +215,7 @@ test('a personal catalog does not rewrite an existing role effort during a name 
   app.router.get('/api/executor-models', () => new Promise(resolve => { loaded = resolve; }));
   app.router.put('/api/agents', call => ({ status: 200, body: call.body }));
   app.evaluate(`
-    state.data.executors=[{id:'codebuddy',name:'CodeBuddy'}, {id:'codex',name:'Codex'}];
+    state.data.executors=[{id:'claude',name:'Claude Code'}, {id:'codex',name:'Codex'}];
     openAgentWizard({id:'agent-1',name:'Developer',prompt:'Review',executorId:'codex',model:'reasoner',effort:'xhigh'});
   `);
   await settle();

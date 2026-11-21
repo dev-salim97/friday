@@ -509,7 +509,7 @@ function buildProjectPayload(base,fields={}){
   const ownerId=Number(fields.ownerId??base.ownerId)||0,id=String(fields.id??base.id??'').trim(),rawDefault=String(fields.defaultRepositoryId??base.defaultRepositoryId??'');
   const value={...base,id,key:String(fields.key??base.key??'').trim().toUpperCase(),name:String(fields.name??base.name??'').trim(),description:fields.description??base.description??'',color:fields.color||base.color||PROJECT_SWATCHES[0],ownerId,workflowId:fields.workflowId??base.workflowId??'',defaultRepositoryId:rawDefault&&(state.data.repositories||[]).some(r=>r.id===rawDefault&&r.projectId===id)?rawDefault:'',members:(fields.members??base.members??[]).map(m=>({userId:Number(m.userId)||0,role:'member'})).filter(m=>m.userId!==ownerId),runEval:base.runEval,tapdWorkspaceId:String(fields.tapdWorkspaceId??base.tapdWorkspaceId??'').trim(),tapdIterationId:String(fields.tapdIterationId??base.tapdIterationId??'').trim()};
   applyProjectDefaultSOP(value,value.workflowId);
-  for(const k of ['businessDomainId','tapdClear','repoRows','repoDrafts','gitToken','codeBuddyApiKey','codeBuddyInternetEnvironment'])delete value[k];
+  for(const k of ['businessDomainId','tapdClear','repoRows','repoDrafts','gitToken'])delete value[k];
   if(fields.tapdClear)value.tapdClear=true;
   return value;
 }

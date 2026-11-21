@@ -2,7 +2,7 @@
 
 The interface uses these bundled assets in both chat and configuration.
 
-- `claude.svg`, `codebuddy.svg`, `cursor.svg`, `trae.svg`, `opencode.svg`,
+- `claude.svg`, `cursor.svg`, `trae.svg`, `opencode.svg`,
   `github.svg`, `gitlab.svg`, `deepseek.svg`, `openrouter.svg`, `google.svg`
   (slug `googlegemini`), `moonshot.svg` (slug `moonshotai`), and
   `bytedance.svg` come from Simple Icons v16. Their source metadata and license are maintained in the

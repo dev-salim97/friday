@@ -1,18 +1,17 @@
 # Agent Compatibility and Verification
 
-本文针对 LoopForge Local；源码路径和开发命令均以 `local/` 为起点。
+本文针对 Friday Local；源码路径和开发命令均以 `local/` 为起点。
 
 ## 支持面
 
 | 宿主 | Classic | Portable |
 | --- | --- | --- |
-| CodeBuddy | `.codebuddy/` 完整包 | `.codebuddy/skills/devflow` + Team adapter |
 | Codex | `.codex/` + `.agents/skills` | `.agents/skills/devflow` |
 | Cursor | `.cursor/` 完整包 | `.cursor/skills` + 两个执行器 |
 | Claude Code | `.claude/` 完整包 | `.claude/skills` + 两个执行器 |
 | Pi | 无（Portable only） | `.pi/skills` + `subagent` adapter（需 `npm:pi-subagents`） |
 | DeepSeek Harness | 无（Portable only） | `.dsh/skills` + `subagent` adapter（DSH base 默认提供） |
-| Hermes Agent | 无（Portable only） | `.hermes/skills` + `delegate_task` adapter；首次使用需 `hermes skills trust .`；可选 `hermes-plugin/` 提供 `/loopforge` 控制命令 |
+| Hermes Agent | 无（Portable only） | `.hermes/skills` + `delegate_task` adapter；首次使用需 `hermes skills trust .`；可选 `hermes-plugin/` 提供 `/friday` 控制命令 |
 
 Classic 的 Cursor/Claude 目录是生成产物；Portable 的事实只保存在 `skills/`。
 两者只共享显式行为合同和测试，不共享宿主运行文件。
@@ -25,7 +24,7 @@ Classic 的 Cursor/Claude 目录是生成产物；Portable 的事实只保存在
    mixed-edition 拒绝和用户文件保护。
 4. **流程回归**：标准库单测和 CLI E2E 验证状态机、门禁、产物与恢复协议。
 5. **真实宿主 canary**：发布前或宿主大版本升级后，在隔离 fixture 仓库用真实
-   Cursor/Claude/Codex/CodeBuddy CLI 各跑一次 small 和一次 medium 流程，保存宿主
+   Cursor/Claude/Codex CLI 各跑一次 small 和一次 medium 流程，保存宿主
    版本、调用轨迹、最终状态和 diff。此层需要各宿主凭据和运行环境，不应伪装成
    无凭据的普通单测。
 

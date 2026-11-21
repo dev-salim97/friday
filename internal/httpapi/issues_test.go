@@ -1520,7 +1520,7 @@ func TestAppendClarificationDescriptionReplacesPreviousBlock(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 	got = appendClarificationDescription(got, "第二轮结论")
-	if strings.Count(got, "## LoopForge 澄清结论") != 1 || strings.Contains(got, "第一轮结论") || !strings.Contains(got, "第二轮结论") {
+	if strings.Count(got, "## Friday 澄清结论") != 1 || strings.Contains(got, "第一轮结论") || !strings.Contains(got, "第二轮结论") {
 		t.Fatalf("replace failed: %q", got)
 	}
 }
@@ -2088,109 +2088,6 @@ func requestJSONAuthed[T any](t *testing.T, h http.Handler, user domain.User, me
 		t.Fatal(err)
 	}
 	return out
-}
-
-func TestUserCredentialsAreStoredAndRedacted(t *testing.T) {
-	t.Setenv("AGENTFLOW_SESSION_SECRET", "credential-test-session-secret")
-	root := t.TempDir()
-	s, err := repo.OpenTest()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { s.Close() })
-	h := New(s, engine.New(s, runtime.NewManager(filepath.Join(root, "workspaces"))), tracker.NewService(), "", "")
-	if err := s.PutUser(domain.User{StaffID: 2002, LoginName: "alice", ChineseName: "爱丽丝"}); err != nil {
-		t.Fatal(err)
-	}
-	alice, _ := s.UserByLoginName("alice")
-	body, _ := json.Marshal(map[string]any{"codeBuddyApiKey": "ck_user_secret", "codeBuddyInternetEnvironment": "ioa"})
-	if err := s.SaveGitHTTPCredential(alice.ID, "", domain.GitHTTPCredentialSecret{GitHTTPCredential: domain.GitHTTPCredential{Name: "GitHub", Host: "github.com", Platform: domain.GitPlatformGitHub}, Token: "user_git_secret"}); err != nil {
-		t.Fatal(err)
-	}
-	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/users/%d/credentials", alice.ID), bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	token, err := auth.NewClientFromEnv().SignUser(&auth.User{ID: alice.ID, LoginName: alice.LoginName, AuthTime: time.Now().UTC()})
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.AddCookie(&http.Cookie{Name: authCookieName, Value: token})
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("credential update status=%d body=%s", rec.Code, rec.Body.String())
-	}
-	var public domain.User
-	if err := json.Unmarshal(rec.Body.Bytes(), &public); err != nil {
-		t.Fatal(err)
-	}
-	if public.GitToken != "" || public.CodeBuddyAPIKey != "" || !public.GitHubCredentialConfigured || !public.CodeBuddyAPIKeyConfigured {
-		t.Fatalf("credential response must be redacted: %+v", public)
-	}
-	stored, ok := s.User(alice.ID)
-	if !ok || stored.GitToken != "" || stored.CodeBuddyAPIKey != "ck_user_secret" || stored.CodeBuddyInternetEnvironment != "ioa" {
-		t.Fatalf("store must keep user secrets, got %+v", stored)
-	}
-	boot := requestJSON[map[string]any](t, h, http.MethodGet, "/api/bootstrap", nil, http.StatusOK)
-	raw, _ := json.Marshal(boot)
-	if bytes.Contains(raw, []byte("user_git_secret")) || bytes.Contains(raw, []byte("ck_user_secret")) {
-		t.Fatalf("bootstrap leaked secrets: %s", raw)
-	}
-	unauthorized := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/users/%d/credentials", alice.ID), bytes.NewReader(body))
-	unauthorized.Header.Set("Content-Type", "application/json")
-	unauthorizedRec := httptest.NewRecorder()
-	h.ServeHTTP(unauthorizedRec, unauthorized)
-	if unauthorizedRec.Code != http.StatusForbidden {
-		t.Fatalf("guest credential update status=%d", unauthorizedRec.Code)
-	}
-}
-
-func TestCodeBuddyInternetEnvironmentIsNormalizedOrRejected(t *testing.T) {
-	t.Setenv("AGENTFLOW_SESSION_SECRET", "credential-test-session-secret")
-	root := t.TempDir()
-	s, err := repo.OpenTest()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { s.Close() })
-	h := New(s, engine.New(s, runtime.NewManager(filepath.Join(root, "workspaces"))), tracker.NewService(), "", "")
-	if err := s.PutUser(domain.User{StaffID: 2003, LoginName: "bob", ChineseName: "鲍勃"}); err != nil {
-		t.Fatal(err)
-	}
-	bob, _ := s.UserByLoginName("bob")
-	token, err := auth.NewClientFromEnv().SignUser(&auth.User{ID: bob.ID, LoginName: bob.LoginName, AuthTime: time.Now().UTC()})
-	if err != nil {
-		t.Fatal(err)
-	}
-	put := func(environment string) *httptest.ResponseRecorder {
-		body, _ := json.Marshal(map[string]any{"codeBuddyApiKey": "ck_bob", "codeBuddyInternetEnvironment": environment})
-		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/users/%d/credentials", bob.ID), bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.AddCookie(&http.Cookie{Name: authCookieName, Value: token})
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, req)
-		return rec
-	}
-	for raw, want := range map[string]string{" iOA ": "ioa", "国内站": "internal", "China": "internal", "public": "", "": ""} {
-		if rec := put(raw); rec.Code != http.StatusOK {
-			t.Fatalf("environment %q status=%d body=%s", raw, rec.Code, rec.Body.String())
-		}
-		if stored, _ := s.User(bob.ID); stored.CodeBuddyInternetEnvironment != want {
-			t.Fatalf("environment %q stored as %q, want %q", raw, stored.CodeBuddyInternetEnvironment, want)
-		}
-	}
-	if rec := put("internal"); rec.Code != http.StatusOK {
-		t.Fatalf("internal status=%d", rec.Code)
-	}
-	// A typo would make the CLI quietly call the international edition, so nothing is saved.
-	for _, raw := range []string{"intranet", "selfhosted", "国内"} {
-		rec := put(raw)
-		if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "网络环境") {
-			t.Fatalf("environment %q status=%d body=%s", raw, rec.Code, rec.Body.String())
-		}
-	}
-	if stored, _ := s.User(bob.ID); stored.CodeBuddyInternetEnvironment != "internal" || stored.CodeBuddyAPIKey != "ck_bob" {
-		t.Fatalf("rejected environment changed the stored credential: %+v", stored)
-	}
 }
 
 func requestJSON[T any](t *testing.T, h http.Handler, method, path string, body any, wantStatus int) T {

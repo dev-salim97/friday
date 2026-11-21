@@ -1,4 +1,12 @@
-function openRunModal(workflowId){const select=$('#runWorkflowChoice'),workflows=runnableWorkflowOptions();select.innerHTML=workflows.map(w=>`<option value="${escapeHTML(w.id)}" ${w.id===workflowId?'selected':''}>${escapeHTML(w.name)}</option>`).join('')||'<option value="">暂无可运行 SOP</option>';$('#confirmRun').disabled=!workflows.length;$('#runModal').classList.add('open');setTimeout(()=>$('#runInput').focus(),0)}
+function openRunModal(workflowId,executorId=''){const select=$('#runWorkflowChoice'),workflows=runnableWorkflowOptions();select.innerHTML=workflows.map(w=>`<option value="${escapeHTML(w.id)}" ${w.id===workflowId?'selected':''}>${escapeHTML(w.name)}</option>`).join('')||'<option value="">暂无可运行 SOP</option>';select.onchange=()=>renderRunExecutorChoice($('#runExecutorChoice')?.value||'');renderRunExecutorChoice(executorId);$('#confirmRun').disabled=!workflows.length;$('#runModal').classList.add('open');setTimeout(()=>$('#runInput').focus(),0)}
+// 执行 CLI of a manual run: empty follows the SOP's own setting; a CLI applies
+// to every role node of this run only.
+function renderRunExecutorChoice(selected){
+  const host=$('#runExecutorChoice');if(!host)return;
+  const id=$('#runWorkflowChoice')?.value,wf=state.workflow?.id===id?state.workflow:(state.data?.workflows||[]).find(w=>w.id===id);
+  const inherited=wf?.executorId?sopExecutorName(wf.executorId):sopRoleExecutorLabel(wf);
+  host.innerHTML=sopExecutorOptions(wf,selected,`${lfT('按 SOP 配置','Use SOP setting')}（${inherited}）`);
+}
 
 // ---------- 执行机器（bind-cli，个人维度） ----------
 let runnerRefreshTimer=null;
@@ -56,7 +64,7 @@ function runnerStatusLabel(status,lastSeen){
   const style=status==='online'?' online':status==='offline'?' offline':'';
   return `<span class="runner-status${style}" title="${escapeHTML(runnerLastSeen(lastSeen))}"><i></i>${escapeHTML(label)}</span>`;
 }
-const runnerCLILabels={'claude-code':'Claude Code','codex':'Codex','codebuddy':'CodeBuddy',opencode:'OpenCode',cursor:'Cursor CLI',agy:'Antigravity',kimi:'Kimi Code',pi:'Pi',dsh:'DeepSeek Harness',zcode:'ZCode'};
+const runnerCLILabels={'claude-code':'Claude Code','codex':'Codex',opencode:'OpenCode',cursor:'Cursor CLI',agy:'Antigravity',kimi:'Kimi Code',pi:'Pi',dsh:'DeepSeek Harness',zcode:'ZCode'};
 const runnerAuthLabel={local:'账号登录',personal:'API Key'};
 const runnerAuthDescription={local:'Claude Code、Codex 和 Antigravity 可以使用运行 Runner 的系统账号在这台机器上的已有登录，对话与 SOP 的 native、Docker 沙箱均可复用。共享对话中，只有机器所有者发言时会使用此登录。',personal:'读取「个人配置」中保存的 API Key。对话使用当前发言人的 Key，SOP 使用运行责任人的 Key。Antigravity 的 Gemini API Key 按 API 单独计费。'};
 const runnerOSLabels={darwin:'macOS',linux:'Linux',windows:'Windows'};
@@ -68,7 +76,6 @@ function runnerPersonalCredentialConfigured(provider){
   const user=userById(state.currentUser?.id)||{};
   if(provider==='codex')return !!user.codexApiKeyConfigured;
   if(provider==='claude-code')return !!user.claudeCodeApiKeyConfigured;
-  if(provider==='codebuddy')return !!user.codeBuddyApiKeyConfigured;
   return !!user.agentCliCredentials?.[provider]?.apiKeyConfigured;
 }
 function runnerRuntimeSupportsLogin(runtime){

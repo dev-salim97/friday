@@ -8,8 +8,8 @@ import {createWorkflow,script,approval,startRun} from '../lib/fixtures.mjs';
 before(ensureProject);
 after(cleanup);
 
-test('separate account cannot access private conversations, edit workspaces or impersonate credentials',{skip:!process.env.LOOPFORGE_UNCONFIGURED_USER},async()=>{
-  const login=await fetch(cfg.base+'/api/auth/password',{method:'POST',headers:{Origin:cfg.base,'Content-Type':'application/json'},body:JSON.stringify({login:process.env.LOOPFORGE_UNCONFIGURED_USER,password:process.env.LOOPFORGE_UNCONFIGURED_PASSWORD||fs.readFileSync(process.env.LOOPFORGE_UNCONFIGURED_PASSWORD_FILE,'utf8').trim()})});
+test('separate account cannot access private conversations, edit workspaces or impersonate credentials',{skip:!process.env.FRIDAY_UNCONFIGURED_USER},async()=>{
+  const login=await fetch(cfg.base+'/api/auth/password',{method:'POST',headers:{Origin:cfg.base,'Content-Type':'application/json'},body:JSON.stringify({login:process.env.FRIDAY_UNCONFIGURED_USER,password:process.env.FRIDAY_UNCONFIGURED_PASSWORD||fs.readFileSync(process.env.FRIDAY_UNCONFIGURED_PASSWORD_FILE,'utf8').trim()})});
   assert.equal(login.status,200,'second account login');
   const identity=(await login.json()).user;
   const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -31,7 +31,7 @@ test('separate account cannot access private conversations, edit workspaces or i
   await put(`/api/assistant/sessions/${id}`,{title:'E2E private',messages:[{role:'user',content:'Private acceptance fixture'}]});
   track('private session',()=>del(`/api/assistant/sessions/${id}`));
   await second('GET',`/api/assistant/sessions/${id}`,undefined,[403,404]);
-  await second('PUT',`/api/users/${owner.id}/credentials`,{codeBuddyApiKeyClear:true},403);
+  await second('PUT',`/api/users/${owner.id}/credentials`,{claudeCodeApiKeyClear:true},403);
   await second('PUT','/api/platform/admins',{loginName:identity.loginName,role:'admin'},403);
   await second('GET',`/api/assistant/references?projectId=${cfg.projectId}`,undefined,403);
   const wf=await createWorkflow('permissions',[script('seed','echo isolated > note.txt'),approval('gate','seed')]);

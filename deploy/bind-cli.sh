@@ -541,7 +541,7 @@ resolve_server
 
 # ---------- 0. 预检本机 CLI ----------
 info "检测本机 Agent CLI..."
-for cli in claude codex codebuddy; do
+for cli in claude codex; do
   if command -v "$cli" >/dev/null 2>&1; then
     info "  发现 $cli: $(command -v "$cli")（$("$cli" --version 2>/dev/null | head -1 || echo 版本未知)）"
   else

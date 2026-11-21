@@ -49,7 +49,7 @@ func TestAssistantSearchThenAnswer(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer st.Close()
-	st.PutUser(domain.User{LoginName: "reader", CodeBuddyAPIKey: "reader-secret"})
+	st.PutUser(domain.User{LoginName: "reader", ClaudeCodeAPIKey: "reader-secret"})
 	u, _ := st.UserByLoginName("reader")
 	calls := 0
 	h := &assistantHandlers{deps: &deps{repo: st}, generate: func(ctx context.Context, prompt string, user domain.User) (string, error) {

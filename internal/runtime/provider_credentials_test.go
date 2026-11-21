@@ -13,11 +13,10 @@ import (
 func TestProviderCredentialBindingIsolation(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "host-openai")
 	t.Setenv("ANTHROPIC_AUTH_TOKEN", "host-anthropic")
-	t.Setenv("CODEBUDDY_API_KEY", "host-codebuddy")
 	t.Setenv("CODEX_HOME", t.TempDir())
 	t.Setenv("CLAUDE_CONFIG_DIR", t.TempDir())
-	creds := RunCredentials{CodeBuddy: CodeBuddyCredential{APIKey: "codebuddy-user-secret", InternetEnvironment: "ioa"}, Codex: ProviderCredential{APIKey: "codex-user-secret", BaseURL: "https://codex.example/v1"}, ClaudeCode: ProviderCredential{APIKey: "claude-user-secret", BaseURL: "https://claude.example"}}
-	for _, kind := range []string{"codebuddy", "codex", "claude-code"} {
+	creds := RunCredentials{Codex: ProviderCredential{APIKey: "codex-user-secret", BaseURL: "https://codex.example/v1"}, ClaudeCode: ProviderCredential{APIKey: "claude-user-secret", BaseURL: "https://claude.example"}}
+	for _, kind := range []string{"codex", "claude-code"} {
 		t.Run(kind, func(t *testing.T) {
 			workspace := t.TempDir()
 			sb := &localSandbox{workspace: workspace}
@@ -39,15 +38,7 @@ func TestProviderCredentialBindingIsolation(t *testing.T) {
 			if !strings.HasPrefix(home, workspace+string(os.PathSeparator)) {
 				t.Fatal("provider home not isolated")
 			}
-			if skip := bound.environment["CODEBUDDY_SKIP_BUILTIN_MARKETPLACE"]; (kind == "codebuddy") != (skip == "1") {
-				t.Fatalf("CODEBUDDY_SKIP_BUILTIN_MARKETPLACE = %q for %s", skip, kind)
-			}
-			if kind == "codebuddy" {
-				if bound.environment["CODEBUDDY_API_KEY"] != "codebuddy-user-secret" || bound.environment["CODEBUDDY_INTERNET_ENVIRONMENT"] != "ioa" || bound.environment["CODEX_API_KEY"] != "" || bound.environment["ANTHROPIC_API_KEY"] != "" {
-					t.Fatal("CodeBuddy credential routing failed")
-				}
-				bound.Argv = []string{"sh", "-c", `test "$CODEBUDDY_API_KEY" = codebuddy-user-secret && test "$CODEBUDDY_INTERNET_ENVIRONMENT" = ioa && test -z "$CODEX_API_KEY" && test -z "$ANTHROPIC_API_KEY" && printf ok`}
-			} else if kind == "codex" {
+			if kind == "codex" {
 				if bound.environment["CODEX_API_KEY"] != "codex-user-secret" || bound.environment["ANTHROPIC_API_KEY"] != "" || bound.environment["CODEX_HOME"] != filepath.Join(home, ".codex") {
 					t.Fatal("Codex credential routing failed")
 				}
@@ -76,7 +67,7 @@ func TestProviderCredentialBindingIsolation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"CODEBUDDY_API_KEY", "CODEX_API_KEY", "ANTHROPIC_API_KEY"} {
+	for _, key := range []string{"CODEX_API_KEY", "ANTHROPIC_API_KEY"} {
 		if plain.environment[key] != "" {
 			t.Fatal("plain command received provider credentials")
 		}

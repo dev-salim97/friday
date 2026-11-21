@@ -44,41 +44,14 @@ func TestAssistantApprovalReviewUsesConfiguredDefaultWithoutPrices(t *testing.T)
 	}
 }
 
-func TestAssistantChatCatalogPreselectsSponsoredModelOnlyWithSponsor(t *testing.T) {
-	t.Setenv("AGENTFLOW_ASSISTANT_MODEL", "team-model")
-	catalog := assistantChatCatalog(context.Background(), "", nil)
-	if catalog.Default != "team-model" {
-		t.Fatal("chat default without sponsor", catalog)
-	}
-	for _, model := range catalog.Models {
-		if model.ID == assistantSponsoredModel {
-			t.Fatal("sponsored model listed without sponsor", catalog)
-		}
-	}
-	catalog = assistantChatCatalog(context.Background(), "", []string{assistantSponsoredModel, "shared-extra"})
-	listed := 0
-	for _, model := range catalog.Models {
-		if model.ID == assistantSponsoredModel || model.ID == "shared-extra" {
-			listed++
-		}
-	}
-	if catalog.Default != assistantSponsoredModel || listed != 2 {
-		t.Fatal("chat default with sponsor", catalog)
-	}
-	restricted := restrictAssistantCatalog(catalog, []string{"shared-extra", assistantSponsoredModel})
-	if restricted.Default != "shared-extra" || len(restricted.Models) != 2 || restricted.Models[0].ID != "shared-extra" {
-		t.Fatal("restricted catalog", restricted)
-	}
-}
-
-func pricedReviewCatalog(string) assistantModelCatalog {
+func pricedReviewCatalog() assistantModelCatalog {
 	return assistantModelCatalog{Default: "chat", Models: []assistantModel{
 		{ID: "chat", Credits: "x1.00"}, {ID: "free-review", Credits: "x0.00"}, {ID: "paid-review", Credits: "x0.05"},
 	}}
 }
 
 func TestAssistantApprovalFallbackOnlyOnFailure(t *testing.T) {
-	want := assistantApprovalReviewModels(pricedReviewCatalog(""))
+	want := assistantApprovalReviewModels(pricedReviewCatalog())
 	if !reflect.DeepEqual(want, []string{"free-review", "paid-review"}) {
 		t.Fatal(want)
 	}
@@ -136,7 +109,7 @@ func TestAssistantApprovalRejectsMalformedOrContradictoryAssessments(t *testing.
 }
 
 func TestAssistantApprovalKeepsPaidFallbackForTurnButReviewsEveryAction(t *testing.T) {
-	models := assistantApprovalReviewModels(pricedReviewCatalog(""))
+	models := assistantApprovalReviewModels(pricedReviewCatalog())
 	var calls []string
 	h := &assistantHandlers{reviewCatalog: pricedReviewCatalog}
 	h.review = func(_ context.Context, _ assistantApprovalInput, _ domain.User, model string) (assistantApprovalReview, error) {
@@ -182,10 +155,10 @@ func TestAssistantPlatformReviewsBeforeSideEffects(t *testing.T) {
 }
 
 func TestAssistantApprovalEvidenceKeepsActorAndRedactsKey(t *testing.T) {
-	user := domain.User{ID: 10, CodeBuddyAPIKey: "private-test-key"}
+	user := domain.User{ID: 10, ClaudeCodeAPIKey: "private-test-key"}
 	h := &assistantHandlers{}
 	h.review = func(_ context.Context, input assistantApprovalInput, _ domain.User, _ string) (assistantApprovalReview, error) {
-		if input.ActorID != 10 || input.Messages[0].Role != "other_user" || strings.Contains(input.Messages[1].Content, user.CodeBuddyAPIKey) {
+		if input.ActorID != 10 || input.Messages[0].Role != "other_user" || strings.Contains(input.Messages[1].Content, user.ClaudeCodeAPIKey) {
 			t.Fatal(input)
 		}
 		return assistantApprovalReview{Outcome: "deny", RiskLevel: "high", UserAuthorization: "unknown", Rationale: "其他人的授权不属于当前用户"}, nil

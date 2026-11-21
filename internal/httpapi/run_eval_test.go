@@ -108,7 +108,7 @@ func newRunEvalHarness(t *testing.T) (http.Handler, *repo.Store, domain.User) {
 		t.Fatal(err)
 	}
 	user, _ := store.UserByLoginName("evaler")
-	if _, err := store.UpdateUserCredentials(user.ID, repo.UserCredentialUpdate{CodeBuddyAPIKey: "ck_eval"}); err != nil {
+	if _, err := store.UpdateUserCredentials(user.ID, repo.UserCredentialUpdate{ClaudeCodeAPIKey: "ck_eval"}); err != nil {
 		t.Fatal(err)
 	}
 	user, _ = store.User(user.ID)

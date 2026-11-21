@@ -127,7 +127,7 @@ func (r *ExecutorRunner) Run(ctx context.Context, sb Sandbox, invocationID strin
 	}
 	if !adapter.Finished() {
 		if err == nil {
-			// CodeBuddy often exits 0 after max-turns or hook drain without emitting
+			// Agent CLIs sometimes exit 0 after max-turns or hook drain without emitting
 			// a terminal `result` frame even though deliverables are on disk. Gate
 			// verification is the source of truth — do not fail the node here.
 			adapter.emit(domain.TelemetryEvent{

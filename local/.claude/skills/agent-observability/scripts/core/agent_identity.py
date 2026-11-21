@@ -18,7 +18,7 @@ from typing import Any, Optional
 
 from . import scanner, state as st
 
-AGENT_PATH_RE = re.compile(r"\.codebuddy/agents/([a-zA-Z0-9_\-]+)(?:\.md)?", re.I)
+AGENT_PATH_RE = re.compile(r"\.codex/agents/([a-zA-Z0-9_\-]+)(?:\.md)?", re.I)
 DISPATCH_TOOLS = {"Task", "task", "Agent", "DeferExecuteTool"}
 MESSAGE_TOOLS = {"send_message", "SendMessage"}
 TEAM_PREFIX = "multi-agents-devflow-"
@@ -58,11 +58,11 @@ def normalize_role_name(name: str | None) -> Optional[str]:
 
 
 def resolve_teams_root() -> Path:
-    """解析 CodeBuddy team inbox 的根目录。"""
-    config_dir = (os.environ.get("CODEBUDDY_CONFIG_DIR") or "").strip()
+    """解析 Codex team inbox 的根目录。"""
+    config_dir = (os.environ.get("CLAUDE_CONFIG_DIR") or "").strip()
     if config_dir:
         return Path(config_dir).expanduser() / "teams"
-    return Path.home() / ".codebuddy" / "teams"
+    return Path.home() / ".codex" / "teams"
 
 
 def resolve_team_dir(cwd: str, sid: str, cached_team_dir: str | None = None) -> Path | None:
@@ -445,7 +445,7 @@ class AgentIdentityResolver:
 
     def _extract_from_task(self, tool_input: dict) -> Optional[str]:
         sub = (
-            # Claude Code 的 Agent 工具（非 CodeBuddy 原生 Task/team_create）用的是
+            # Claude Code 的 Agent 工具（非 Codex 原生 Task/team_create）用的是
             # subagent_type 字段，不是 subagent_name——不认这个字段会导致 dispatch
             # 统计漏掉所有走 Agent 工具派发的场景。
             tool_input.get("subagent_type")

@@ -36,7 +36,7 @@ func TestAssistantGenerationWithOnlySelectedProviderCredentials(t *testing.T) {
 				t.Fatal(err)
 			}
 			h.generate = func(_ context.Context, _ string, actor domain.User) (string, error) {
-				if actor.ID != user.ID || actor.CodeBuddyAPIKey != "" {
+				if actor.ID != user.ID || actor.ClaudeCodeAPIKey != "" {
 					return "", fmt.Errorf("wrong actor credentials")
 				}
 				return `{"message":"provider reply","drafts":[]}`, nil
@@ -71,7 +71,7 @@ func TestAssistantGenerationWithOnlySelectedProviderCredentials(t *testing.T) {
 }
 
 func TestAssistantProviderCredentialBoundary(t *testing.T) {
-	for _, provider := range []string{"codebuddy", "codex", "claude"} {
+	for _, provider := range []string{"codex", "claude"} {
 		req := assistantRequest{Executor: provider}
 		if validateAssistantProvider(&req, domain.User{}) == nil {
 			t.Fatalf("%s accepted missing credentials", provider)
@@ -223,7 +223,7 @@ func TestAssistantNativeProviderGateway(t *testing.T) {
 						item = map[string]any{"id": "fc_fixture", "type": "function_call", "call_id": "call_fixture", "name": "read_demo", "namespace": "mcp__agentflow_session", "arguments": "{}", "status": "completed"}
 					}
 					if first {
-						item = map[string]any{"id": "fc_native", "type": "function_call", "call_id": "call_native", "name": "view_image", "arguments": `{"path":"/tmp/loopforge-no-native-read"}`, "status": "completed"}
+						item = map[string]any{"id": "fc_native", "type": "function_call", "call_id": "call_native", "name": "view_image", "arguments": `{"path":"/tmp/friday-no-native-read"}`, "status": "completed"}
 					}
 					emit("response.created", map[string]any{"type": "response.created", "response": map[string]any{"id": "resp_fixture", "status": "in_progress", "output": []any{}}})
 					emit("response.output_item.added", map[string]any{"type": "response.output_item.added", "output_index": 0, "item": item})
@@ -273,39 +273,6 @@ func TestAssistantNativeProviderGateway(t *testing.T) {
 				t.Fatalf("MCP/stream mismatch: requests=%d calls=%d output=%q", requests, calls, out)
 			}
 		})
-	}
-}
-
-func TestAssistantConversationEngineKeepsLegacyExecutor(t *testing.T) {
-	reply := []assistantMessage{{Role: "user", Content: "hi"}, {Role: "assistant", Model: "gpt-5.4", Content: "ok"}}
-	if got := assistantConversationEngine(reply, "codex"); got != assistantEngineCodex {
-		t.Fatalf("codex legacy = %q", got)
-	}
-	if got := assistantConversationEngine(reply, "claude"); got != assistantEngineClaude {
-		t.Fatalf("claude legacy = %q", got)
-	}
-	if got := assistantConversationEngine(reply, "agy"); got != "agy" {
-		t.Fatalf("agy legacy = %q", got)
-	}
-	if got := assistantConversationEngine(reply); got != assistantEngineCodeBuddy {
-		t.Fatalf("unprefixed = %q", got)
-	}
-	if got := assistantConversationEngine(reply, "codebuddy"); got != assistantEngineCodeBuddy {
-		t.Fatalf("codebuddy legacy = %q", got)
-	}
-	prefixed := []assistantMessage{{Role: "assistant", Model: "codex:gpt-5.4", Content: "ok"}}
-	if got := assistantConversationEngine(prefixed, ""); got != assistantEngineCodex {
-		t.Fatalf("prefix wins = %q", got)
-	}
-	role := []assistantMessage{{Role: "assistant", Model: "gpt-5.4", SpeakerAgentID: "role", Content: "ok"}}
-	if got := assistantConversationEngine(role, "codex"); got != "" {
-		t.Fatalf("role reply locked = %q", got)
-	}
-	if refusal := assistantEngineSwitchRefusal(assistantConversationEngine(reply, "codex"), "codex:gpt-5.4"); refusal != "" {
-		t.Fatal(refusal)
-	}
-	if refusal := assistantEngineSwitchRefusal(assistantConversationEngine(reply, "codex"), "default"); refusal == "" {
-		t.Fatal("expected refusal when a legacy codex session continues on CodeBuddy")
 	}
 }
 

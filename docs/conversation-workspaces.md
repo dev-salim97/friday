@@ -19,7 +19,7 @@
 - HTTPS：个人配置的 Git Token。`GIT_ASKPASS` 指向工作区 `.agentflow/runtime/git-askpass-hosts`，脚本本身不含令牌，从提示里解析出 URL 主机，只在它恰好是 `https://github.com` 时以 `x-access-token` 应答；`github.com.example`、`github.com@example`、`http://` 等其他地址都拿不到凭据。带 `oauth2:`/`private:` 前缀的令牌不是 GitHub 令牌，不会注入。`GIT_TERMINAL_PROMPT=0`，不会卡在交互输入上。
 - `GH_TOKEN`：同一个令牌，供 `gh` 或 `curl` 调 GitHub API。平台进程自身的 `GH_TOKEN`/`GITHUB_TOKEN` 不会透传进沙箱。
 - SSH：个人 SSH 密钥按 `host:port` 绑定（不再按项目登记的仓库地址），任何克隆地址只要主机端口匹配就能用。私钥只在平台进程内存中的临时 ssh-agent 里，沙箱只看到 agent socket、公钥与 ssh config；主机公钥必须固定：平台内置 GitHub 公布的 `github.com:22` 与 `ssh.github.com:443` 公钥（来自 api.github.com/meta），其他主机由管理员通过 `AGENTFLOW_GIT_SSH_KNOWN_HOSTS` 固定，两者合并生效（文件里的 `@revoked` 同样作用于内置公钥）；未固定的主机报错说明原因。
-- 提交身份：`GIT_CONFIG_SYSTEM` 设为发言人的登录名，邮箱 `<login>@users.noreply.loopforge.invalid`；Agent 可以用 `git config --global/--local` 覆盖。
+- 提交身份：`GIT_CONFIG_SYSTEM` 设为发言人的登录名，邮箱 `<login>@users.noreply.friday.invalid`；Agent 可以用 `git config --global/--local` 覆盖。
 
 工具结果和回复都会对发言人的令牌（含去掉前缀后的裸令牌）做脱敏；提示词要求 Agent 不打印、不回显、不写入令牌。
 
@@ -47,7 +47,7 @@
 - **Linux (`bwrap`)**：与 Docker 布局一致：CLI 的 HOME 是 `<会话根>/home`，cwd 是 `<会话根>/ws`（挂的是运行工作区），审批钩子文件只读挂载；宿主文件系统其余部分只读，网络与宿主的 Docker 守护进程保持可达（可以在工作区里构建镜像、启动容器）。CLI 使用执行机器自己安装的版本。bwrap 需要创建 user/pid 命名空间并挂载 `/proc`，平台运行在默认权限的容器里（Compose 部署）时做不到：平台镜像不带 bwrap，即使装上，不开特权容器也建不了命名空间。Compose 部署请用 Docker 沙箱；要用 Linux native 沙箱，在原生安装的平台或执行机器（Runner）上运行。
 - **macOS (`seatbelt`)**：macOS 没有每进程挂载命名空间，`seatbelt` 沙箱保留 HOME 为 `<会话根>/home`，工作区模式下 cwd 直接指向运行工作区目录（不重映射到 `<会话根>/ws`）。`seatbelt` 策略放开运行工作区、临时目录与 `<会话根>/home` 写入，并在最后追加审批钩子及其父目录的 `file-write*` 拒绝规则以防止篡改或改名替换；宿主其余路径保持只读，回环端口（工具中继、本机浏览器 CDP）与本机网络/Docker 保持可达；未显式设置 `DOCKER_HOST` / `DOCKER_CONFIG` 时自动解析宿主当前 Docker context 端点注入 `DOCKER_HOST`，以便在隔离 HOME 下使用 Colima、OrbStack 或 Docker Desktop 等守护进程。CLI 使用执行机器自己安装的版本。
 
-Docker 与 bwrap 下两种模式的 CLI 都在 `<会话根>/ws` 运行（工作区模式下这里挂的是运行工作区），按 cwd 存放原生会话的 CLI（如 Claude Code、CodeBuddy）进出工作区、换环境都能续接。seatbelt 下由于平台模式与工作区模式的 cwd 不同，或任一环境原生日志确实不可用时，平台在当前阶段用完整对话上下文新建原生会话继续（`cli.resume_fallback`），每个阶段最多一次，并告诉新会话当前所处的模式。
+Docker 与 bwrap 下两种模式的 CLI 都在 `<会话根>/ws` 运行（工作区模式下这里挂的是运行工作区），按 cwd 存放原生会话的 CLI（如 Claude Code）进出工作区、换环境都能续接。seatbelt 下由于平台模式与工作区模式的 cwd 不同，或任一环境原生日志确实不可用时，平台在当前阶段用完整对话上下文新建原生会话继续（`cli.resume_fallback`），每个阶段最多一次，并告诉新会话当前所处的模式。
 
 `PUT /api/assistant/sessions/{id}/sandbox` 接受 `{ "sandboxProfileId": "id 或空字符串" }`，具备项目访问权限的会话参与者均可调用；生成期间和任务会话拒绝变更。已有工作区不受影响，新选择只用于之后新开的工作区。普通会话创建时也可以提交 `sandboxProfileId`，后续普通会话保存不能覆盖已保存的选择或伪造工作区绑定。
 
@@ -77,7 +77,7 @@ Docker 与 bwrap 下两种模式的 CLI 都在 `<会话根>/ws` 运行（工作�
 
 - 原生对话前端 178 项测试通过；后端 HTTP、Engine、Runner、Repo、MCP 与 Web/OpenAPI 契约回归通过。
 - 独立 Docker MySQL 验证了会话环境与生成启动的并发事务、SOP 配额，以及迁移脚本的作用范围与幂等性。
-- 真实 CodeBuddy 对话分别选择项目默认和会话覆盖 Docker 环境，命令读取到 `business-default` 与 `conversation-override`，文件写入与验证命令均返回 0。新增沙箱入口也已通过实际界面创建验证。
+- 真实对话分别选择项目默认和会话覆盖 Docker 环境，命令读取到 `business-default` 与 `conversation-override`，文件写入与验证命令均返回 0。新增沙箱入口也已通过实际界面创建验证。
 - 全量测试尚有独立于本次修改的既有问题：MySQL 分析统计覆盖用例在未修改的 master 同样失败；macOS 的 Linux 专用 seatbelt 断言及缺少 flock/Unix socket 路径限制影响全量执行。CMD 与 deploy 用例已另在 Linux Docker 中通过；运行时整包的 Docker 回收/发现测试失败也已在未修改的 master 复现。
 
 ### 会话与协作 Token 统计

@@ -77,7 +77,7 @@ func TestManagedDetectionReportsRealVersionAndRespectsExplicitBinary(t *testing.
 	t.Setenv("DISABLE_UPDATES", "user-updates")
 	root := t.TempDir()
 	inventory := managedcli.Inventory{}
-	for _, provider := range []string{"claude-code", "codebuddy", "codex"} {
+	for _, provider := range []string{"claude-code", "codex"} {
 		inventory[provider] = managedcli.Installation{Version: "1.0.0", Binary: managedTestBinary(t, root, provider, "1.0.0")}
 	}
 	for _, rt := range detectRuntimes(context.Background(), nil, inventory) {

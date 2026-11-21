@@ -205,8 +205,6 @@ func taskSandboxSpec(task domain.RunnerTask) (runtime.SandboxRequirements, runti
 			requirements.CLIStates = []runtime.CLIStateRequirement{{Directory: ".codex"}}
 		case "claude-code":
 			requirements.CLIStates = []runtime.CLIStateRequirement{{Directory: ".claude", Files: []string{".claude.json"}}}
-		case "codebuddy":
-			requirements.CLIStates = []runtime.CLIStateRequirement{{Directory: ".codebuddy", Files: []string{".codebuddy.json"}}}
 		}
 	}
 	return requirements, resources

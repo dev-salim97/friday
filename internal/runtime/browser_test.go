@@ -18,7 +18,7 @@ import (
 func TestMaterializeInvocationInjectsBrowserMCP(t *testing.T) {
 	workspace := t.TempDir()
 	browser := domain.MCPServerDefinition{ID: BrowserMCPServerID, Name: "Agent 浏览器", Transport: "http", URL: "http://127.0.0.1:8931/mcp"}
-	compiled, err := materializeInvocation(workspace, "invoke-browser", domain.ExecutorDefinition{Kind: "codebuddy"}, domain.AgentDefinition{ID: "dev", Name: "Dev"}, domain.AgentAssetBundle{}, InvocationOptions{BrowserMCP: &browser})
+	compiled, err := materializeInvocation(workspace, "invoke-browser", domain.ExecutorDefinition{Kind: "claude-code"}, domain.AgentDefinition{ID: "dev", Name: "Dev"}, domain.AgentAssetBundle{}, InvocationOptions{BrowserMCP: &browser})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,15 +45,15 @@ func TestMaterializeInvocationInjectsBrowserMCP(t *testing.T) {
 
 func TestBrowserWantedForExecutor(t *testing.T) {
 	t.Setenv("AGENTFLOW_BROWSER", "")
-	if BrowserWantedForExecutor("mock") || BrowserWantedForExecutor("codebuddy") {
+	if BrowserWantedForExecutor("mock") || BrowserWantedForExecutor("claude-code") {
 		t.Fatal("default under go test: no executor launches a browser")
 	}
 	t.Setenv("AGENTFLOW_BROWSER", "always")
-	if !BrowserWantedForExecutor("mock") || !BrowserWantedForExecutor("codebuddy") {
+	if !BrowserWantedForExecutor("mock") || !BrowserWantedForExecutor("claude-code") {
 		t.Fatal("always forces every executor")
 	}
 	t.Setenv("AGENTFLOW_BROWSER", "off")
-	if BrowserWantedForExecutor("codebuddy") {
+	if BrowserWantedForExecutor("claude-code") {
 		t.Fatal("off disables browsers")
 	}
 }

@@ -9,7 +9,6 @@ import (
 
 	"agentflow/internal/domain"
 	"agentflow/internal/repo"
-	"agentflow/internal/runtime"
 )
 
 func TestMaterializeClarifyRepoCreatesRealTree(t *testing.T) {
@@ -117,7 +116,7 @@ func TestCanResumeClarifySessionUsesResponsibleUserHome(t *testing.T) {
 	root := t.TempDir()
 	ownerHome := filepath.Join(root, "1", "home")
 	newHome := filepath.Join(root, "13", "home")
-	mustWriteClarifyFile(t, filepath.Join(ownerHome, ".codebuddy", "projects", "repo", "old-session.jsonl"), "conversation\n")
+	mustWriteClarifyFile(t, filepath.Join(ownerHome, ".claude", "projects", "repo", "old-session.jsonl"), "conversation\n")
 	for _, tc := range []struct {
 		name        string
 		home        string
@@ -163,21 +162,6 @@ func TestClarifySessionOutputError(t *testing.T) {
 	}
 }
 
-func TestRunClarifyTurnDetectsMissingSessionWithZeroExitCode(t *testing.T) {
-	root := t.TempDir()
-	bin := filepath.Join(root, "codebuddy")
-	script := "#!/bin/sh\nprintf '%s\\n' '{\"type\":\"result\",\"is_error\":true,\"result\":\"No conversation found with session ID: old-session\"}'\nexit 0\n"
-	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	h := &streamHandlers{}
-	_, _, _, err := h.runClarifyTurn(context.Background(), root, bin, "default", "continue", "test", "old-session", root, true,
-		runtime.RunCredentials{CodeBuddy: runtime.CodeBuddyCredential{APIKey: "test-key"}}, func(string, any) {}, clarifyTurnOpts{Native: true})
-	if err == nil || !strings.Contains(err.Error(), "澄清会话不存在") {
-		t.Fatalf("zero-exit missing session must trigger fallback: %v", err)
-	}
-}
-
 func TestExecuteClarifyRebuildsSessionFromHistory(t *testing.T) {
 	for _, tc := range []struct {
 		name        string
@@ -197,7 +181,7 @@ func TestExecuteClarifyRebuildsSessionFromHistory(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(s.Close)
-			if err := s.PutUser(domain.User{ID: 13, CodeBuddyAPIKey: "test-key"}); err != nil {
+			if err := s.PutUser(domain.User{ID: 13, ClaudeCodeAPIKey: "test-key"}); err != nil {
 				t.Fatal(err)
 			}
 			issue := domain.Issue{ID: "session-switch", ProjectID: "platform", AssigneeUserID: 13,
@@ -206,10 +190,10 @@ func TestExecuteClarifyRebuildsSessionFromHistory(t *testing.T) {
 				t.Fatal(err)
 			}
 			if tc.localFile {
-				mustWriteClarifyFile(t, filepath.Join(clarifyCLIHome(13), ".codebuddy", "projects", "old-workspace", "old-session.jsonl"), "old conversation")
+				mustWriteClarifyFile(t, filepath.Join(clarifyCLIHome(13), ".claude", "projects", "old-workspace", "old-session.jsonl"), "old conversation")
 			}
-			bin := filepath.Join(root, "codebuddy")
-			t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+			bin := filepath.Join(root, "claude")
+			t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 			script := `#!/bin/sh
 for arg in "$@"; do printf '%s\n' "$arg"; done >> '` + filepath.Join(root, "args") + `'
 printf '%s\n' 'END_CALL' >> '` + filepath.Join(root, "args") + `'

@@ -624,7 +624,7 @@ func TestSkillhubUpdateReplacesFilesAndKeepsMetadata(t *testing.T) {
 	if err := s.PutSkill(installed); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.PutAgent(domain.AgentDefinition{ID: "reviewer", Name: "评审员", ProjectID: "platform", Skills: []string{"my-review"}, ExecutorID: "codebuddy"}); err != nil {
+	if err := s.PutAgent(domain.AgentDefinition{ID: "reviewer", Name: "评审员", ProjectID: "platform", Skills: []string{"my-review"}, ExecutorID: "claude"}); err != nil {
 		t.Fatal(err)
 	}
 

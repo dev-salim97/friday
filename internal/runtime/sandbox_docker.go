@@ -250,7 +250,7 @@ func (s *dockerSandbox) prepareSOPCLI(ctx context.Context, command CommandSpec) 
 		args = append(args, "-e", "PATH="+path)
 	}
 	args = append(append(args, s.toolchainExecEnv()...), s.name)
-	args = append(args, dockerWorkspaceExecArgv([]string{"sh", "-c", dockerCLIProbe, "loopforge-cli-probe", spec.Binary})...)
+	args = append(args, dockerWorkspaceExecArgv([]string{"sh", "-c", dockerCLIProbe, "friday-cli-probe", spec.Binary})...)
 	output, err := exec.CommandContext(ctx, "docker", args...).CombinedOutput()
 	if err == nil {
 		return command, "", nil
@@ -955,7 +955,7 @@ func isolatedRuntimeImage(dockerfile domain.DockerfileDefinition) string {
 
 // IsolatedDockerfile matches the public "generic-backend" environment so both
 // share one cached image.
-const IsolatedDockerfile = "FROM node:22-bookworm\nRUN apt-get update && apt-get install -y --no-install-recommends git openssh-client python3 ripgrep ca-certificates curl && rm -rf /var/lib/apt/lists/*\nRUN npm install -g @openai/codex @anthropic-ai/claude-code @tencent-ai/codebuddy-code\nWORKDIR /workspace\n"
+const IsolatedDockerfile = "FROM node:22-bookworm\nRUN apt-get update && apt-get install -y --no-install-recommends git openssh-client python3 ripgrep ca-certificates curl && rm -rf /var/lib/apt/lists/*\nRUN npm install -g @openai/codex @anthropic-ai/claude-code\nWORKDIR /workspace\n"
 
 // PrebuildIsolatedImage warms the shared sandbox image in the background so
 // the first SOP on a fresh container install does not wait for the build.

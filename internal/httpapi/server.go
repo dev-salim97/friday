@@ -264,9 +264,6 @@ func newWithNotifications(s *repo.Store, e *engine.Engine, syncSvc *tracker.Serv
 	g.GET("/api/platform/accounts", api.users.platformAccounts)
 	g.POST("/api/platform/accounts", api.users.platformAccounts)
 	g.PUT("/api/platform/accounts/:id/password", api.users.resetPlatformAccountPassword)
-	g.GET("/api/platform/codebuddy-key", api.users.platformCodeBuddyKey)
-	g.PUT("/api/platform/codebuddy-key", api.users.platformCodeBuddyKey)
-	g.DELETE("/api/platform/codebuddy-key", api.users.platformCodeBuddyKey)
 	// master(net/http) 的 /api/users/ 子树只接受 PUT /api/users/<id>/credentials
 	// 一种形态，其余任何方法/子路径都走 method(w) → 405 JSON。
 	g.Any("/api/users/:id/credentials", func(c *gin.Context) {
@@ -342,7 +339,6 @@ func newWithNotifications(s *repo.Store, e *engine.Engine, syncSvc *tracker.Serv
 	g.PUT("/api/assistant/tasks", asst.putTask)
 	g.DELETE("/api/assistant/tasks/:id", asst.deleteTask)
 	g.POST("/api/assistant/tasks/:id/run", asst.runTaskNow)
-	prefetchAssistantModels()
 
 	// --- catalog ---
 	g.GET("/api/capabilities", api.capabilities)
@@ -766,11 +762,6 @@ func (s *Server) bootstrap(c *gin.Context) {
 		currentUserID = current.ID
 	}
 	mcpServers = domain.PublicMCPServers(withMarketIcons(visibleMCPServersForUser(mcpServers, currentUserID)))
-	sharedModels := s.repo.SharedCodeBuddyModels()
-	sponsoredModel := ""
-	if len(sharedModels) > 0 {
-		sponsoredModel = sharedModels[0]
-	}
 	c.JSON(200, map[string]any{
 		"businessDomains": businessDomains, "projects": domain.PublicProjects(projects), "repositories": domain.PublicRepositories(repositories),
 		"agents": catalogAgents(agents), "rules": rules, "skills": skills, "mcpServers": mcpServers,
@@ -779,11 +770,6 @@ func (s *Server) bootstrap(c *gin.Context) {
 		"users":        domain.PublicUsers(users),
 		"storage":      s.repo.StorageInfo(),
 		"capabilities": map[string]bool{"docker": runtime.DockerReady()},
-		// Set when users without their own CodeBuddy API Key can still chat
-		// and run SOPs on the platform's shared key, limited to these models
-		// (sponsoredModel is the default).
-		"sponsoredModel":  sponsoredModel,
-		"sponsoredModels": sharedModels,
 	})
 }
 

@@ -101,7 +101,7 @@ func eventsFromExport(export otlpExport) []domain.TelemetryEvent {
 }
 
 func spanEvent(span otlpSpan, attrs map[string]string) domain.TelemetryEvent {
-	spanType := firstNonEmpty(attrs["span.type"], attrs["gen_ai.span.kind"], attrs["codebuddy.span_type"])
+	spanType := firstNonEmpty(attrs["span.type"], attrs["gen_ai.span.kind"], attrs["agent.span_type"])
 	name := strings.TrimSpace(span.Name)
 	if name == "" {
 		name = "span"
@@ -157,7 +157,7 @@ func spanEvent(span otlpSpan, attrs map[string]string) domain.TelemetryEvent {
 		Message:    msg,
 		Timestamp:  end,
 		ParentID:   span.ParentSpanID,
-		Source:     domain.TelemetrySource{Layer: "executor", Adapter: AdapterOTEL, Provider: "codebuddy", Protocol: "otlp"},
+		Source:     domain.TelemetrySource{Layer: "executor", Adapter: AdapterOTEL, Provider: "agent", Protocol: "otlp"},
 		Attributes: attrAny,
 	}
 }

@@ -38,7 +38,7 @@ func TestAssistantLooksUpScheduleExecutionByTrace(t *testing.T) {
 	}
 	const trace = "8a2f553171ae877bf374a6b79fd6d890"
 	for _, e := range []domain.ScheduleJobExecution{
-		{JobID: "proj-trace-job", JobName: "巡检", ProjectID: "proj-trace", TraceID: trace, Status: "failed", Error: "CodeBuddy key expired", StartedAt: time.Now().UTC()},
+		{JobID: "proj-trace-job", JobName: "巡检", ProjectID: "proj-trace", TraceID: trace, Status: "failed", Error: "Claude key expired", StartedAt: time.Now().UTC()},
 		{JobID: "proj-trace-job", ProjectID: "proj-trace", TraceID: "other-trace", Status: "success", StartedAt: time.Now().UTC()},
 	} {
 		if err := st.PutScheduleJobExecution(e); err != nil {
@@ -62,7 +62,7 @@ func TestAssistantLooksUpScheduleExecutionByTrace(t *testing.T) {
 		}
 		return got
 	}
-	if got := lookup("proj-trace"); len(got) != 1 || got[0].Error != "CodeBuddy key expired" || got[0].TraceID != trace {
+	if got := lookup("proj-trace"); len(got) != 1 || got[0].Error != "Claude key expired" || got[0].TraceID != trace {
 		t.Fatalf("lookup in owning project = %+v", got)
 	}
 	if got := lookup("proj-other"); len(got) != 0 {
@@ -78,7 +78,7 @@ func TestScheduleJobExecutionsFollowJobAccess(t *testing.T) {
 	h, _ := workbenchFixture(t)
 	st := h.repo
 	for _, login := range []string{"exec-owner", "exec-viewer", "exec-outsider"} {
-		if err := st.PutUser(domain.User{LoginName: login, CodeBuddyAPIKey: "key-" + login}); err != nil {
+		if err := st.PutUser(domain.User{LoginName: login, ClaudeCodeAPIKey: "key-" + login}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -158,7 +158,7 @@ func TestScheduleJobExecutionsMarkCleanedUpConversations(t *testing.T) {
 	t.Setenv("AGENTFLOW_SESSION_SECRET", "schedule-exec-test-secret")
 	h, _ := workbenchFixture(t)
 	st := h.repo
-	if err := st.PutUser(domain.User{LoginName: "gone-owner", CodeBuddyAPIKey: "key"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "gone-owner", ClaudeCodeAPIKey: "key"}); err != nil {
 		t.Fatal(err)
 	}
 	owner, _ := st.UserByLoginName("gone-owner")

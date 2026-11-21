@@ -12,7 +12,7 @@ import (
 )
 
 func TestManagedExecutionUsesPinnedBinaryForSimpleAndWorkflowTasks(t *testing.T) {
-	for _, provider := range []string{"claude-code", "codebuddy", "codex"} {
+	for _, provider := range []string{"claude-code", "codex"} {
 		for _, workflow := range []bool{false, true} {
 			name := provider + "/simple"
 			if workflow {
@@ -36,7 +36,6 @@ func TestManagedExecutionUsesPinnedBinaryForSimpleAndWorkflowTasks(t *testing.T)
 						inv.Executor.Binary = defaultProviderBinary(provider)
 						inv.Agent.ID = "agent"
 						inv.CredentialSource = domain.RuntimeAuthLocal
-						inv.CodeBuddyAPIKey = "test-only-key"
 						tasks[i].Invocation = inv
 					}
 				}

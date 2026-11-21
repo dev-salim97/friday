@@ -226,6 +226,9 @@ func (e *Engine) observationContext(run domain.Run, nodeID string, nr *domain.No
 					ctx.ExecutorID = agent.ExecutorID
 				}
 			}
+			if override := strings.TrimSpace(run.WorkflowSnapshot.ExecutorID); override != "" && node.AgentID != "" && !domain.IsPreviewBuildAgent(node.AgentID) {
+				ctx.ExecutorID = override
+			}
 			break
 		}
 	}

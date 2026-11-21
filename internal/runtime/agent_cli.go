@@ -14,7 +14,7 @@ import (
 	"agentflow/internal/domain"
 )
 
-// Agent CLIs beyond CodeBuddy / Codex / Claude Code. Each one runs with the
+// Agent CLIs beyond Codex / Claude Code. Each one runs with the
 // responsible user's credential inside a private HOME that also holds MCP
 // and model configuration. Antigravity may explicitly reuse the machine
 // owner's account login; other agent CLIs use a key from 个人配置.

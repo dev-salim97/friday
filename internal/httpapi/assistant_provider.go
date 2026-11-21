@@ -19,7 +19,7 @@ import (
 
 func assistantExecutor(id string) string {
 	if id == "" {
-		return "codebuddy"
+		return assistantDefaultEngine
 	}
 	return strings.TrimSpace(id)
 }
@@ -28,8 +28,6 @@ func validateAssistantProvider(req *assistantRequest, user domain.User) error {
 	req.Executor = assistantExecutor(req.Executor)
 	var key, label string
 	switch req.Executor {
-	case "codebuddy":
-		key, label = user.CodeBuddyAPIKey, "CodeBuddy"
 	case "codex":
 		key, label = user.CodexAPIKey, "Codex"
 	case "claude", "claude-code":
@@ -44,20 +42,15 @@ func validateAssistantProvider(req *assistantRequest, user domain.User) error {
 	if strings.TrimSpace(key) == "" {
 		return fmt.Errorf("请先在个人设置中配置 %s API Key", label)
 	}
-	if req.Executor == "codebuddy" {
-		req.Model = assistantAllowedModel(req.Model, loadAssistantModels(context.Background(), user.CodeBuddyInternetEnvironment))
-	} else {
-		req.Model = strings.TrimSpace(req.Model)
-		if len(req.Model) > 256 || strings.ContainsAny(req.Model, "\r\n\x00") {
-			return fmt.Errorf("模型 ID 无效")
-		}
+	req.Model = strings.TrimSpace(req.Model)
+	if len(req.Model) > 256 || strings.ContainsAny(req.Model, "\r\n\x00") {
+		return fmt.Errorf("模型 ID 无效")
 	}
 	return nil
 }
 
 func assistantProviderCredentials(user domain.User) runtime.RunCredentials {
 	return runtime.RunCredentials{
-		CodeBuddy:  runtime.CodeBuddyCredential{APIKey: user.CodeBuddyAPIKey, InternetEnvironment: user.CodeBuddyInternetEnvironment},
 		Codex:      runtime.ProviderCredential{APIKey: user.CodexAPIKey, BaseURL: user.CodexBaseURL},
 		ClaudeCode: runtime.ProviderCredential{APIKey: user.ClaudeCodeAPIKey, BaseURL: user.ClaudeCodeBaseURL},
 		Extra:      runtime.ExtraRunCredentials(user.ID),
@@ -71,7 +64,7 @@ const assistantCodexGuard = `import json,sys
 event=json.load(sys.stdin)
 name=event.get("tool_name", "")
 if not name.startswith("mcp__agentflow_session__"):
-    print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Use the LoopForge session MCP tools; native tools are disabled in Main Bot."}}))
+    print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Use the Friday session MCP tools; native tools are disabled in Main Bot."}}))
     sys.exit(2)
 `
 
@@ -167,7 +160,7 @@ func assistantCodexEvent(line string) (string, []assistantStreamEvent) {
 }
 
 func runAlternateAssistantCLI(ctx context.Context, req assistantCLIRequest, user domain.User, onEvent func(assistantStreamEvent)) (string, string, error) {
-	dir, err := os.MkdirTemp("", "loopforge-assistant-"+req.Executor+"-")
+	dir, err := os.MkdirTemp("", "friday-assistant-"+req.Executor+"-")
 	if err != nil {
 		return "", "", err
 	}

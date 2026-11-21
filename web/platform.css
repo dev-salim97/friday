@@ -1515,7 +1515,7 @@ textarea.pa-input{height:auto;min-height:76px;padding:9px 11px;resize:vertical;l
 }
 .platform-audit-note svg{flex-shrink:0}
 
-/* 平台管理 tab：成员账号 / 平台管理员 / 共享 CodeBuddy Key */
+/* 平台管理 tab：成员账号 / 平台管理员 */
 .platform-tabs-wrap{margin-top:0}
 .platform-tabs .pa-tab{font-size:14px}
 .platform-tabs .pa-tab.on{font-weight:650}

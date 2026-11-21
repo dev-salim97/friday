@@ -25,7 +25,7 @@ import (
 func TestAssistantUnlimitedTurnsLive(t *testing.T) {
 	path := os.Getenv("AGENTFLOW_ASSISTANT_LIVE_KEY_FILE")
 	if path == "" {
-		t.Skip("explicit private CodeBuddy credential file required")
+		t.Skip("explicit private Claude credential file required")
 	}
 	var credential struct {
 		Key     string `json:"key"`

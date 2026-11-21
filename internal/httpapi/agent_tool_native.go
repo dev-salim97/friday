@@ -18,16 +18,14 @@ import (
 const (
 	// Monitor and PowerShell run shell commands on the control plane like Bash.
 	nativeDisallowedTools = "Bash,PowerShell,Monitor,Write,Edit,MultiEdit,NotebookEdit,WebFetch,WebSearch,Task,KillShell,CronCreate,CronList,CronDelete"
-	// Match CodeBuddy's interactive unlimited value (Number.MAX_SAFE_INTEGER).
+	// The CLIs' interactive unlimited value (Number.MAX_SAFE_INTEGER).
 	// Omitting --max-turns falls back to the CLI's finite headless default.
 	nativeAssistantUnlimitedTurns = "9007199254740991"
 	nativeTerminalMaxRetries      = 2
 	agentToolSessionMCPServerID   = "agentflow_session"
 	// The session gateway lists upstream TAPD/工蜂 tools before it
-	// answers tools/list, which can exceed CodeBuddy's ~2s headless MCP wait.
-	// The tools pinned with defer_loading=false below would then be absent
-	// from the first model request and, being non-deferred, unreachable via
-	// ToolSearch/DeferExecuteTool. Use CodeBuddy's interactive 30s wait.
+	// answers tools/list, which can exceed a CLI's headless MCP wait.
+	// Use a generous startup wait.
 	agentToolSessionMCPStartupWait = 30 * time.Second
 )
 
@@ -50,10 +48,10 @@ func agentToolMCPURL(token string) string {
 	return config.Current().AgentToolGateway + "/internal/agent-tools/" + strings.TrimSpace(token) + "/mcp"
 }
 
-// writeAgentToolFiles writes the host-side CodeBuddy session config used by
+// writeAgentToolFiles writes the host-side session config used by
 // assistant, clarification and report commands. The per-tool defer_loading
-// extension belongs to CodeBuddy; it must not enter the shared runtime MCP
-// configuration consumed by other providers.
+// extension is stripped for CLIs that reject it; it must not enter the shared
+// runtime MCP configuration consumed by other providers.
 func writeAgentToolFiles(parentDir, token string) (agentToolFiles, error) {
 	parentDir = strings.TrimSpace(parentDir)
 	if parentDir == "" {
@@ -84,7 +82,7 @@ func writeAgentToolFiles(parentDir, token string) (agentToolFiles, error) {
 				"type": "http",
 				"url":  agentToolMCPURL(token),
 				// Submission and draft schema lookup must not depend on ToolSearch.
-				// Business tools keep CodeBuddy's normal deferred loading.
+				// Business tools keep the normal deferred loading.
 				"tools": map[string]any{
 					"workbench_tool_schema":      map[string]bool{"defer_loading": false},
 					submitAssistantReplyTool:     map[string]bool{"defer_loading": false},
@@ -124,7 +122,7 @@ func nativeToolSettings() map[string]any {
 
 func applyNativeToolSafety(argv []string, mode AgentToolMode) []string {
 	_ = mode
-	// --tools is a built-in allowlist. CodeBuddy also applies it to MCP tools,
+	// --tools is a built-in allowlist that may also apply to MCP tools,
 	// so listing Read/Grep/Glob or mcp__* globs hides submit_* and TAPD/工蜂.
 	argv = dropNativeArg(argv, "--tools")
 	if !slices.Contains(argv, "--disallowedTools") {

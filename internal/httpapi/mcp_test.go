@@ -98,7 +98,7 @@ func TestSingleProjectRepositoryAndTaskAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { s.Close() })
-	if err := s.PutProject(domain.Project{ID: "p1", Name: "P1", GitToken: "secret", CodeBuddyAPIKey: "secret-key"}); err != nil {
+	if err := s.PutProject(domain.Project{ID: "p1", Name: "P1", GitToken: "secret"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.PutRepository(domain.Repository{ID: "r1", ProjectID: "p1", Name: "Repo", Provider: "gongfeng", GongfengProjectID: "7", GitToken: "repo-secret"}); err != nil {

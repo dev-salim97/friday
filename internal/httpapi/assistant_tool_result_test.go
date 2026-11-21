@@ -292,7 +292,7 @@ func TestAssistantPlatformFieldsAndModelCatalog(t *testing.T) {
 		t.Fatalf("skills_list ids: %s %v", got, err)
 	}
 	models, err := h.callAssistantPlatform(context.Background(), user, "proj-fields", assistantMCPCall{Server: "agentflow", Tool: "executor_models_list"})
-	if err != nil || !strings.Contains(models, `"claude-opus-5-5"`) || !strings.Contains(models, `"codebuddy"`) {
+	if err != nil || !strings.Contains(models, `"claude-opus-5-5"`) || !strings.Contains(models, `"claude"`) {
 		t.Fatalf("executor_models_list: %.300s %v", models, err)
 	}
 	if !assistantPlatformToolAllowed(assistantExecMode{}, "executor_models_list") {

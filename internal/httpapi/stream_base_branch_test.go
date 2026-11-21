@@ -100,7 +100,7 @@ func TestClarifySelectedBranchHasIsolatedCacheAndDoesNotUseStaleCodeOnFailure(t 
 func TestClarifyLocalGitUsesConfiguredMainBranchWithoutToken(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	st, _ := clarifyTestServer(t)
-	if err := st.PutUser(domain.User{ID: 23, LoginName: "local-branch-owner", CodeBuddyAPIKey: "test-key"}); err != nil {
+	if err := st.PutUser(domain.User{ID: 23, LoginName: "local-branch-owner", ClaudeCodeAPIKey: "test-key"}); err != nil {
 		t.Fatal(err)
 	}
 	source := filepath.Join(t.TempDir(), "source")
@@ -163,9 +163,9 @@ func TestClarifyLocalGitUsesConfiguredMainBranchWithoutToken(t *testing.T) {
 	}
 	cliRoot := t.TempDir()
 	t.Setenv("AGENTFLOW_CLARIFY_SESSION_DIR", filepath.Join(cliRoot, "sessions"))
-	mustWriteClarifyFile(t, filepath.Join(clarifyCLIHome(23), ".codebuddy", "projects", "old-workspace", "old-session.jsonl"), "old conversation")
-	bin := filepath.Join(cliRoot, "codebuddy")
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	mustWriteClarifyFile(t, filepath.Join(clarifyCLIHome(23), ".claude", "projects", "old-workspace", "old-session.jsonl"), "old conversation")
+	bin := filepath.Join(cliRoot, "claude")
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	script := `#!/bin/sh
 for arg in "$@"; do printf '%s\n' "$arg"; done >> '` + filepath.Join(cliRoot, "args") + `'
 printf '%s\n' '{"type":"result","result":"{\"summary\":\"已确认需求\",\"ready\":true,\"questions\":[]}"}'
@@ -192,7 +192,7 @@ printf '%s\n' '{"type":"result","result":"{\"summary\":\"已确认需求\",\"rea
 func TestClarifyMultiRepositoryBranchesCheckoutSelectedCode(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	st, _ := clarifyTestServer(t)
-	if err := st.PutUser(domain.User{ID: 24, LoginName: "multi-branch-owner", CodeBuddyAPIKey: "test-key"}); err != nil {
+	if err := st.PutUser(domain.User{ID: 24, LoginName: "multi-branch-owner", ClaudeCodeAPIKey: "test-key"}); err != nil {
 		t.Fatal(err)
 	}
 	root := t.TempDir()
@@ -221,8 +221,8 @@ func TestClarifyMultiRepositoryBranchesCheckoutSelectedCode(t *testing.T) {
 		}
 	}
 	t.Setenv("AGENTFLOW_CLARIFY_SESSION_DIR", filepath.Join(root, "sessions"))
-	bin := filepath.Join(root, "codebuddy")
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	bin := filepath.Join(root, "claude")
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	script := `#!/bin/sh
 set -e
 cat api/version.txt web/version.txt > '` + filepath.Join(root, "analyzed-code") + `'

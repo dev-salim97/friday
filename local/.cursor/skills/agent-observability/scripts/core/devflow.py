@@ -1,6 +1,6 @@
 """Devflow 感知层（可选增强，不属于通用采集核心）。
 
-这一层只在项目实际跑着 `.codebuddy/runtime` 描述的 multi-agents-devflow 工作流时才生效：
+这一层只在项目实际跑着 `.codex/runtime` 描述的 multi-agents-devflow 工作流时才生效：
 - 判断当前 session 是否属于某个 devflow team（`multi-agents-devflow-{task_slug}`）
 - 读取该 team 对应的 `workflow-state.json`，投影成精简 stage 快照
 - 和上一次观测到的快照 diff，只把真正变化的 stage 产出为事件
@@ -31,7 +31,7 @@ def resolve_devflow_context(cwd: str, sid: str, cached_team_dir: str | None = No
     """判断当前 session 是否处于某次 devflow 运行中；不是则返回 None。
 
     优先复用 `agent_identity.resolve_team_dir` 做 team 发现（Classic 全部场景，以及
-    Portable 在 `topology: team` 宿主——目前是 CodeBuddy——下也走同一套
+    Portable 在 `topology: team` 宿主——目前是 Codex——下也走同一套
     `multi-agents-devflow-{task_slug}` 命名，可以直接复用，不用区分 edition）。
 
     `topology: spawn` 的宿主（Codex/Claude/Cursor 的 Portable 适配器）不创建 team
@@ -60,7 +60,7 @@ def resolve_devflow_context(cwd: str, sid: str, cached_team_dir: str | None = No
 def _scan_artifacts_for_active_run(cwd: str) -> dict[str, Any] | None:
     """没有 team 目录时的兜底发现：直接扫 `{cwd}/artifacts/*/workflow-state.json`。
 
-    用于 `topology: spawn` 的宿主（没有 `.codebuddy/teams/` 这类目录可以反查），以及
+    用于 `topology: spawn` 的宿主（没有 `.codex/teams/` 这类目录可以反查），以及
     Classic 没有真正暴露 `team_create` 时的降级场景。这是启发式，不是精确匹配：
     多个 task_slug 存在时，优先选"还没跑完"的那个；都跑完或都没跑完时选
     `workflow-state.json` 文件 mtime 最新的一个。"跑完"的判定要兼容两套 schema——
@@ -193,7 +193,7 @@ def resolve_and_diff(state_path: Path, sid: str, cwd: str) -> dict[str, Any] | N
     第二次运行的所有事件都错误地归到第一次的 task_slug 下。
 
     重新判定的代价很低：`resolve_devflow_context` 对团队目录的探测会用上一次找到的
-    `team_dir` 做快速校验（只在真正失效时才重新扫描 `.codebuddy/teams/`）；
+    `team_dir` 做快速校验（只在真正失效时才重新扫描 `.codex/teams/`）；
     `artifacts/` 兜底扫描也只是一次浅层 `iterdir()`，不是全量遍历。
 
     真正跨调用持久化的只有**按 task_slug 分别保存的 stage 快照历史**——切换到另一个

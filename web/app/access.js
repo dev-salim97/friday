@@ -4,14 +4,13 @@ function accessMcpClientSpec(client,base,token){
   const specs={
     cursor:{label:'Cursor',location:'~/.cursor/mcp.json',codeTitle:'mcp.json',code:json,verify:'在 Cursor 设置的 MCP 列表中确认 agentflow 已连接'},
     claude:{label:'Claude Code',location:'Claude CLI（用户级配置写入 ~/.claude.json）',codeTitle:'Shell',code:`claude mcp add --transport http --scope user agentflow ${base}/mcp \\\n  --header "Authorization: Bearer ${token}"`,verify:'claude mcp get agentflow && claude mcp list'},
-    codebuddy:{label:'CodeBuddy',location:'~/.codebuddy/mcp.json',codeTitle:'mcp.json',code:json,verify:'在 CodeBuddy 的 MCP 管理页确认 agentflow 已连接'},
     codex:{label:'Codex',location:'~/.codex/config.toml',codeTitle:'config.toml',code:`[mcp_servers.agentflow]\nurl = "${base}/mcp"\nhttp_headers = { Authorization = "Bearer ${token}" }`,verify:'codex mcp list'}
   };
   return specs[client]||specs.cursor;
 }
 function accessMcpAgentPrompt(spec,base,token){
   if(!token||token==='<YOUR_PERSONAL_TOKEN>')return '';
-  return `按照这个流程安装、初始化并验证好 LoopForge MCP：\n\n1. 使用 curl 下载 安装流程文件, 禁止使用 fetch：${base}/mcp-setup.txt\n2. 两个占位符替换为：\n   API_TOKEN = ${token}\n   ENDPOINT = ${base}/mcp`;
+  return `按照这个流程安装、初始化并验证好 Friday MCP：\n\n1. 使用 curl 下载 安装流程文件, 禁止使用 fetch：${base}/mcp-setup.txt\n2. 两个占位符替换为：\n   API_TOKEN = ${token}\n   ENDPOINT = ${base}/mcp`;
 }
 // 对外展示的固定接入地址：优先使用部署下发的 APP_DOMAIN，避免硬编码固定域名。
 function getPublicBaseURL(){
@@ -24,7 +23,7 @@ function getPublicBaseURL(){
 // 保留 http，因为把只提供 HTTP 的端口改成 https:// 会指向一个没有 TLS 的端口。
 function accessPublicBaseURL(configured, page){
   const secure = page?.protocol === 'https:';
-  const fallback = (secure ? 'https:' : 'http:') + '//' + (page?.host || 'loopforge.example.com');
+  const fallback = (secure ? 'https:' : 'http:') + '//' + (page?.host || 'friday.example.com');
   const raw = String(configured || '').trim();
   if(!raw) return fallback;
   const explicitScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
@@ -72,11 +71,10 @@ function gotoCredential(name,sshRemote){
 }
 // Personal credential fields and the errors they cause. Keep the rules in
 // sync with chatbot/src/credentials.js.
-const CREDENTIAL_FIELDS={codeBuddyApiKey:'CodeBuddy API Key',codexApiKey:'Codex API Key',claudeCodeApiKey:'Claude Code API Key',gitToken:'GitHub Git Token',gitSshKey:'Git SSH 密钥',gitHttpCredentials:'Git 访问令牌'};
+const CREDENTIAL_FIELDS={codexApiKey:'Codex API Key',claudeCodeApiKey:'Claude Code API Key',gitToken:'GitHub Git Token',gitSshKey:'Git SSH 密钥',gitHttpCredentials:'Git 访问令牌'};
 const CREDENTIAL_RULES=[
   ['codexApiKey',/Codex[^。\n]{0,16}API Key/i],
   ['claudeCodeApiKey',/Claude Code[^。\n]{0,16}API Key/i],
-  ['codeBuddyApiKey',/CodeBuddy[^。\n]{0,20}(API Key|Key|凭据)|拒绝了你的 API Key/i],
   ['gitSshKey',/Git SSH (?:密钥|私钥)/i],
   ['gitToken',/Git Token|工蜂[^。\n]{0,12}令牌|could not read Username|Authentication failed|HTTP Basic: Access denied|terminal prompts disabled|requested URL returned error: 40[13]/i],
 ];
@@ -130,7 +128,7 @@ function renderAccessTokens(openCreate=false){
   const base=getPublicBaseURL();
   const revealedSpec=state.revealedToken?accessMcpClientSpec(state.accessClient,base,state.revealedToken):null;
   const revealedPrompt=revealedSpec?accessMcpAgentPrompt(revealedSpec,base,state.revealedToken):'';
-  const revealClients=state.revealedToken?[['cursor','Cursor'],['claude','Claude Code'],['codebuddy','CodeBuddy'],['codex','Codex']].map(([id,label])=>`<button type="button" class="${state.accessClient===id?'active':''}" data-revealed-client="${id}">${label}</button>`).join(''):'';
+  const revealClients=state.revealedToken?[['cursor','Cursor'],['claude','Claude Code'],['codex','Codex']].map(([id,label])=>`<button type="button" class="${state.accessClient===id?'active':''}" data-revealed-client="${id}">${label}</button>`).join(''):'';
   const reveal=state.revealedToken?`<div class="token-reveal"><b>访问密钥已创建，可直接复制完整配置提示词</b><p>先选择客户端；复制内容会自动带上本次访问密钥和 Endpoint，无需再次替换占位符。平台只保存哈希，关闭后无法再次查看明文。</p><div class="access-clients token-client-picker">${revealClients}</div><div class="token-reveal-line"><code>${escapeHTML(state.revealedToken)}</code><button type="button" class="button primary small" data-copy-revealed-prompt="${encodeURIComponent(revealedPrompt)}">⧉ 复制 ${escapeHTML(revealedSpec.label)} 配置提示词</button><button type="button" class="button ghost small" data-copy-revealed>仅复制密钥</button><button type="button" class="button ghost small" data-close-revealed>已保存</button></div></div>`:'';
   const rows=tokens.length?tokens.map(t=>{const revoked=!!t.revokedAt,expired=t.expiresAt&&new Date(t.expiresAt)<new Date();return `<div class="token-row ${revoked||expired?'revoked':''}"><div class="token-row-main"><b>${escapeHTML(t.name)}</b><code>${escapeHTML(t.prefix)}••••••••</code></div><div class="token-meta">创建 ${relativeTime(t.createdAt)} · ${t.lastUsedAt?`最近使用 ${relativeTime(t.lastUsedAt)}`:'尚未使用'} · ${revoked?'已撤销':expired?'已过期':`有效至 ${new Date(t.expiresAt).toLocaleDateString()}`}</div>${!revoked&&!expired?`<button type="button" class="button danger-outline small" data-revoke-token="${escapeHTML(t.id)}">撤销</button>`:''}</div>`}).join(''):'<div class="token-empty">还没有访问密钥，创建后即可接入 REST API 和 MCP。</div>';
   const activeCount=tokens.filter(t=>!t.revokedAt&&(!t.expiresAt||new Date(t.expiresAt)>new Date())).length;

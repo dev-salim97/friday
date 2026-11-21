@@ -78,7 +78,7 @@ func MissingExtraCredentialKinds(env, extra map[string]string) []string {
 // command spec: it appends the BindExtra binding so the responsible user's
 // platform-managed credentials are exported as the mapped environment
 // variables. A declared credential the user has not saved fails the node up
-// front with the kind named — the same contract as the CodeBuddy key binding —
+// front with the kind named — the same contract as the provider key bindings —
 // instead of running a command whose authentication silently falls back to the
 // execution machine's own login. Both the engine's script/verification paths
 // and workspace preparation replays share it, so a rebuilt environment binds

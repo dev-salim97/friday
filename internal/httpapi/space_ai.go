@@ -18,7 +18,7 @@ import (
 // spaceAITimeout settles a reply whose generation never reported back.
 const spaceAITimeout = 20 * time.Minute
 
-const spaceAIAuthor = "LoopForge AI"
+const spaceAIAuthor = "Friday AI"
 
 // spaceDeliverablePrompt tells the model that this page is viewed in a
 // browser on a cloud host: a filesystem path is not a deliverable.

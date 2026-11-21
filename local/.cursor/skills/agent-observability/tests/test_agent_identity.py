@@ -50,7 +50,7 @@ class AgentIdentityResolverTests(unittest.TestCase):
             self.assertEqual(sess.get("dispatched", {}).get("developer"), 1)
 
     def test_track_recognizes_agent_tool_subagent_type(self):
-        """Claude Code 的 Agent 工具用 subagent_type（不是 CodeBuddy 原生 Task 的
+        """Claude Code 的 Agent 工具用 subagent_type（不是 Codex 原生 Task 的
         subagent_name）标识派发目标；这条路径之前没有测试覆盖，_extract_from_task
         漏认这个字段会导致 dispatch 统计对所有 Agent 工具派发的场景失明。"""
         resolver = AgentIdentityResolver()

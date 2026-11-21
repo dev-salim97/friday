@@ -8,8 +8,7 @@ enabled: true
 
 ## G1：运行资产边界
 
-Codex devflow 只读取 `.codex/` 下的工作流资产。`.codebuddy/` 保留给
-CodeBuddy 使用，不能作为 Codex 运行时依赖。
+Codex devflow 只读取 `.codex/` 下的工作流资产。
 
 ## G2：配置优先
 

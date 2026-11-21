@@ -1,15 +1,17 @@
 // Shared AI model catalog for the classic SPA. The SOP preview, role, Bot,
 // scheduler, run-eval and requirement-clarification pickers all read
 // window.AgentFlowAssistantModels, so this file must load before them.
-// Pickers for entries that only run on CodeBuddy use renderCodeBuddyList.
+// Pickers for entries that only run on the default CLI use renderPrimaryList.
 // Only the picker chrome lives here; per-feature selections stay in the
 // callers (localStorage keys, hidden inputs, form fields).
 (() => {
   const DEFAULT_MODEL = 'default';
+  // The CLI that runs models without an `engine` and the server-side features
+  // (clarification, Bot replies, run evals, SOP preview build).
+  const DEFAULT_ENGINE = 'claude-code';
   const FAMILY_MARK = {claude:'',gpt:'',glm:'智',gemini:'G',kimi:'K',deepseek:'D',minimax:'M',hunyuan:'混',mimo:'Mi',echo:'E',other:'AI'};
   const FAMILY_ICON = {
     claude:'/images/credentials/claude.svg',
-    codebuddy:'/images/credentials/codebuddy.svg',
     cursor:'/images/credentials/cursor.svg',
     gpt:'/images/credentials/codex.svg',
     glm:'/images/credentials/glm.svg',
@@ -27,7 +29,7 @@
     mimo:'/images/credentials/mimo.svg'
   };
   const CLI_ICON = {
-    codebuddy:'codebuddy.svg', codex:'codex.svg', 'claude-code':'claude.svg',
+    codex:'codex.svg', 'claude-code':'claude.svg',
     opencode:'opencode.svg', cursor:'cursor.svg', agy:'antigravity.svg',
     kimi:'kimi-code.png', pi:'pi.svg', dsh:'deepseek.svg', zcode:'glm.svg'
   };
@@ -39,7 +41,7 @@
 
   function familyOf(id) {
     const raw = String(id || '').toLowerCase();
-    const v = raw.replace(/^(?:codebuddy|codex|claude-code|opencode|cursor|agy|kimi|pi|dsh|zcode):/, '').split('/').at(-1);
+    const v = raw.replace(/^(?:codex|claude-code|opencode|cursor|agy|kimi|pi|dsh|zcode):/, '').split('/').at(-1);
     if (/^(?:claude|anthropic|opus|sonnet|haiku|fable)(?:$|[-_.\s:\d])/.test(v)) return 'claude';
     if (/^composer(?:$|[-_.\s:\d])/.test(v) || (raw.startsWith('cursor:') && /^auto(?:-smart)?$/.test(v))) return 'cursor';
     if (v.startsWith('gpt') || v.includes('codex')) return 'gpt';
@@ -63,10 +65,10 @@
   // saved "codex:…" id that the viewer cannot list still keeps its prefix.
   function engineOf(id, source = catalog) {
     const listed = (source.models || []).find(m => m.id === id);
-    if (listed) return listed.engine || 'codebuddy';
+    if (listed) return listed.engine || DEFAULT_ENGINE;
     const value = String(id || '');
     const prefix = value.slice(0, Math.max(0, value.indexOf(':')));
-    return (source.engines || []).some(e => e.id === prefix) ? prefix : 'codebuddy';
+    return (source.engines || []).some(e => e.id === prefix) ? prefix : DEFAULT_ENGINE;
   }
   function modelMeta(id) {
     const value = id || DEFAULT_MODEL;
@@ -150,20 +152,20 @@
     renderOptions(menu, catalog.models || [], selectedId, onPick);
   }
   // Requirement clarification, Bot replies, run evals and the SOP preview
-  // build run on CodeBuddy only, so their pickers list CodeBuddy models and
-  // never offer a "codex:…" id the server would have to refuse.
-  function codeBuddyModels() {
-    return (catalog.models || []).filter(m => (m.engine || 'codebuddy') === 'codebuddy');
+  // build run on the default CLI only, so their pickers list its models and
+  // never offer an id of another CLI the server would have to refuse.
+  function primaryModels() {
+    return (catalog.models || []).filter(m => (m.engine || DEFAULT_ENGINE) === DEFAULT_ENGINE);
   }
-  function renderCodeBuddyList(menu, selectedId, onPick) {
-    renderOptions(menu, codeBuddyModels(), selectedId, onPick);
+  function renderPrimaryList(menu, selectedId, onPick) {
+    renderOptions(menu, primaryModels(), selectedId, onPick);
   }
-  // codeBuddyModel keeps a CodeBuddy id and turns an empty id, or a saved id
-  // of another CLI, into the CLI default the server resolves itself.
-  function codeBuddyModel(id) {
+  // primaryModel keeps an id of the default CLI and turns an empty id, or a
+  // saved id of another CLI, into the CLI default the server resolves itself.
+  function primaryModel(id) {
     const value = String(id || '').trim();
     // The catalog may not have landed yet; the built-in CLI prefixes still count.
-    if (!value || /^(codex|claude-code):/.test(value) || engineOf(value) !== 'codebuddy') return DEFAULT_MODEL;
+    if (!value || /^(?:codex|opencode|cursor|agy|kimi|pi|dsh|zcode):/.test(value) || engineOf(value) !== DEFAULT_ENGINE) return DEFAULT_MODEL;
     return value;
   }
   async function fetchCatalog() {
@@ -188,13 +190,14 @@
     DEFAULT: DEFAULT_MODEL,
     catalog: () => catalog,
     cliIcon: id => Object.hasOwn(CLI_ICON, id) ? '/images/credentials/' + CLI_ICON[id] : '',
-    codeBuddyModel,
-    codeBuddyModels,
+    DEFAULT_ENGINE,
+    primaryModel,
+    primaryModels,
     engineOf,
     load,
     paint,
     paintItem,
-    renderCodeBuddyList,
+    renderPrimaryList,
     renderList,
     renderOptions
   };

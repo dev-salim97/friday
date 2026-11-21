@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LoopForge 设置收敛 Demo（完整版）</title>
+<title>Friday 设置收敛 Demo（完整版）</title>
 <style>
   :root{
     --accent:#7b61ff;--accent-soft:#f0edff;--text:#252529;--text-2:#62626c;--text-3:#9a9aa4;
@@ -363,7 +363,7 @@
 <body class="marks">
 
 <div class="demo-bar">
-  <b>LoopForge 设置收敛 Demo</b>
+  <b>Friday 设置收敛 Demo</b>
   <span class="muted">数据均为模拟，刷新页面后重置</span>
   <span class="grow"></span>
   <label class="switch-label"><input type="checkbox" class="switch" id="marksToggle" checked>标注改动</label>
@@ -551,12 +551,12 @@ const DB={
     {id:'b4',p:'p-app',name:'App 研发群',channel:'企业微信群聊',bound:true,usedBy:'1 个定时任务',last:'今天 09:00'}
   ],
   agents:[
-    {id:'a1',name:'需求分析师',desc:'澄清需求，补全背景和验收标准。',exec:'CodeBuddy',model:'Deepseek-V4.1-Flash',sops:'需求交付 SOP、前端交付 SOP',scope:'本项目'},
+    {id:'a1',name:'需求分析师',desc:'澄清需求，补全背景和验收标准。',exec:'Codex',model:'Deepseek-V4.1-Flash',sops:'需求交付 SOP、前端交付 SOP',scope:'本项目'},
     {id:'a2',name:'架构师',desc:'输出技术方案、影响面和回滚方案。',exec:'Claude Code',model:'Claude Sonnet',sops:'需求交付 SOP',scope:'本项目'},
-    {id:'a3',name:'开发工程师',desc:'按方案实现，并补齐单元测试。',exec:'CodeBuddy',model:'Deepseek-V4.1',sops:'需求交付 SOP、缺陷修复 SOP',scope:'本项目'},
+    {id:'a3',name:'开发工程师',desc:'按方案实现，并补齐单元测试。',exec:'Codex',model:'Deepseek-V4.1',sops:'需求交付 SOP、缺陷修复 SOP',scope:'本项目'},
     {id:'a4',name:'测试工程师',desc:'编写并执行测试用例，输出测试报告。',exec:'Codex',model:'GPT Codex',sops:'需求交付 SOP、缺陷修复 SOP',scope:'本项目'},
-    {id:'a5',name:'前端工程师',desc:'实现页面并补齐组件测试。',exec:'CodeBuddy',model:'Deepseek-V4.1',sops:'前端交付 SOP',scope:'共享'},
-    {id:'a6',name:'对齐 Agent',desc:'解决集成分支与默认分支的合并冲突。',exec:'CodeBuddy',model:'Deepseek-V4.1',sops:'SOP 触发（基线对齐）',scope:'内置'}
+    {id:'a5',name:'前端工程师',desc:'实现页面并补齐组件测试。',exec:'Codex',model:'Deepseek-V4.1',sops:'前端交付 SOP',scope:'共享'},
+    {id:'a6',name:'对齐 Agent',desc:'解决集成分支与默认分支的合并冲突。',exec:'Codex',model:'Deepseek-V4.1',sops:'SOP 触发（基线对齐）',scope:'内置'}
   ],
   mcps:[
     {id:'c1',name:'GitHub',url:'https://mcp.example.com/github',scope:'project',tools:12,status:'ok',added:'20 天前'},
@@ -583,9 +583,9 @@ const DB={
     {id:'h4',name:'docx',desc:'生成和编辑 Word 文档。',installs:'640'}
   ],
   runners:[
-    {id:'n1',name:'林悦的 MacBook Pro',os:'macOS 15.1 · arm64',scope:'个人',online:true,cli:'CodeBuddy CLI 2.3.1',tasks:1,beat:'1 分钟前'},
-    {id:'n2',name:'cvm-sh-02',os:'Ubuntu 22.04 · 8 核 16 GB',scope:'项目共享',online:true,cli:'LoopForge Runner 1.8.0',tasks:3,beat:'刚刚'},
-    {id:'n3',name:'cvm-sh-03',os:'Ubuntu 22.04 · 4 核 8 GB',scope:'项目共享',online:false,cli:'LoopForge Runner 1.7.2',tasks:0,beat:'2 小时前'}
+    {id:'n1',name:'林悦的 MacBook Pro',os:'macOS 15.1 · arm64',scope:'个人',online:true,cli:'Codex CLI 0.162.1',tasks:1,beat:'1 分钟前'},
+    {id:'n2',name:'cvm-sh-02',os:'Ubuntu 22.04 · 8 核 16 GB',scope:'项目共享',online:true,cli:'Friday Runner 1.8.0',tasks:3,beat:'刚刚'},
+    {id:'n3',name:'cvm-sh-03',os:'Ubuntu 22.04 · 4 核 8 GB',scope:'项目共享',online:false,cli:'Friday Runner 1.7.2',tasks:0,beat:'2 小时前'}
   ],
   dockerfiles:[
     {id:'d1',scope:'本项目',name:'go122-build',desc:'后端编译与单测',updated:'5 天前',content:'FROM golang:1.22-bookworm\nRUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1\nENV CGO_ENABLED=0 GOFLAGS=-mod=mod\nWORKDIR /workspace'},
@@ -608,7 +608,6 @@ const DB={
     {id:'t3',name:'旧笔记本',prefix:'lf_29bd',created:'120 天前',used:'95 天前',expires:'2026-10-01',status:'revoked'}
   ],
   creds:[
-    {key:'codebuddy',name:'CodeBuddy API Key',ok:true,hint:'Agent 调模型执行任务；未配置时使用平台共享模型'},
     {key:'codex',name:'Codex API Key',ok:false,hint:'公共 SOP 可选的执行器'},
     {key:'claude',name:'Claude Code API Key',ok:false,hint:'可以按角色选择的执行器'},
     {key:'git',name:'GitHub Git Token',ok:true,hint:'目标仓库需要 Contents 和 Pull requests 读写权限'}
@@ -764,7 +763,7 @@ function vHome(){
     <h1>把想法，变成下一步。</h1>
     <p class="desc">在「${esc(p.name)}」里描述你要做的事，AI 会拆成需求、调用 SOP，或者直接回答。</p>
     <form class="composer" data-form="chat"><label class="sr-only" for="chatInput">输入内容</label><textarea id="chatInput" name="text" rows="3" placeholder="例如：把 PAY-1017 的 CSV 乱码修掉，并补上回归测试"></textarea>
-      <div class="composer-bar"><button type="button" class="icon-btn" data-act="demoOnly" aria-label="添加附件">${ic('plus')}</button><span class="chip">CodeBuddy</span><span class="chip">${esc(DB.platform.model)}</span><span class="grow"></span><button type="submit" class="btn primary">${ic('send',14)}发送</button></div></form>
+      <div class="composer-bar"><button type="button" class="icon-btn" data-act="demoOnly" aria-label="添加附件">${ic('plus')}</button><span class="chip">Codex</span><span class="chip">${esc(DB.platform.model)}</span><span class="grow"></span><button type="submit" class="btn primary">${ic('send',14)}发送</button></div></form>
     <div class="starters">
       <button type="button" class="starter" data-act="newIssue">${ic('form')}<b>新建一条需求</b><span>写清目标，选 SOP 自动交付</span></button>
       <button type="button" class="starter" data-go="schedules/prompt">${ic('clock')}<b>配置定时任务</b><span>按计划执行提示词或派发 SOP</span></button>
@@ -820,7 +819,7 @@ function vSettings(){
   const creds=DB.creds.map(c=>row({icon:'key',title:`${esc(c.name)} ${c.ok?badge('ok','已配置'):badge('off','未配置')}`,sub:esc(c.hint),right:`<button type="button" class="btn sm" data-act="credEdit" data-id="${c.key}">${c.ok?'更新':'去配置'}</button>`})).join('');
   return heading('个人配置','管理个人账号与执行凭据。','','个人中心')+
     `<div class="grid2"><section class="panel"><div class="panel-head"><b>账号</b></div><dl class="kv"><dt>姓名</dt><dd>${esc(me.name)}</dd><dt>登录名</dt><dd class="mono">${esc(me.login)}</dd><dt>邮箱</dt><dd>${esc(me.email)}</dd><dt>平台角色</dt><dd>${DB.platform.admins.includes(me.name)?'平台管理员':'成员'}</dd></dl></section>
-    <section class="panel"><div class="panel-head"><b>本机 CLI</b>${badge('ok','已绑定')}</div><dl class="kv"><dt>设备</dt><dd>林悦的 MacBook Pro</dd><dt>版本</dt><dd class="mono">CodeBuddy CLI 2.3.1</dd><dt>心跳</dt><dd>1 分钟前</dd></dl></section></div>
+    <section class="panel"><div class="panel-head"><b>本机 CLI</b>${badge('ok','已绑定')}</div><dl class="kv"><dt>设备</dt><dd>林悦的 MacBook Pro</dd><dt>版本</dt><dd class="mono">Codex CLI 0.162.1</dd><dt>心跳</dt><dd>1 分钟前</dd></dl></section></div>
     <section class="panel"><div class="panel-head"><b>执行凭据</b><span class="r">只保存在你的账号下，保存后不再明文展示</span></div>${creds}</section>`;
 }
 function vProjects(){
@@ -896,7 +895,7 @@ function vSchedules(){
   const actions=t==='prompt'?`<button type="button" class="btn primary" data-act="editPrompt">${ic('plus',14)}新建 AI 定时任务</button>`:'';
   let body='';
   if(t==='prompt'){
-    body=`<section class="panel"><div class="panel-head"><b>「${esc(proj().name)}」的提示词任务</b><span class="r">用项目 Owner 的 CodeBuddy 执行，关闭页面不会中断</span></div>${prompts.length?prompts.map(s=>row({icon:'clock',title:`${esc(s.name)}${s.sharedId?' '+tag('共享订阅'):''} ${s.enabled?badge('ok','已启用'):badge('off','已停用')}`,sub:`${esc(s.when)} · ${s.bot?'通知 '+esc(s.bot):'不通知'} · 最近：${esc(s.last)}`,right:`<input type="checkbox" class="switch" data-change="togglePrompt" data-id="${s.id}"${s.enabled?' checked':''} aria-label="启用 ${esc(s.name)}"><button type="button" class="btn sm" data-act="runPrompt" data-id="${s.id}">立即运行</button><button type="button" class="btn sm" data-act="editPrompt" data-id="${s.id}">编辑</button><button type="button" class="btn sm danger-outline" data-act="deletePrompt" data-id="${s.id}">删除</button>`})).join(''):empty('还没有提示词任务','点右上角新建，或到「共享任务市场」订阅。')}</section>`;
+    body=`<section class="panel"><div class="panel-head"><b>「${esc(proj().name)}」的提示词任务</b><span class="r">用项目 Owner 的 Key 执行，关闭页面不会中断</span></div>${prompts.length?prompts.map(s=>row({icon:'clock',title:`${esc(s.name)}${s.sharedId?' '+tag('共享订阅'):''} ${s.enabled?badge('ok','已启用'):badge('off','已停用')}`,sub:`${esc(s.when)} · ${s.bot?'通知 '+esc(s.bot):'不通知'} · 最近：${esc(s.last)}`,right:`<input type="checkbox" class="switch" data-change="togglePrompt" data-id="${s.id}"${s.enabled?' checked':''} aria-label="启用 ${esc(s.name)}"><button type="button" class="btn sm" data-act="runPrompt" data-id="${s.id}">立即运行</button><button type="button" class="btn sm" data-act="editPrompt" data-id="${s.id}">编辑</button><button type="button" class="btn sm danger-outline" data-act="deletePrompt" data-id="${s.id}">删除</button>`})).join(''):empty('还没有提示词任务','点右上角新建，或到「共享任务市场」订阅。')}</section>`;
   }else if(t==='trigger'){
     const sops=projSops();
     const hist=trig.history.length?trig.history.map(([time,text,tone])=>row({icon:'sync',title:`${esc(time)} ${badge(tone,tone==='ok'?'已派发':tone==='wait'?'已暂停':'无候选')}`,sub:esc(text)})).join(''):empty('还没有运行记录','保存并启用后，按间隔扫描需求。');
@@ -965,8 +964,8 @@ function vEnvironment(){
     tabs('environment',[['dockerfiles','Dockerfile',DB.dockerfiles.length],['scripts','安装脚本',DB.scripts.length],['sandboxes','沙箱',DB.sandboxes.length]],t,'环境资产类型')+body;
 }
 
-const CLIENTS=[['cursor','Cursor'],['claude','Claude Code'],['codebuddy','CodeBuddy'],['codex','Codex']];
-function mcpPrompt(token){const c=CLIENTS.find(x=>x[0]===state.ui.tokenClient)?.[1]||'Cursor';return `按照这个流程安装并验证 LoopForge MCP（客户端：${c}）：\n1. 用 curl 下载安装流程：https://loopforge.example.com/mcp-setup.txt\n2. 把两个占位符替换为：\n   API_TOKEN = ${token}\n   ENDPOINT = https://loopforge.example.com/mcp`}
+const CLIENTS=[['cursor','Cursor'],['claude','Claude Code'],['codex','Codex']];
+function mcpPrompt(token){const c=CLIENTS.find(x=>x[0]===state.ui.tokenClient)?.[1]||'Cursor';return `按照这个流程安装并验证 Friday MCP（客户端：${c}）：\n1. 用 curl 下载安装流程：https://friday.example.com/mcp-setup.txt\n2. 把两个占位符替换为：\n   API_TOKEN = ${token}\n   ENDPOINT = https://friday.example.com/mcp`}
 function vTokens(){
   const r=state.revealed,active=DB.tokens.filter(t=>t.status==='active').length;
   const reveal=r?`<div class="reveal" role="status"><b>访问密钥已创建：${esc(r.name)}</b><p>平台只保存哈希，关闭后无法再次查看明文。选择客户端，可以直接复制带好访问密钥的接入提示词。</p>${seg('tokenClient',CLIENTS,'客户端')}<code>${esc(r.token)}</code><div class="btns"><button type="button" class="btn sm primary" data-act="copyText" data-text="${esc(mcpPrompt(r.token))}">${ic('copy',13)}复制接入提示词</button><button type="button" class="btn sm" data-act="copyText" data-text="${esc(r.token)}">仅复制密钥</button><button type="button" class="btn sm ghost" data-act="closeReveal">我已保存</button></div></div>`:'';
@@ -1156,7 +1155,7 @@ const ACT={
   flowNode:a=>{const id=a.dataset.id;state.flowNode=state.flowNode===id?null:id;renderMain();$(`.fnode[data-id="${id}"]`)?.focus()},
   editPrompt:a=>{
     const s=a.dataset.id&&DB.prompts.find(x=>x.id===a.dataset.id),bots=projBots();
-    openModal({title:s?'编辑 AI 定时任务':'新建 AI 定时任务',desc:'用项目 Owner 的 CodeBuddy 执行，与首页 AI 对话的权限相同。',submit:s?'保存':'创建',body:
+    openModal({title:s?'编辑 AI 定时任务':'新建 AI 定时任务',desc:'用项目 Owner 的 Key 执行，与首页 AI 对话的权限相同。',submit:s?'保存':'创建',body:
       field('任务名称',`<input name="name" maxlength="40" required value="${esc(s?.name||'')}">`)+
       field('执行时间',`<select name="when">${opts(WHENS.map(w=>[w,w]),s?.when||WHENS[1])}</select>`)+
       field('提示词',`<textarea name="prompt" maxlength="2000" required placeholder="说清楚要做什么、结果发到哪里">${esc(s?.prompt||'')}</textarea>`)+
@@ -1203,7 +1202,7 @@ const ACT={
   newSkill:()=>openModal({title:'新建技能',submit:'创建',body:field('名称','<input name="name" maxlength="40" required placeholder="小写字母和短横线，例如 log-triage">')+field('用途','<input name="desc" maxlength="120" required>'),
     onSubmit:f=>{const name=f.get('name').trim(),desc=f.get('desc').trim();if(!/^[a-z0-9-]{2,40}$/.test(name)){toast('名称只能用小写字母、数字和短横线','err');return false}if(!desc){toast('请填写用途','err');return false}DB.skills.push({id:'k'+(++seq),scope:'project',name,desc,files:1});state.ui.skillScope='project';toast('已创建技能','ok');renderMain()}}),
   installSkill:a=>{const h=DB.skillhub.find(x=>x.id===a.dataset.id);if(!h)return;DB.skills.push({id:'k'+(++seq),scope:'project',name:h.name,desc:h.desc,files:2});toast(`已安装 ${h.name}`,'ok');renderMain()},
-  addRunner:()=>openModal({title:'添加执行机器',desc:'在要接入的机器上运行下面的命令，连接成功后会出现在列表里。',submit:'完成',body:`<div class="copy-line"><input class="input" readonly value="npx loopforge-runner connect --server https://loopforge.example.com" aria-label="连接命令"><button type="button" class="btn" data-act="copyText" data-text="npx loopforge-runner connect --server https://loopforge.example.com">${ic('copy',13)}复制</button></div><p>命令会打开浏览器完成授权，不需要手动粘贴访问密钥。</p>`,onSubmit:()=>true}),
+  addRunner:()=>openModal({title:'添加执行机器',desc:'在要接入的机器上运行下面的命令，连接成功后会出现在列表里。',submit:'完成',body:`<div class="copy-line"><input class="input" readonly value="npx friday-runner connect --server https://friday.example.com" aria-label="连接命令"><button type="button" class="btn" data-act="copyText" data-text="npx friday-runner connect --server https://friday.example.com">${ic('copy',13)}复制</button></div><p>命令会打开浏览器完成授权，不需要手动粘贴访问密钥。</p>`,onSubmit:()=>true}),
   envSel:a=>{state.ui.envSel[a.dataset.tab]=a.dataset.id;renderMain();$(`.split-item[data-id="${a.dataset.id}"]`)?.focus()},
   closeReveal:()=>{state.revealed=null;renderMain()},
   revokeToken:a=>{const t=DB.tokens.find(x=>x.id===a.dataset.id);if(t)confirmModal('撤销访问密钥',`撤销后，正在使用「${t.name}」的 API 和 MCP 客户端会立即失效。`,'撤销',()=>{t.status='revoked';if(state.revealed?.id===t.id)state.revealed=null;toast('访问密钥已撤销');renderMain()})},

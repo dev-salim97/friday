@@ -29,9 +29,8 @@ import {
   restoreQueued,
   writeQueues,
 } from "./message-queue.js";
-// Main Bot can run on any configured agent CLI; CodeBuddy stays the default.
+// Main Bot can run on any configured agent CLI; Claude Code stays the default.
 export const EXECUTORS = [
-  { id: "codebuddy", icon: "sparkles", label: "CodeBuddy", detail: "使用 CodeBuddy 模型与个人 API Key。" },
   { id: "codex", icon: "terminal", label: "Codex", detail: "使用 Codex CLI 与个人 Codex API Key。" },
   { id: "claude-code", icon: "brain", label: "Claude Code", detail: "使用 Claude Code CLI 与个人 Claude Code API Key。" },
   { id: "opencode", icon: "terminal", label: "OpenCode", detail: "使用 OpenCode 与个人 API Key。" },
@@ -44,7 +43,7 @@ export const EXECUTORS = [
 ];
 function knownExecutor(id) {
   if (id === "claude") return "claude-code";
-  return EXECUTORS.some((item) => item.id === id) ? id : "codebuddy";
+  return EXECUTORS.some((item) => item.id === id) ? id : "claude-code";
 }
 function storedExecutor() {
   return knownExecutor(readComposerPreference("executor"));
@@ -52,7 +51,7 @@ function storedExecutor() {
 
 function executorModelList(models, executor, providerCatalogs) {
   const listed = engineModels(models, executor);
-  if (listed.length || executor === "codebuddy") return listed;
+  if (listed.length) return listed;
   return (providerCatalogs?.[executor]?.models || []).filter((model) => concreteModel(model, executor));
 }
 
@@ -75,26 +74,13 @@ function effortPreference(executor, model) {
 }
 
 // A new conversation restores a listed preference or picks the first model.
-// CodeBuddy also supports a server-configured fallback when the list is empty.
-function preferredModel(list, executor, codeBuddyDefault) {
+function preferredModel(list, executor) {
   const remembered = readComposerPreference(`model.${executor}`);
   const available = list.filter((model) => !model.disabled && !model.unavailable);
   const listed = findExecutorModel(available, executor, remembered);
-  return (listed && remembered) || available[0]?.id || (executor === "codebuddy" ? codeBuddyDefault : "");
+  return (listed && remembered) || available[0]?.id || "";
 }
 
-// Mirrors errAssistantSponsoredModel in internal/httpapi/assistant_sponsor.go;
-// credentialHint turns it into a "去配置" button.
-export function sponsoredModelMessage(models = []) {
-  return `未配置个人 CodeBuddy API Key 时只能使用平台管理员允许的模型（${models.join("、")}）。要使用其他模型，请先在个人配置中配置自己的 CodeBuddy API Key`;
-}
-
-// The models a user without their own key may chat with, the default first.
-export function sponsoredModelList(catalog) {
-  const listed = Array.isArray(catalog?.sponsoredModels) ? catalog.sponsoredModels.filter(Boolean) : [];
-  if (listed.length) return listed;
-  return catalog?.sponsoredModel ? [catalog.sponsoredModel] : [];
-}
 const PROJECT_LIST_TOOLS = new Set([
   "projects_save",
   "projects_delete",
@@ -131,9 +117,7 @@ export function useChat() {
     [revealId, setRevealId] = useState(activeId),
     [projectId, setProjectId] = useState(initialProject),
     [model, setModel] = useState(null),
-    [codeBuddyDefault, setCodeBuddyDefault] = useState({ id: "default", name: "默认" }),
     [effort, setEffort] = useState(null),
-    [sponsoredModels, setSponsoredModels] = useState([]),
     [executor, setExecutorState] = useState(storedExecutor),
     [providerCatalogs, setProviderCatalogs] = useState({}),
     [generation, setGeneration] = useState(null),
@@ -236,8 +220,6 @@ export function useChat() {
   const applyModelCatalog = useCallback((catalog) => {
     setModels(catalog.models || []);
     setEngines(Array.isArray(catalog.engines) ? catalog.engines : []);
-    setCodeBuddyDefault({ id: catalog.default || "default", name: "默认", efforts: catalog.defaultEfforts });
-    setSponsoredModels(sponsoredModelList(catalog));
   }, []);
   useEffect(() => {
     if (!user?.id || user.isGuest) {
@@ -605,9 +587,7 @@ export function useChat() {
   const agyAccountKey = executor === "agy" && agyRuntime && agyRuntime.authMode !== "personal"
     ? `agy-account:${user.id}:${personalMachine.id}` : "";
   const agyAccountCatalog = providerCatalogs[agyAccountKey];
-  const codeBuddy = executor === "codebuddy";
-  // A CLI is usable with the caller's key (for CodeBuddy also the platform's
-  // shared key) or, on the bound personal machine, with that machine's own
+  // A CLI is usable with the caller's key or, on the bound personal machine, with that machine's own
   // login (domain.Runner.RuntimeAuthMode). Without the catalog's CLI list
   // (guests, older servers) every CLI counts as usable.
   const engineOption = (id) => engines.find((engine) => engine.id === id);
@@ -621,7 +601,7 @@ export function useChat() {
   // The composer offers configured models only. An empty list becomes a
   // "去配置" link to the CLI's 个人配置 card, unless its list is still loading.
   const visibleModels = configured ? executorModels : [];
-  const modelsPending = configured && !codeBuddy && !executorModels.length &&
+  const modelsPending = configured && !executorModels.length &&
     !providerCatalogs[agyAccountKey || executor];
   const modelSetup = ready && !!user && !user.isGuest && !visibleModels.length && !modelsPending
     ? {
@@ -630,20 +610,13 @@ export function useChat() {
         configured,
       }
     : null;
-  const missingKey = !!user && !user.codeBuddyApiKeyConfigured;
-  // Without their own key users chat on the platform's shared key, limited to
-  // the models the administrator allowed (the first is the default).
-  const sponsoredModel = sponsoredModels[0] || "";
-  const sponsored = codeBuddy && missingKey && !user.isGuest && !!sponsoredModel;
-  const sharedModelFor = (id) => (sponsoredModels.includes(id) ? id : sponsoredModel);
   function modelEntry(id) {
-    return findExecutorModel(executorModels, executor, id) ??
-      (codeBuddy && id === codeBuddyDefault.id ? codeBuddyDefault : undefined);
+    return findExecutorModel(executorModels, executor, id);
   }
   const hasSelectedModel = model !== null &&
     (session || !executorModels.length || findExecutorModel(executorModels, executor, model));
-  const selectedModel = hasSelectedModel ? model : preferredModel(executorModels, executor, codeBuddyDefault.id);
-  const availableModel = sponsored ? sharedModelFor(selectedModel) : selectedModel;
+  const selectedModel = hasSelectedModel ? model : preferredModel(executorModels, executor);
+  const availableModel = selectedModel;
   const activeModelEntry = modelEntry(availableModel);
   const activeModel = activeModelEntry?.id ?? availableModel;
   const requestedModelId = unprefixedModel(executor, availableModel);
@@ -660,7 +633,7 @@ export function useChat() {
   useEffect(() => {
     const key = agyAccountKey || executor;
     // An unconfigured CLI shows "去配置" instead of its built-in list.
-    if (codeBuddy || !configured || providerCatalogs[key] || (!agyAccountKey && listedForEngine.length)) return;
+    if (!configured || providerCatalogs[key] || (!agyAccountKey && listedForEngine.length)) return;
     let current = true;
     const request = agyAccountKey
       ? write(`/api/runners/${encodeURIComponent(personalMachineId)}/models/probe`, { provider: "agy", useSaved: true })
@@ -687,7 +660,7 @@ export function useChat() {
     return () => {
       current = false;
     };
-  }, [agyAccountKey, codeBuddy, configured, executor, listedForEngine.length, personalMachineId, providerCatalogs]);
+  }, [agyAccountKey, configured, executor, listedForEngine.length, personalMachineId, providerCatalogs]);
   const chooseExecutor = useCallback(
     (id) => {
       if (id === "claude") id = "claude-code";
@@ -709,10 +682,6 @@ export function useChat() {
   }
 
   function chooseModel(id) {
-    if (sponsored && !sponsoredModels.includes(id)) {
-      setError(sponsoredModelMessage(sponsoredModels));
-      return false;
-    }
     const entry = executorModels.find((item) => item.id === id);
     if (!entry || entry.disabled || entry.unavailable) return false;
     const savedLevel = readComposerPreference(effortPreference(executor, id));
@@ -768,12 +737,12 @@ export function useChat() {
       }
     };
     window.addEventListener("message", onMessage);
-    if (ready && missingKey) window.addEventListener("focus", refreshUser);
+    if (ready && !configured) window.addEventListener("focus", refreshUser);
     return () => {
       window.removeEventListener("message", onMessage);
       window.removeEventListener("focus", refreshUser);
     };
-  }, [ready, missingKey, refreshUser]);
+  }, [ready, configured, refreshUser]);
   useEffect(() => {
     if (!ready || !modelCatalogRefresh) return;
     void refreshUser();
@@ -981,26 +950,6 @@ export function useChat() {
       }
       executionTarget = { pool: "runner", runnerId: executionMachines.defaultRunnerId };
     }
-    // Without a key (and no sponsored model) the server rejects every message.
-    // Say so before creating an empty conversation that would swallow the
-    // typed question. Re-check first in case the key was saved elsewhere since
-    // this page loaded.
-    if (
-      codeBuddy &&
-      !sponsoredModel &&
-      users.find((u) => u.id === user?.id)?.codeBuddyApiKeyConfigured ===
-        undefined &&
-      user &&
-      !user.isGuest
-    ) {
-      const rows = await api("/api/users").catch(() => null);
-      if (rows) setUsers(rows);
-      const fresh = rows?.find((u) => u.id === user.id);
-      if (fresh && !fresh.codeBuddyApiKeyConfigured) {
-        setError("请先在个人配置中配置自己的 CodeBuddy API Key");
-        return false;
-      }
-    }
     submittingRef.current = true;
     setSubmitting(true);
     setError("");
@@ -1173,7 +1122,7 @@ export function useChat() {
       setSubmitting(true);
       open(stored.id);
       setSession(stored);
-      const chosen = sponsored ? sharedModelFor(stored.model || activeModel) : stored.model || activeModel;
+      const chosen = stored.model || activeModel;
       setModel(chosen);
       setEffort(stored.effort || "");
       const g = await write("/api/assistant/generations", {
@@ -1486,9 +1435,6 @@ export function useChat() {
     modelDetails: activeModelEntry,
     effort: activeEffort,
     setEffort: chooseEffort,
-    sponsored,
-    sponsoredModel,
-    sponsoredModels,
     generation,
     live,
     error,

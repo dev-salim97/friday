@@ -8,7 +8,7 @@ import (
 
 func TestAssistantDeferredToolShowsActualTargetAndParams(t *testing.T) {
 	for _, tc := range []struct{ name, input, tool, detail string }{
-		{"real CodeBuddy arguments", `{"toolName":"mcp__agentflow_session__workbench_workspace_read","params":{"file_path":"/workspace/reports/summary.md"}}`, "workbench_workspace_read", "summary.md"},
+		{"real Claude arguments", `{"toolName":"mcp__agentflow_session__workbench_workspace_read","params":{"file_path":"/workspace/reports/summary.md"}}`, "workbench_workspace_read", "summary.md"},
 		{"string params", `{"toolName":"mcp__agentflow_session__agentflow__runs_list","params":"{\"query\":\"latest failed runs\"}"}`, "agentflow__runs_list", "latest failed runs"},
 		{"legacy wrapper", `{"tool":"mcp__agentflow_session__tasks_list","query":"pending"}`, "tasks_list", "pending"},
 	} {
@@ -44,18 +44,6 @@ func TestAssistantDeferredTerminalToolsStayHidden(t *testing.T) {
 		raw, _ := json.Marshal(map[string]any{"toolName": name, "params": map[string]any{"message": "done", "drafts": []any{}}})
 		if ev, ok := assistantToolStreamEvent("terminal", "DeferExecuteTool", raw); ok {
 			t.Fatalf("protocol tool leaked: %+v", ev)
-		}
-	}
-}
-
-func TestAssistantToolSearchShowsRealCodeBuddyQueries(t *testing.T) {
-	for _, tc := range []struct{ input, detail string }{
-		{`{"queries":["retry run","workspace lease"]}`, "retry run, workspace lease"},
-		{`{"tool_names":["mcp__agentflow_session__submit_assistant_reply"]}`, "mcp__agentflow_session__submit_assistant_reply"},
-	} {
-		tool, detail := assistantToolDisplay("ToolSearch", json.RawMessage(tc.input))
-		if tool != "ToolSearch" || detail != tc.detail {
-			t.Fatalf("tool=%q detail=%q", tool, detail)
 		}
 	}
 }

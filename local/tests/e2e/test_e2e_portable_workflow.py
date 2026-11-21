@@ -29,7 +29,7 @@ def events(project, kind):
 class PortableWorkflowE2E(unittest.TestCase):
     def install(self, host="claude"):
         project = h.new_project(self)
-        h.loopforge("skills", "install", host, "--project-root", project)
+        h.friday("skills", "install", host, "--project-root", project)
         return project
 
     def assert_delivered(self, project):
@@ -43,7 +43,7 @@ class PortableWorkflowE2E(unittest.TestCase):
             capture_output=True, text=True,
         )
         self.assertEqual(0, verify.returncode, verify.stderr)
-        self.assertIn("OK", h.loopforge_validate(project))
+        self.assertIn("OK", h.friday_validate(project))
         self.assertEqual("user file that must survive\n",
                          (project / "USER_NOTES.md").read_text(encoding="utf-8"))
         return state
@@ -77,7 +77,7 @@ class PortableWorkflowE2E(unittest.TestCase):
                     self.assertEqual("coordinator", state["stages"][stage]["executor_type"])
 
     def test_resume_after_crash_inside_a_stage(self):
-        for host in ("claude", "codebuddy"):
+        for host in ("claude",):
             with self.subTest(host=host):
                 project = self.install(host)
                 h.fake_agent(host, project, "--crash-in", "IMPLEMENT", check_rc=75)
@@ -93,13 +93,8 @@ class PortableWorkflowE2E(unittest.TestCase):
                         sessions.append(item["session"])
                 self.assertEqual(2, len(sessions))
                 second = [e for e in events(project, "action") if e["session"] == sessions[1]]
-                if host == "codebuddy":
-                    # A new CodeBuddy session must drop the old Team and re-dispatch.
-                    self.assertEqual("rotate-team", second[0]["action"])
-                    self.assertEqual(1, len(events(project, "team-rotated")))
-                else:
-                    self.assertEqual(("continue-executor", "IMPLEMENT"),
-                                     (second[0]["action"], second[0]["stage"]))
+                self.assertEqual(("continue-executor", "IMPLEMENT"),
+                                 (second[0]["action"], second[0]["stage"]))
                 self.assertFalse(any(e["kind"] == "init" and e["session"] == sessions[1]
                                      for e in h.transcript(project)))
 

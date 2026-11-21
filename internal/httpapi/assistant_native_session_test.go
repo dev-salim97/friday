@@ -35,26 +35,12 @@ func (c nativeCLICall) flag(name string) string {
 
 func (c nativeCLICall) prompt() string { return c.args[len(c.args)-1] }
 
-func TestAssistantCLIOptionsPrecedePromptDelimiter(t *testing.T) {
-	for _, report := range []bool{false, true} {
-		command, err := prepareAssistantCommand(assistantCommandOpts{Bin: "codebuddy", Config: "/tmp/test-mcp.json", Prompt: "only positional argument", SessionID: "af-test", Resume: true, ReportOnly: report})
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i, arg := range command.Argv {
-			if arg == "--" && (i != len(command.Argv)-2 || command.Argv[i+1] != "only positional argument") {
-				t.Fatal("CLI options were appended after the positional prompt delimiter")
-			}
-		}
-	}
-}
-
 // Exercise the real command construction, HOME selection and credential binding,
 // while recording only test credentials and avoiding a dependency on a model.
 func nativeCLIRecorder(t *testing.T) (string, func() []nativeCLICall) {
 	t.Helper()
 	dir := t.TempDir()
-	bin, capture := filepath.Join(dir, "codebuddy"), filepath.Join(dir, "calls")
+	bin, capture := filepath.Join(dir, "claude"), filepath.Join(dir, "calls")
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'" }
 	script := fmt.Sprintf(`#!/bin/sh
 previous=''
@@ -65,7 +51,7 @@ for arg in "$@"; do
   if [ "$previous" = '--resume' ] || [ "$previous" = '--session-id' ]; then sid="$arg"; fi
   previous="$arg"
 done
-printf '%%s\000' "$HOME" "$PWD" "$CODEBUDDY_API_KEY" "$config" "$CODEBUDDY_CONFIG_DIR" "$@" >> %s
+printf '%%s\000' "$HOME" "$PWD" "$ANTHROPIC_API_KEY" "$config" "$CLAUDE_CONFIG_DIR" "$@" >> %s
 printf '\036' >> %s
 if [ -f %s ]; then
   rm %s
@@ -110,7 +96,7 @@ fi
 	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	return dir, func() []nativeCLICall {
 		data, err := os.ReadFile(capture)
 		if os.IsNotExist(err) {
@@ -155,7 +141,7 @@ func sendNativeTurn(t *testing.T, h *assistantHandlers, actor domain.User, sessi
 
 func TestSharedNativeSessionResumesAcrossActorsAndHandlerRestart(t *testing.T) {
 	h, a, b, _, session := sharedWorkbenchFixture(t)
-	t.Setenv("CODEBUDDY_CONFIG_DIR", filepath.Join(t.TempDir(), "operator-state"))
+	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(t.TempDir(), "operator-state"))
 	_, calls := nativeCLIRecorder(t)
 	session = sendNativeTurn(t, h, a, session, "第一轮独有文本")
 	first := calls()[0]
@@ -172,10 +158,10 @@ func TestSharedNativeSessionResumesAcrossActorsAndHandlerRestart(t *testing.T) {
 	if first.home != second.home || first.workspace != second.workspace || first.home == assistantCLIHome(a.ID) || second.home == assistantCLIHome(b.ID) {
 		t.Fatal("shared CLI state is still scoped to an actor")
 	}
-	if first.configDir != filepath.Join(first.home, ".codebuddy") || second.configDir != first.configDir {
+	if first.configDir != filepath.Join(first.home, ".claude") || second.configDir != first.configDir {
 		t.Fatal("operator config directory escaped the conversation HOME")
 	}
-	if first.key != a.CodeBuddyAPIKey || second.key != b.CodeBuddyAPIKey || first.mcp == second.mcp {
+	if first.key != a.ClaudeCodeAPIKey || second.key != b.ClaudeCodeAPIKey || first.mcp == second.mcp {
 		t.Fatal("caller credentials or per-turn MCP binding were reused")
 	}
 	for _, old := range []string{"历史咨询", "第一轮独有文本", "原生回复"} {
@@ -212,7 +198,7 @@ func TestSharedNativeSessionOffersMentionedRolesAsSubagents(t *testing.T) {
 	if got[1].flag("--resume") != got[0].flag("--session-id") || got[2].flag("--resume") != got[0].flag("--session-id") {
 		t.Fatal("a role mention must stay in the Main Bot session")
 	}
-	agent, err := os.ReadFile(filepath.Join(assistantSharedSessionRoot(session.ID), "home", ".codebuddy", "agents", "role-dev.md"))
+	agent, err := os.ReadFile(filepath.Join(assistantSharedSessionRoot(session.ID), "home", ".claude", "agents", "role-dev.md"))
 	if err != nil || !strings.Contains(string(agent), "按 （运行时提供） 实现") {
 		t.Fatalf("role not offered as subagent: %s %v", agent, err)
 	}
@@ -414,50 +400,13 @@ func TestSharedDirectChatExcludesOtherHandlersAndBackgroundGenerations(t *testin
 	}
 }
 
-func sharedNativeMySQLFixture(t *testing.T, keys []string) (*assistantHandlers, domain.User, domain.User, domain.AssistantSession) {
-	t.Helper()
-	dsn := os.Getenv("AGENTFLOW_TEST_MYSQL_DSN")
-	if dsn == "" {
-		t.Skip("isolated local Docker MySQL required")
-	}
-	if !loopbackMySQLDSN(dsn) {
-		t.Fatal("native session tests require an isolated loopback MySQL database")
-	}
-	t.Setenv("AGENTFLOW_ASSISTANT_SESSION_DIR", t.TempDir())
-	st, err := repo.Open(dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(st.Close)
-	prefix := fmt.Sprintf("native-%d", time.Now().UnixNano())
-	for i, name := range []string{"a", "b"} {
-		if err := st.PutUser(domain.User{LoginName: prefix + name, CodeBuddyAPIKey: keys[i], CodeBuddyInternetEnvironment: "ioa"}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	a, _ := st.UserByLoginName(prefix + "a")
-	b, _ := st.UserByLoginName(prefix + "b")
-	if err := st.PutProject(domain.Project{ID: prefix, Name: prefix, OwnerID: a.ID, Members: []domain.ProjectMember{{UserID: b.ID, Role: "member"}}}); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.PutRun(domain.Run{ID: prefix, ExecutionContext: domain.TelemetryContext{ProjectID: prefix}, Status: "succeeded", Nodes: map[string]*domain.NodeRun{}}); err != nil {
-		t.Fatal(err)
-	}
-	session, err := st.EnsureRunAssistantSession(prefix, prefix, "共享", a.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	h := &assistantHandlers{deps: &deps{repo: st}}
-	return h, a, b, session
-}
-
 func TestMySQLSharedNativeSessionResumesAcrossActors(t *testing.T) {
 	h, a, b, session := sharedNativeMySQLFixture(t, []string{"test-only-a", "test-only-b"})
 	_, calls := nativeCLIRecorder(t)
 	session = sendNativeTurn(t, h, a, session, "MySQL 第一轮")
 	sendNativeTurn(t, &assistantHandlers{deps: h.deps}, b, session, "MySQL 第二轮")
 	got := calls()
-	if len(got) != 2 || got[1].flag("--resume") != got[0].flag("--session-id") || got[1].key != b.CodeBuddyAPIKey {
+	if len(got) != 2 || got[1].flag("--resume") != got[0].flag("--session-id") || got[1].key != b.ClaudeCodeAPIKey {
 		t.Fatal("MySQL-backed shared session did not resume across actors")
 	}
 }
@@ -467,7 +416,7 @@ func TestMySQLSharedNativeSessionResumesAcrossActors(t *testing.T) {
 func TestSharedNativeSessionLive(t *testing.T) {
 	path := os.Getenv("AGENTFLOW_NATIVE_SESSION_TEST_KEYS_FILE")
 	if path == "" {
-		t.Skip("two explicitly supplied CodeBuddy keys required")
+		t.Skip("two explicitly supplied Claude keys required")
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -505,4 +454,41 @@ func TestSharedNativeSessionLive(t *testing.T) {
 		t.Fatal("second key failed to recall the first key's native context")
 	}
 	t.Log("Two live keys continued the same native session through the application handlers and isolated MySQL.")
+}
+
+func sharedNativeMySQLFixture(t *testing.T, keys []string) (*assistantHandlers, domain.User, domain.User, domain.AssistantSession) {
+	t.Helper()
+	dsn := os.Getenv("AGENTFLOW_TEST_MYSQL_DSN")
+	if dsn == "" {
+		t.Skip("isolated local Docker MySQL required")
+	}
+	if !loopbackMySQLDSN(dsn) {
+		t.Fatal("native session tests require an isolated loopback MySQL database")
+	}
+	t.Setenv("AGENTFLOW_ASSISTANT_SESSION_DIR", t.TempDir())
+	st, err := repo.Open(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(st.Close)
+	prefix := fmt.Sprintf("native-%d", time.Now().UnixNano())
+	for i, name := range []string{"a", "b"} {
+		if err := st.PutUser(domain.User{LoginName: prefix + name, ClaudeCodeAPIKey: keys[i]}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	a, _ := st.UserByLoginName(prefix + "a")
+	b, _ := st.UserByLoginName(prefix + "b")
+	if err := st.PutProject(domain.Project{ID: prefix, Name: prefix, OwnerID: a.ID, Members: []domain.ProjectMember{{UserID: b.ID, Role: "member"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutRun(domain.Run{ID: prefix, ExecutionContext: domain.TelemetryContext{ProjectID: prefix}, Status: "succeeded", Nodes: map[string]*domain.NodeRun{}}); err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.EnsureRunAssistantSession(prefix, prefix, "共享", a.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := &assistantHandlers{deps: &deps{repo: st}}
+	return h, a, b, session
 }

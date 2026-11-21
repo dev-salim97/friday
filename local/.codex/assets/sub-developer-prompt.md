@@ -45,4 +45,4 @@
 - 调用其他 sub-developer
 - 读写 workflow-state.json（违反 workflow-state-spec.md §写入权限）
 - 重新设计方案
-- 调用 CodeBuddy send_message / dispatch 类原语
+- 调用 send_message / dispatch 类原语

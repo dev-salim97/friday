@@ -178,7 +178,7 @@ func redactPreparationOutput(sb Sandbox, output string) string {
 		managed.credentialsMu.RLock()
 		credentials := managed.credentials
 		managed.credentialsMu.RUnlock()
-		secrets = append(secrets, credentials.CodeBuddy.APIKey, credentials.Codex.APIKey, credentials.ClaudeCode.APIKey)
+		secrets = append(secrets, credentials.Codex.APIKey, credentials.ClaudeCode.APIKey)
 		for _, credential := range credentials.GitHTTPCredentials {
 			secrets = append(secrets, credential.Token)
 		}

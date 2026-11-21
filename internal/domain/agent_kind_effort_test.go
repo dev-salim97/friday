@@ -10,7 +10,6 @@ func TestIsAgentCLIKindMatchesCaseInsensitivelyAfterTrim(t *testing.T) {
 		"pi":          true,
 		"codex":       false,
 		"claude-code": false,
-		"codebuddy":   false,
 		"":            false,
 		"open code":   false,
 	}

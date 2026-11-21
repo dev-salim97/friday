@@ -11,16 +11,14 @@
 # for the repository-bound scenarios, and removes all of it afterwards.
 #
 # Optional environment:
-#   AGENTFLOW_E2E_CODEBUDDY_API_KEY  enables the real-model scenarios
-#   AGENTFLOW_E2E_CODEBUDDY_INTERNET CodeBuddy network environment (default
-#                                    empty: the international site)
+#   AGENTFLOW_E2E_CLAUDE_API_KEY     enables the real-model scenarios
 #   AGENTFLOW_E2E_LOCAL_PORT         platform port (default 18090)
 #   AGENTFLOW_E2E_LOCAL_MYSQL_PORT   MySQL port (default 33316)
 #   AGENTFLOW_E2E_LOCAL_MYSQL_CONTAINER MySQL container name (default
 #                                    agentflow-e2e-local-mysql); set it when
 #                                    several checkouts run the suite at once
 #   AGENTFLOW_E2E_MODEL_SANDBOX      sandbox for model scenarios (default local:
-#                                    the seeded Docker image has no CodeBuddy CLI)
+#                                    the seeded Docker image has no executor CLI)
 #   AGENTFLOW_E2E_KEEP=1             keep the platform, database and files; the
 #                                    exports needed to rerun single files against
 #                                    it are written to $WORK/env (mode 600)
@@ -109,10 +107,10 @@ INSERT INTO api_tokens (id, user_id, name, prefix, token_hash, expires_at, creat
   VALUES ('tok-e2e-local', 900001, 'e2e-local', '${TOKEN:0:12}', '$HASH', DATE_ADD(NOW(3), INTERVAL 1 DAY), NOW(3)),
          ('tok-e2e-local-b', 900002, 'e2e-local-b', '${TOKEN_B:0:12}', '$HASH_B', DATE_ADD(NOW(3), INTERVAL 1 DAY), NOW(3));
 SQL
-if [ -n "${AGENTFLOW_E2E_CODEBUDDY_API_KEY:-}" ]; then
+if [ -n "${AGENTFLOW_E2E_CLAUDE_API_KEY:-}" ]; then
   # Passed through stdin so the key never shows up in a process listing.
-  printf "INSERT INTO user_configs (user_id, codebuddy_api_key, codebuddy_internet_environment, created_at, updated_at) VALUES (900001, '%s', '%s', NOW(3), NOW(3));\n" \
-    "${AGENTFLOW_E2E_CODEBUDDY_API_KEY//\'/}" "${AGENTFLOW_E2E_CODEBUDDY_INTERNET:-}" | mysql_exec || exit 1
+  printf "INSERT INTO user_configs (user_id, claude_code_api_key, created_at, updated_at) VALUES (900001, '%s', NOW(3), NOW(3));\n" \
+    "${AGENTFLOW_E2E_CLAUDE_API_KEY//\'/}" | mysql_exec || exit 1
 fi
 
 api() {
@@ -138,8 +136,8 @@ export AGENTFLOW_E2E_REPO_CLONE_URL="$REPO/remote.git" AGENTFLOW_E2E_REPO_BRANCH
 export AGENTFLOW_E2E_MODEL_SANDBOX=${AGENTFLOW_E2E_MODEL_SANDBOX:-local}
 # A fresh database has no data-rich project to tour; tour the e2e project.
 export AGENTFLOW_E2E_VIEW_PROJECT=${AGENTFLOW_E2E_VIEW_PROJECT:-e2e-auto}
-[ -n "${AGENTFLOW_E2E_CODEBUDDY_API_KEY:-}" ] || export AGENTFLOW_E2E_MODEL=0
-unset AGENTFLOW_E2E_CODEBUDDY_API_KEY
+[ -n "${AGENTFLOW_E2E_CLAUDE_API_KEY:-}" ] || export AGENTFLOW_E2E_MODEL=0
+unset AGENTFLOW_E2E_CLAUDE_API_KEY
 if [ "${AGENTFLOW_E2E_KEEP:-0}" = 1 ]; then
   (umask 077 && printf 'export AGENTFLOW_E2E_BASE=%q AGENTFLOW_E2E_TOKEN=%q AGENTFLOW_E2E_TOKEN_B=%q AGENTFLOW_E2E_REPO_CLONE_URL=%q AGENTFLOW_E2E_REPO_BRANCH=main AGENTFLOW_E2E_MODEL_SANDBOX=%q AGENTFLOW_E2E_MODEL=%q AGENTFLOW_E2E_VIEW_PROJECT=%q\n' \
     "$BASE" "$TOKEN" "$TOKEN_B" "$AGENTFLOW_E2E_REPO_CLONE_URL" "$AGENTFLOW_E2E_MODEL_SANDBOX" "${AGENTFLOW_E2E_MODEL:-1}" "$AGENTFLOW_E2E_VIEW_PROJECT" >"$WORK/env")

@@ -10,18 +10,18 @@ import (
 )
 
 func TestPromptOnStdinKeepsShortPromptOnArgv(t *testing.T) {
-	command := CommandSpec{Argv: []string{"codebuddy", "-p", "--", "hello"}}
+	command := CommandSpec{Argv: []string{"claude", "-p", "--", "hello"}}
 	got := PromptOnStdin(command, "hello")
-	if strings.Join(got.Argv, " ") != "codebuddy -p -- hello" || got.Stdin != nil {
+	if strings.Join(got.Argv, " ") != "claude -p -- hello" || got.Stdin != nil {
 		t.Fatalf("short prompt should stay on argv: %q stdin=%v", got.Argv, got.Stdin != nil)
 	}
 }
 
 func TestPromptOnStdinMovesOversizedPrompt(t *testing.T) {
 	prompt := strings.Repeat("对话历史", maxArgvPromptBytes/12+100)
-	argv := []string{"codebuddy", "-p", "--output-format", "stream-json", "--", prompt}
-	got := PromptOnStdin(CommandSpec{Argv: argv, Provider: "codebuddy"}, prompt)
-	if strings.Join(got.Argv, " ") != "codebuddy -p --output-format stream-json --" {
+	argv := []string{"claude", "-p", "--output-format", "stream-json", "--", prompt}
+	got := PromptOnStdin(CommandSpec{Argv: argv, Provider: "claude"}, prompt)
+	if strings.Join(got.Argv, " ") != "claude -p --output-format stream-json --" {
 		t.Fatalf("oversized prompt must leave argv and keep the -- terminator: %d args, last=%.20q", len(got.Argv), got.Argv[len(got.Argv)-1])
 	}
 	if got.Stdin == nil {

@@ -819,7 +819,7 @@ func TestPrepareRepositoryAppliesResponsibleUserGitIdentityOnCloneAndResume(t *t
 	mustGit(t, "", "clone", "--bare", source, remote)
 
 	repository := domain.RepositoryContext{RepositoryID: "skillhub", CloneURL: remote, BaseBranch: "master", WorkBranch: "feature/identity"}
-	ctx := withGitIdentity(context.Background(), "example-admin", "example-admin@users.noreply.loopforge.invalid")
+	ctx := withGitIdentity(context.Background(), "example-admin", "example-admin@users.noreply.friday.invalid")
 	if err := prepareRepository(ctx, workspace, repository); err != nil {
 		t.Fatal(err)
 	}
@@ -834,7 +834,7 @@ func TestPrepareRepositoryAppliesResponsibleUserGitIdentityOnCloneAndResume(t *t
 	if got := gitOutput("config", "--local", "user.name"); got != "example-admin" {
 		t.Fatalf("user.name = %q", got)
 	}
-	if got := gitOutput("config", "--local", "user.email"); got != "example-admin@users.noreply.loopforge.invalid" {
+	if got := gitOutput("config", "--local", "user.email"); got != "example-admin@users.noreply.friday.invalid" {
 		t.Fatalf("user.email = %q", got)
 	}
 
@@ -848,7 +848,7 @@ func TestPrepareRepositoryAppliesResponsibleUserGitIdentityOnCloneAndResume(t *t
 	}
 	mustGit(t, workspace, "add", "fix.txt")
 	mustGit(t, workspace, "commit", "-m", "fix")
-	if got := gitOutput("log", "-1", "--format=%an <%ae>"); got != "example-admin <example-admin@users.noreply.loopforge.invalid>" {
+	if got := gitOutput("log", "-1", "--format=%an <%ae>"); got != "example-admin <example-admin@users.noreply.friday.invalid>" {
 		t.Fatalf("commit author = %q", got)
 	}
 }
@@ -2811,13 +2811,13 @@ func TestResolveNodeExecutorPrefersAgentModel(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	agent := domain.AgentDefinition{ID: "analyst", Name: "Analyst", ExecutorID: "codebuddy", Model: "agent-model"}
+	agent := domain.AgentDefinition{ID: "analyst", Name: "Analyst", ExecutorID: "claude", Model: "agent-model"}
 	got, err := resolveNodeExecutor(s, domain.WorkflowNode{AgentID: "analyst", ExecutorID: "mock"}, agent)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.ID != "codebuddy" {
-		t.Fatalf("executor = %s, want codebuddy from the agent", got.ID)
+	if got.ID != "claude" {
+		t.Fatalf("executor = %s, want claude from the agent", got.ID)
 	}
 	if got.Model != "agent-model" {
 		t.Fatalf("model = %s, want agent override", got.Model)
@@ -3066,7 +3066,7 @@ func TestCollectRepositoryPatchSkipsQuotedAgentflowModuleCache(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(workspace, ".git", "agentflow-baseline"), bytes.TrimSpace(head), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	modDoc := filepath.Join(workspace, ".agentflow", "private-home", "codebuddy", "go", "pkg", "mod", "github.com", "tjfoc", "gmsm@v1.4.1", "API使用说明.md")
+	modDoc := filepath.Join(workspace, ".agentflow", "private-home", "claude-code", "go", "pkg", "mod", "github.com", "tjfoc", "gmsm@v1.4.1", "API使用说明.md")
 	if err := os.MkdirAll(filepath.Dir(modDoc), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -3180,7 +3180,7 @@ func TestCollectRepositoryPatchUsesNearerUpstreamAfterMerge(t *testing.T) {
 
 func TestUnquoteGitLsFilesPathDecodesOctalChineseName(t *testing.T) {
 	t.Parallel()
-	want := ".agentflow/private-home/codebuddy/go/pkg/mod/github.com/tjfoc/gmsm@v1.4.1/API使用说明.md"
+	want := ".agentflow/private-home/claude-code/go/pkg/mod/github.com/tjfoc/gmsm@v1.4.1/API使用说明.md"
 	raw := quoteGitCStyle(want)
 	got := gitwork.UnquoteLsFilesPath(raw)
 	if got != want {
@@ -3293,7 +3293,6 @@ func TestExcludeFromRepositoryPatchDependencies(t *testing.T) {
 		".terragrunt-cache/hash/main.tf",
 		// Internal & SOP reports
 		".agentflow/temp.txt",
-		".codebuddy/rules.json",
 		"fix-plan.md",
 		"test-report.md",
 	}

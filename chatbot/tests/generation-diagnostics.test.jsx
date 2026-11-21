@@ -25,7 +25,7 @@ const report = {
   attempts: [
     {
       id: "turn-one/1",
-      engine: "codebuddy",
+      engine: "codex",
       model: "model-example",
       status: "failed",
       phase: "execution",

@@ -265,7 +265,7 @@ func TestUpdateFailuresAndCandidateReuse(t *testing.T) {
 				t.Fatal("failed candidate activated")
 			}
 			if mode == "help" {
-				if state.Current["codebuddy"].Version != "2.0.0" {
+				if state.Current["claude-code"].Version != "2.0.0" {
 					t.Fatal("one provider blocked healthy updates")
 				}
 				f.update(t, true) // repeated failed smoke test reuses its cache too
@@ -341,7 +341,7 @@ func (failingTransport) RoundTrip(*http.Request) (*http.Response, error) {
 }
 
 func TestUpdaterEnvironment(t *testing.T) {
-	for _, key := range []string{"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "CODEBUDDY_API_KEY", "AGENTFLOW_WORKER_CONTROL_TOKEN", "AGENTFLOW_PLATFORM_MCP_TOKEN", "AGENTFLOW_API_KEY", "AGENTFLOW_RUNNER_BOOTSTRAP_TOKEN", "NODE_OPTIONS", "NPM_TOKEN", "NPM_CONFIG_REGISTRY", "npm_config_registry", "NPM_CONFIG_USERCONFIG", "NPM_CONFIG_GLOBALCONFIG", "AGENTFLOW_MANAGED_CLI_CONFIG"} {
+	for _, key := range []string{"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "AGENTFLOW_WORKER_CONTROL_TOKEN", "AGENTFLOW_PLATFORM_MCP_TOKEN", "AGENTFLOW_API_KEY", "AGENTFLOW_RUNNER_BOOTSTRAP_TOKEN", "NODE_OPTIONS", "NPM_TOKEN", "NPM_CONFIG_REGISTRY", "npm_config_registry", "NPM_CONFIG_USERCONFIG", "NPM_CONFIG_GLOBALCONFIG", "AGENTFLOW_MANAGED_CLI_CONFIG"} {
 		t.Setenv(key, "not-for-updater")
 	}
 	f := newUpdaterFixture(t)
@@ -392,8 +392,7 @@ func TestUpdateProviderOnlyChangesTheRequestedCLI(t *testing.T) {
 		t.Fatalf("update results = %+v", report.Results)
 	}
 	state := f.state(t)
-	if state.Current["codex"].Version != "2.0.0" || state.Current["claude-code"].Version != "1.0.0" ||
-		state.Current["codebuddy"].Version != "1.0.0" {
+	if state.Current["codex"].Version != "2.0.0" || state.Current["claude-code"].Version != "1.0.0" {
 		t.Fatal("single CLI update changed unrelated active versions")
 	}
 }

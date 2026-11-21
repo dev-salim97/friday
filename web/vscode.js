@@ -238,8 +238,8 @@
           'agentflow.repositories': repositories
         },
         productConfiguration: {
-          nameShort: 'LoopForge VS Code',
-          nameLong: 'LoopForge VS Code',
+          nameShort: 'Friday VS Code',
+          nameLong: 'Friday VS Code',
           applicationName: 'agentflow-vscode',
           dataFolderName: '.agentflow-vscode',
           version: '1.91.1',

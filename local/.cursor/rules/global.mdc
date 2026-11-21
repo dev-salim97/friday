@@ -8,8 +8,7 @@ enabled: true
 
 ## G1：运行资产边界
 
-Cursor devflow 只读取 `.cursor/` 下的工作流资产。`.cursor/` 保留给
-CodeBuddy 使用，不能作为 Cursor 运行时依赖。
+Cursor devflow 只读取 `.cursor/` 下的工作流资产。
 
 ## G2：配置优先
 

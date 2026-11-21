@@ -24,14 +24,13 @@ func TestRunnerTaskPayloadScrubbedOnTerminalTransitions(t *testing.T) {
 	task := domain.RunnerTask{
 		ID:        "task-scrub",
 		RunnerID:  "runner-1",
-		Provider:  "codebuddy",
+		Provider:  "claude-code",
 		Prompt:    "run the node",
 		Workspace: "/tmp/ws",
 		RunID:     "run-1",
 		NodeID:    "impl",
 		Invocation: &domain.RunnerInvocation{
 			RunID:             "run-1",
-			CodeBuddyAPIKey:   "cb-secret",
 			ClaudeCodeAPIKey:  "cc-secret",
 			ClaudeCodeBaseURL: "https://cc.example.com",
 			AgentCLIAPIKey:    "agy-secret",

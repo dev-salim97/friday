@@ -133,7 +133,7 @@ PY
 ### 已知问题（未修复）
 
 - **工具失败事件的 `raw_response` 经常缺失（PostToolUse 与 transcript 落盘之间的时序竞争）**：
-  真实 CodeBuddy CLI 场景下实测复现过——一次会故意制造失败的 `Bash` 调用（`exitCode=1`，
+  真实 Cursor CLI 场景下实测复现过——一次会故意制造失败的 `Bash` 调用（`exitCode=1`，
   transcript 里 `function_call_result.providerData.toolResult.rawResponse` 确实带了
   `is_error:true`/`exitCode:1`/`tool_error_code`），但最终写进 `metrics.ndjson` 的
   `tool` 事件的 `tool_details` 里完全没有 `raw_response` 字段。
@@ -148,7 +148,7 @@ PY
   游标，错过这次窗口后不会在后续调用里回头补扫，所以这次机会永久丢失，直接后果是
   `build_dashboard_data.py` 的 `tool_call_failed()`（无论怎么改判定逻辑）都拿不到
   数据，"工具失败率"/`failures` 列表对这类快速失败调用会漏检。
-  复现方式：让 CodeBuddy 执行一个必然快速失败的命令（如 `ls /path/does/not/exist`，
+  复现方式：让 Cursor 执行一个必然快速失败的命令（如 `ls /path/does/not/exist`，
   越快的命令越容易复现，因为 hook 触发与 transcript 落盘之间的竞争窗口更紧张），
   对比 `metrics.ndjson` 里该 `tool` 事件的 `tool_details.raw_response` 是否存在，
   和对应 transcript `.jsonl` 里 `function_call`/`function_call_result` 两条记录各自

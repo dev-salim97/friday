@@ -4,9 +4,8 @@ from typing import Dict, Tuple
 
 
 DEFAULT_EDITION = "classic"
-HOSTS: Tuple[str, ...] = ("codebuddy", "codex", "cursor", "claude", "pi", "dsh", "hermes")
+HOSTS: Tuple[str, ...] = ("codex", "cursor", "claude", "pi", "dsh", "hermes")
 HOST_LABELS = {
-    "codebuddy": "CodeBuddy",
     "codex": "Codex",
     "cursor": "Cursor",
     "claude": "Claude Code",
@@ -19,9 +18,8 @@ EDITION_SPECS: Dict[str, dict] = {
     "portable": {
         "description": "Agent Skills based portable workflow",
         "source_roots": ("skills/",),
-        "hosts": ("codebuddy", "codex", "cursor", "claude", "pi", "dsh", "hermes"),
+        "hosts": ("codex", "cursor", "claude", "pi", "dsh", "hermes"),
         "entrypoints": {
-            "codebuddy": "/devflow",
             "codex": "$devflow",
             "cursor": "/devflow",
             "claude": "/devflow",
@@ -31,11 +29,10 @@ EDITION_SPECS: Dict[str, dict] = {
         },
     },
     "classic": {
-        "description": "Full host-native workflow derived from .codebuddy behavior",
-        "source_roots": (".codebuddy/", ".codex/", ".cursor/", ".claude/"),
-        "hosts": ("codebuddy", "codex", "cursor", "claude"),
+        "description": "Full host-native workflow derived from the classic reference behavior",
+        "source_roots": (".codex/", ".cursor/", ".claude/"),
+        "hosts": ("codex", "cursor", "claude"),
         "entrypoints": {
-            "codebuddy": "/start-devflow",
             "codex": "$devflow-codex",
             "cursor": "/start-devflow",
             "claude": "/start-devflow",

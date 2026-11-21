@@ -301,10 +301,10 @@ func TestConfigureRepositoryGitIdentityOverridesStaleLocalConfig(t *testing.T) {
 			t.Fatalf("git %v: %v: %s", args, err, output)
 		}
 	}
-	if err := configureRepositoryGitIdentity(context.Background(), repository, "example-admin", "example-admin@users.noreply.loopforge.invalid"); err != nil {
+	if err := configureRepositoryGitIdentity(context.Background(), repository, "example-admin", "example-admin@users.noreply.friday.invalid"); err != nil {
 		t.Fatal(err)
 	}
-	for key, want := range map[string]string{"user.name": "example-admin", "user.email": "example-admin@users.noreply.loopforge.invalid"} {
+	for key, want := range map[string]string{"user.name": "example-admin", "user.email": "example-admin@users.noreply.friday.invalid"} {
 		output, err := exec.Command("git", "-C", repository, "config", "--local", key).Output()
 		if err != nil || strings.TrimSpace(string(output)) != want {
 			t.Fatalf("%s = %q, want %q (err=%v)", key, output, want, err)
@@ -317,20 +317,20 @@ func TestCheckoutInvocationRepositoriesLeavesAgentConfigVisible(t *testing.T) {
 	invocation := &domain.RunnerInvocation{}
 	for _, name := range []string{"frontend", "backend"} {
 		repository := filepath.Join(root, name+"-source")
-		if err := os.MkdirAll(filepath.Join(repository, ".codebuddy"), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Join(repository, ".claude"), 0o755); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(repository, "AGENTS.md"), []byte("project instructions\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(repository, ".codebuddy", "settings.json"), []byte("{}\n"), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(repository, ".claude", "settings.json"), []byte("{}\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		for _, args := range [][]string{
 			{"init", "-q", "-b", "master"},
 			{"config", "user.email", "runner-test@example.com"},
 			{"config", "user.name", "Runner Test"},
-			{"add", "AGENTS.md", ".codebuddy/settings.json"},
+			{"add", "AGENTS.md", ".claude/settings.json"},
 			{"commit", "-qm", "baseline"},
 		} {
 			cmd := exec.Command("git", append([]string{"-C", repository}, args...)...)
@@ -349,7 +349,7 @@ func TestCheckoutInvocationRepositoriesLeavesAgentConfigVisible(t *testing.T) {
 	}
 	for _, name := range []string{"frontend", "backend"} {
 		repository := filepath.Join(workspace, name)
-		cmd := exec.Command("git", "-C", repository, "ls-files", "-v", "--", "AGENTS.md", ".codebuddy/settings.json")
+		cmd := exec.Command("git", "-C", repository, "ls-files", "-v", "--", "AGENTS.md", ".claude/settings.json")
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("git ls-files %s: %v: %s", name, err, output)
@@ -610,13 +610,13 @@ func TestExecuteProcessStoresVisibleTextNotStreamJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	task := domain.RunnerTask{
-		ID: "rt-visible", Provider: "codebuddy", Status: domain.RunnerTaskQueued, MaxAttempts: 1,
-		Invocation: &domain.RunnerInvocation{Executor: domain.ExecutorDefinition{Kind: "codebuddy", Protocol: "stream-json", Model: "test"}},
+		ID: "rt-visible", Provider: "claude-code", Status: domain.RunnerTaskQueued, MaxAttempts: 1,
+		Invocation: &domain.RunnerInvocation{Executor: domain.ExecutorDefinition{Kind: "claude-code", Protocol: "stream-json", Model: "test"}},
 	}
 	if err := s.PutRunnerTask(task); err != nil {
 		t.Fatal(err)
 	}
-	claimed, ok, err := s.ClaimRunnerTask(daemon.runnerID(), []string{"codebuddy"}, time.Now().UTC(), time.Minute)
+	claimed, ok, err := s.ClaimRunnerTask(daemon.runnerID(), []string{"claude-code"}, time.Now().UTC(), time.Minute)
 	if err != nil || !ok {
 		t.Fatalf("claim: ok=%v err=%v", ok, err)
 	}

@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-// CLIs the published platform image does not guarantee. Codex, CodeBuddy and
+// CLIs the published platform image does not guarantee. Codex and
 // DeepSeek Harness are baked into that image; the rest are installed only after
 // a person asks from a failed conversation. Package names and installer URLs are fixed:
 // the request may choose an engine, never a URL or a package.
@@ -44,7 +44,6 @@ var onDemandInstallMu sync.Mutex
 func onDemandCLICatalog() map[string]onDemandCLI {
 	return map[string]onDemandCLI{
 		"codex":       {Engine: "codex", Binary: "codex", Package: "@openai/codex", Bundled: true},
-		"codebuddy":   {Engine: "codebuddy", Binary: "codebuddy", Package: "@tencent-ai/codebuddy-code", Bundled: true},
 		"claude-code": {Engine: "claude-code", Binary: "claude", Package: "@anthropic-ai/claude-code"},
 		"opencode":    {Engine: "opencode", Binary: "opencode", Package: "opencode-ai"},
 		"cursor":      {Engine: "cursor", Binary: "cursor-agent", Script: cursorInstallScript},
@@ -126,8 +125,6 @@ func onDemandCLILabel(engine string) string {
 	switch engine {
 	case "codex":
 		return "Codex"
-	case "codebuddy":
-		return "CodeBuddy"
 	case "claude-code":
 		return "Claude Code"
 	default:

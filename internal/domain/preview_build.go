@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// StripPreviewBuild removes the synthetic CodeBuddy preview node so the SOP
+// StripPreviewBuild removes the synthetic preview node so the SOP
 // catalog never persists an engine-injected step.
 func StripPreviewBuild(wf WorkflowDefinition) WorkflowDefinition {
 	nodes := make([]WorkflowNode, 0, len(wf.Nodes))
@@ -82,7 +82,7 @@ func PreviewBuildAgent(contract *PreviewContract) AgentDefinition {
 	return AgentDefinition{
 		ID:              PreviewBuildAgentID,
 		Name:            "构建静态站点",
-		Description:     "系统步骤：用 CodeBuddy 产出可托管的静态站点，再由预览收尾归档。",
+		Description:     "系统步骤：产出可托管的静态站点，再由预览收尾归档。",
 		ExecutorID:      PreviewBuildExecutor,
 		Model:           contract.ModelOrDefault(),
 		Prompt:          PreviewBuildPrompt(contract),
@@ -109,7 +109,7 @@ func PreviewBuildPrompt(contract *PreviewContract) string {
 	index := contract.Index()
 	entry := contract.EntryRel()
 	return "把当前工作区里的前端应用打成可独立托管的静态站点，不要让用户再手写构建脚本。\n\n" +
-		"这是 AgentFlow 在 SOP 勾选「前端预览」后自动追加的 CodeBuddy 步骤。工作区可能包含一个或多个代码仓库子目录，上游节点已经完成实现与测试。构建完成后平台会打包静态目录并删除工作区。\n\n" +
+		"这是 AgentFlow 在 SOP 勾选「前端预览」后自动追加的步骤。工作区可能包含一个或多个代码仓库子目录，上游节点已经完成实现与测试。构建完成后平台会打包静态目录并删除工作区。\n\n" +
 		"### 步骤\n\n" +
 		"1. 识别前端工程（package.json、vite、webpack、rspack、next 静态导出等）。\n" +
 		"2. 若工作区没有前端工程（无 Vite/webpack/Next 等配置、无前端依赖的 package.json、无 index.html），不要另起项目或手写预览页，不要创建 `" + source + "/" + index + "`，直接说明原因并结束。\n" +

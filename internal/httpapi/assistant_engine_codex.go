@@ -70,7 +70,7 @@ func prepareAssistantCodexInvocation(o assistantEngineInvocationOpts) (assistant
 // codexAppServer drives one turn: initialize, thread/start (or
 // thread/resume), turn/start, then closes stdin on turn/completed so the
 // server exits. translate runs on the process's stdout goroutine and rewrites
-// notifications as the CodeBuddy-style stream-json lines the chat pipeline
+// notifications as the Claude-style stream-json lines the chat pipeline
 // parses: deltas become stream_event blocks, finished messages and reasoning
 // become assistant blocks, tool items become tool_use / tool_result, and the
 // turn's end becomes the result line.

@@ -1,7 +1,7 @@
 {
-  "name": "loopforge-cli",
+  "name": "friday-cli",
   "version": "0.2.3",
-  "description": "LoopForge Local development workflows for CodeBuddy, Codex, Cursor, Claude Code, Pi, DeepSeek Harness and Hermes Agent",
+  "description": "Friday Local development workflows for Codex, Cursor, Claude Code, Pi, DeepSeek Harness and Hermes Agent",
   "keywords": [
     "ai-agents",
     "multi-agent",
@@ -9,29 +9,27 @@
     "codex",
     "claude-code",
     "cursor",
-    "codebuddy",
     "deepseek-harness",
     "hermes-agent"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Tencent/LoopForge.git",
+    "url": "git+https://github.com/Tencent/Friday.git",
     "directory": "local"
   },
   "bugs": {
-    "url": "https://github.com/Tencent/LoopForge/issues"
+    "url": "https://github.com/Tencent/Friday/issues"
   },
-  "homepage": "https://github.com/Tencent/LoopForge#readme",
+  "homepage": "https://github.com/Tencent/Friday#readme",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "loopforge": "bin/loopforge.mjs"
+    "friday": "bin/friday.mjs"
   },
   "files": [
     "bin/",
     "src/devflow_cli/",
     "skills/",
-    ".codebuddy/",
     ".codex/",
     ".cursor/",
     ".claude/",
@@ -41,7 +39,6 @@
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "!skills/**/tests/**",
-    "!.codebuddy/**/tests/**",
     "!.codex/**/tests/**",
     "!.cursor/**/tests/**",
     "!.claude/**/tests/**",
@@ -50,8 +47,6 @@
     "!**/__pycache__/**",
     "!**/*.pyc",
     "!**/*.pyo",
-    "!.codebuddy/skills/agent-observability/logs/**",
-    ".codebuddy/skills/agent-observability/logs/.gitkeep",
     "!.cursor/skills/agent-observability/logs/**",
     ".cursor/skills/agent-observability/logs/.gitkeep",
     "!.claude/skills/agent-observability/logs/**",

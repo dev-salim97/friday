@@ -98,11 +98,12 @@ function scheduleIssueStatusValues(job){
   return ['backlog','todo'];
 }
 function scheduleModelAPI(){return window.AgentFlowAssistantModels}
+function defaultScheduleEngine(){return scheduleModelAPI()?.DEFAULT_ENGINE||'claude-code'}
 function selectedClarifyModel(){
   const api=window.AgentFlowAssistantModels;
   const stored=localStorage.getItem('agentflow.clarifyModel')||'';
-  // Clarification runs on CodeBuddy only; a saved "codex:…" id falls back.
-  if(api?.codeBuddyModel)return api.codeBuddyModel(stored);
+  // Clarification runs on the default CLI only; a saved "codex:…" id falls back.
+  if(api?.primaryModel)return api.primaryModel(stored);
   return stored||(api&&api.DEFAULT)||'default';
 }
 function setClarifyModel(id){
@@ -140,7 +141,7 @@ function bindClarifyModelPicker(host){
     menu.hidden=!open;
     toggle.setAttribute('aria-expanded',open?'true':'false');
     if(open){
-      api.renderCodeBuddyList(menu, selectedClarifyModel(), id=>{
+      api.renderPrimaryList(menu, selectedClarifyModel(), id=>{
         setClarifyModel(id);
         api.paint(toggle, id);
         menu.hidden=true;
@@ -157,22 +158,22 @@ function scheduleModelCatalog(){
   return scheduleCatalog||scheduleModelAPI()?.catalog?.()||{};
 }
 function scheduleEngineModels(engine){
-  return (scheduleModelCatalog().models||[]).filter(m=>(m.engine||'codebuddy')===engine);
+  return (scheduleModelCatalog().models||[]).filter(m=>(m.engine||defaultScheduleEngine())===engine);
 }
 function scheduleModelEngine(id){
-  return scheduleModelAPI()?.engineOf?.(id,scheduleModelCatalog())||'codebuddy';
+  return scheduleModelAPI()?.engineOf?.(id,scheduleModelCatalog())||defaultScheduleEngine();
 }
 function paintScheduleEngines(selected){
   const select=$('#scheduleEngine');
   if(!select)return;
   const current=scheduleModelEngine(selected);
   const engines=scheduleModelCatalog().engines||[];
-  const list=engines.length?[...engines]:[{id:'codebuddy',name:'CodeBuddy'}];
+  const list=engines.length?[...engines]:[{id:defaultScheduleEngine(),name:'Claude Code'}];
   if(!list.some(e=>e.id===current))list.push({id:current,name:current});
-  // CodeBuddy can run on its native default with no concrete model in the
+  // The default CLI can run on its native default with no concrete model in the
   // list. A saved task keeps its CLI selectable during edits.
   select.replaceChildren(...list.map(e=>{
-    const usable=e.id===current||(e.id==='codebuddy'&&e.configured)||scheduleEngineModels(e.id).length>0;
+    const usable=e.id===current||(e.id===defaultScheduleEngine()&&e.configured)||scheduleEngineModels(e.id).length>0;
     const option=new Option(usable?e.name:`${e.name}（缺少凭据）`,e.id);
     option.disabled=!usable;
     return option;
@@ -228,7 +229,7 @@ function bindScheduleModelPicker(){
   if(engine)engine.onchange=()=>{
     const api=scheduleModelAPI();
     const models=scheduleEngineModels(engine.value);
-    const next=models[0]?.id||(engine.value==='codebuddy'?(scheduleModelCatalog().default||api?.DEFAULT):'');
+    const next=models[0]?.id||(engine.value===defaultScheduleEngine()?(scheduleModelCatalog().default||api?.DEFAULT):'');
     if(next)paintScheduleModel(next);
   };
   document.addEventListener('click',e=>{if(!host.contains(e.target))closeScheduleModelMenu()});
@@ -465,7 +466,7 @@ function renderScheduleJobs(){
   const disabled='本实例不执行定时任务；任务可在主实例自动运行。';
   $('#scheduleRuntimeHint').textContent=canRun?'每个项目使用一份触发配置，修改后保存即可生效。立即运行在服务端执行，关闭页面不会中断。':disabled;
   const triggerHint=$('#aiScheduleTriggerHint');if(triggerHint)triggerHint.textContent=canRun?'按计划扫描本项目选定状态、尚未跑过 SOP 的需求，通过基线门禁后派发 SOP。每个项目使用一份触发配置。':disabled;
-  $('#aiScheduleRuntimeHint').textContent=!state.projectFilter?'请先在顶栏选择项目，再管理 AI 定时任务。':canRun?'以最后保存任务的人的身份和完全权限执行。默认执行机器离线时使用该用户的 API Key。CodeBuddy 缺少个人 Key 时可使用平台共享 Key。关闭页面不会中断执行。':disabled;
+  $('#aiScheduleRuntimeHint').textContent=!state.projectFilter?'请先在顶栏选择项目，再管理 AI 定时任务。':canRun?'以最后保存任务的人的身份和完全权限执行。默认执行机器离线时使用该用户的 API Key。关闭页面不会中断执行。':disabled;
   $('#aiScheduleProjectName').textContent=currentProject()?.name||'当前项目';
   $('#aiScheduleCount').textContent=`${assistant.length} 个任务`;
   $('#newAISchedule').disabled=!state.projectFilter;

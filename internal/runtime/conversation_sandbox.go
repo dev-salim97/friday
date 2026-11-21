@@ -68,8 +68,8 @@ func configureProcessConversationSandbox(s *processSandbox, root string) error {
 var conversationGuardFiles = []string{
 	"home/.cursor/hooks.json", "home/.gemini/config/hooks.json",
 	"home/.kimi-code/config.toml", "home/.config/opencode/opencode.json",
-	"home/.config/opencode/plugins/loopforge-approval.js",
-	"home/.pi/agent/extensions/loopforge-approval.ts",
+	"home/.config/opencode/plugins/friday-approval.js",
+	"home/.pi/agent/extensions/friday-approval.ts",
 	"home/.zcode/cli/config.json",
 }
 
@@ -171,7 +171,7 @@ func ensureConversationCLI(ctx context.Context, sandbox Sandbox, provider, home 
 	return s.ensureDockerCLI(ctx, provider, home)
 }
 
-const dockerCLISharedPath = "/opt/loopforge/conversation-cli/bin:/opt/loopforge/conversation-cli/.local/bin"
+const dockerCLISharedPath = "/opt/friday/conversation-cli/bin:/opt/friday/conversation-cli/.local/bin"
 const dockerCLISharedPathSetup = "PATH=" + dockerCLISharedPath + ":$PATH\nexport PATH\n"
 
 const dockerCLIProbe = `cli_path=$(command -v "$1") || exit 127
@@ -223,7 +223,7 @@ func (s *dockerSandbox) ensureDockerCLI(ctx context.Context, provider, home stri
 	// The root login shell may see a private copy the task cannot execute.
 	taskArgs := append(append([]string{"exec", "--workdir", "/"}, toolchain...), s.name, "sh", "-lc")
 	taskPathSetup := dockerCLISharedPathSetup + toolchainPathSetup
-	probe, err := exec.CommandContext(ctx, "docker", append(taskArgs, taskPathSetup+dockerCLIProbe, "loopforge-cli-available", binary)...).CombinedOutput()
+	probe, err := exec.CommandContext(ctx, "docker", append(taskArgs, taskPathSetup+dockerCLIProbe, "friday-cli-available", binary)...).CombinedOutput()
 	installMode := "reuse"
 	if err != nil {
 		if !isDockerCLIMissing(err) {
@@ -240,13 +240,13 @@ func (s *dockerSandbox) ensureDockerCLI(ctx context.Context, provider, home stri
 			setupArgs = append(setupArgs, "-e", key+"="+value)
 		}
 	}
-	setupArgs = append(append(setupArgs, toolchain...), s.name, "sh", "-lc", setup, "loopforge-cli-setup", ids[0], ids[1], home, installMode)
+	setupArgs = append(append(setupArgs, toolchain...), s.name, "sh", "-lc", setup, "friday-cli-setup", ids[0], ids[1], home, installMode)
 	output, err := exec.CommandContext(ctx, "docker", setupArgs...).CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("准备 %s 原生CLI失败（工作区镜像需支持 Node.js/npm 和 Python3）：%w: %s", provider, err, conversationSetupOutput(output))
 	}
 	check := taskPathSetup + "python3 -c 'import os,pwd; pwd.getpwuid(os.geteuid())' || exit\n" + dockerCLIProbe
-	checkArgs := append(taskArgs, check, "loopforge-cli-verify", binary)
+	checkArgs := append(taskArgs, check, "friday-cli-verify", binary)
 	output, err = exec.CommandContext(ctx, "docker", checkArgs...).CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("验证工作区执行用户可使用 CLI %s 失败：%w: %s", binary, err, conversationSetupOutput(output))
@@ -267,7 +267,7 @@ func dockerCLISetup(provider, binary string) (string, error) {
 		if spec.RelaxEngines {
 			flags = "--engine-strict=false "
 		}
-		installer = "npm install --no-audit --no-fund " + flags + "--prefix /opt/loopforge/conversation-cli " + shellSingleQuote(spec.Package) + " >&2\nln -sf ../node_modules/.bin/" + shellSingleQuote(binary) + " /opt/loopforge/conversation-cli/bin/" + shellSingleQuote(binary)
+		installer = "npm install --no-audit --no-fund " + flags + "--prefix /opt/friday/conversation-cli " + shellSingleQuote(spec.Package) + " >&2\nln -sf ../node_modules/.bin/" + shellSingleQuote(binary) + " /opt/friday/conversation-cli/bin/" + shellSingleQuote(binary)
 	} else {
 		switch provider {
 		case AgentCLIZCode:
@@ -290,7 +290,7 @@ if ! command -v python3 >/dev/null 2>&1; then
   elif command -v apk >/dev/null 2>&1; then apk add --no-cache python3 >&2
   else echo 'Python3 is required for native CLI hooks and process supervision' >&2; exit 1; fi
 fi
-` + conversationCLIIdentitySetup + "if [ \"$4\" = install ]; then\nmkdir -p /opt/loopforge/conversation-cli/bin\n" + installer + "\nfi\n" +
+` + conversationCLIIdentitySetup + "if [ \"$4\" = install ]; then\nmkdir -p /opt/friday/conversation-cli/bin\n" + installer + "\nfi\n" +
 		"python3 -c 'import json,urllib.request'\n", nil
 }
 
@@ -306,12 +306,12 @@ if ! download_installer; then
   sleep 1
   download_installer
 fi
-HOME=/opt/loopforge/conversation-cli bash "$installer_file" >&2`
+HOME=/opt/friday/conversation-cli bash "$installer_file" >&2`
 }
 
 // Node-based CLIs call getpwuid even when HOME is already set. Numeric
 // container users need an NSS identity; do not change an existing image user.
-const conversationCLIIdentitySetup = `python3 - "$1" "$2" "$3" <<'LOOPFORGE_CLI_IDENTITY'
+const conversationCLIIdentitySetup = `python3 - "$1" "$2" "$3" <<'FRIDAY_CLI_IDENTITY'
 import fcntl, pwd, sys
 uid, gid = map(int, sys.argv[1:3])
 home = sys.argv[3]
@@ -326,19 +326,19 @@ except KeyError:
             try:
                 pwd.getpwuid(uid)
             except KeyError:
-                name = "loopforge-cli-" + str(uid)
+                name = "friday-cli-" + str(uid)
                 names = {entry.pw_name for entry in pwd.getpwall()}
                 while name in names:
                     name += "_"
                 passwd.seek(0)
                 previous = passwd.read()
                 prefix = "" if not previous or previous.endswith("\n") else "\n"
-                passwd.write(prefix + f"{name}:!:{uid}:{gid}:LoopForge CLI:{home}:/bin/false\n")
+                passwd.write(prefix + f"{name}:!:{uid}:{gid}:Friday CLI:{home}:/bin/false\n")
                 passwd.flush()
     except OSError as err:
         sys.exit(f"Native CLI UID {uid} has no passwd entry; add it to the workspace image or allow /etc/passwd writes during preparation: {err}")
     pwd.getpwuid(uid)
-LOOPFORGE_CLI_IDENTITY
+FRIDAY_CLI_IDENTITY
 `
 
 func conversationSetupOutput(output []byte) string {

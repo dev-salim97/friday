@@ -3,16 +3,20 @@ let aiBuild = null;
 let aiAbort = null;
 const aiHistory = {};
 
+function aiDefaultEngine() {
+  return window.AgentFlowAssistantModels?.DEFAULT_ENGINE || 'claude-code';
+}
+
 function aiOrchestratorEngine(model) {
   const listed = window.AgentFlowAssistantModels?.catalog().models.find(item => item.id === model);
-  return listed?.engine || (String(model || '').includes(':') ? model.split(':')[0] : 'codebuddy');
+  return listed?.engine || (String(model || '').includes(':') ? model.split(':')[0] : aiDefaultEngine());
 }
 
 function selectedAIOrchestratorModel() {
   const api = window.AgentFlowAssistantModels;
   const remembered = localStorage.getItem('agentflow.orchestratorModel') || localStorage.getItem('agentflow.assistantModel');
   if (remembered && remembered !== api?.DEFAULT) return remembered;
-  return api?.codeBuddyModels()[0]?.id || api?.catalog().default || remembered || '';
+  return api?.primaryModels()[0]?.id || api?.catalog().default || remembered || '';
 }
 
 function aiOrchestratorModels(engine = aiOrchestratorEngine(selectedAIOrchestratorModel())) {
@@ -22,7 +26,7 @@ function aiOrchestratorModels(engine = aiOrchestratorEngine(selectedAIOrchestrat
 function aiOrchestratorEngines() {
   const catalog = window.AgentFlowAssistantModels?.catalog() || {};
   if (catalog.engines?.length) return catalog.engines;
-  return [...new Set((catalog.models || []).map(model => aiOrchestratorEngine(model.id)))].map(id => ({id, name: id === 'codebuddy' ? 'CodeBuddy' : id, configured: true}));
+  return [...new Set((catalog.models || []).map(model => aiOrchestratorEngine(model.id)))].map(id => ({id, name: id === 'claude-code' ? 'Claude Code' : id, configured: true}));
 }
 
 function selectAIOrchestratorModel(id) {
@@ -57,7 +61,7 @@ function bindAIOrchestratorModelPicker() {
     const items = () => cli ? aiOrchestratorEngines().map(engine => ({
       ...engine,
       icon: false,
-      disabled: engine.configured === false || (engine.id !== 'codebuddy' && !aiOrchestratorModels(engine.id).length),
+      disabled: engine.configured === false || (engine.id !== aiDefaultEngine() && !aiOrchestratorModels(engine.id).length),
     })) : aiOrchestratorModels();
     const paint = () => {
       const id = selected();
@@ -85,7 +89,7 @@ function bindAIOrchestratorModelPicker() {
           const models = aiOrchestratorModels(id);
           const remembered = localStorage.getItem('agentflow.orchestratorModel.' + id);
           const preference = id === selected() ? selectedAIOrchestratorModel() : remembered;
-          const fallback = models[0]?.id || (id === 'codebuddy' ? api.catalog().default || api.DEFAULT : '');
+          const fallback = models[0]?.id || (id === aiDefaultEngine() ? api.catalog().default || api.DEFAULT : '');
           model = models.find(item => item.id === preference)?.id || fallback;
         }
         if (!model) return;

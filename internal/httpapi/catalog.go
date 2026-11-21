@@ -341,7 +341,7 @@ func (h *catalogHandlers) agents(c *gin.Context) {
 				return
 			}
 			if strings.TrimSpace(v.ExecutorID) == "" {
-				v.ExecutorID = "codebuddy"
+				v.ExecutorID = "claude"
 			}
 			builtIn, ok := repo.BuiltInExecutor(v.ExecutorID)
 			if !ok {
@@ -1072,6 +1072,11 @@ func (h *catalogHandlers) workflows(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 				return
 			}
+			v.ExecutorID = strings.TrimSpace(v.ExecutorID)
+			if err := validateWorkflowExecutor(v.ExecutorID); err != nil {
+				c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
+			}
 			if _, generic := h.repo.GenericTemplateByWorkflow(v.ID); generic {
 				if !h.isPlatformAdmin(c.Request) {
 					c.JSON(http.StatusConflict, map[string]string{"error": "通用模板为只读，请先复制到本项目再修改"})
@@ -1259,7 +1264,7 @@ func (h *catalogHandlers) workflow(c *gin.Context) {
 			return
 		}
 		if strings.TrimSpace(agent.ExecutorID) == "" {
-			agent.ExecutorID = "codebuddy"
+			agent.ExecutorID = "claude"
 		}
 		builtIn, ok := repo.BuiltInExecutor(agent.ExecutorID)
 		if !ok {
@@ -1310,6 +1315,10 @@ func (h *catalogHandlers) workflow(c *gin.Context) {
 			Name      string `json:"name"`
 			Owner     string `json:"owner"`
 			ProjectID string `json:"projectId"`
+			// ExecutorID, when present, sets the copy's SOP-wide 执行 CLI;
+			// an empty string clears it so every role keeps its own CLI.
+			// Absent keeps the source SOP's setting.
+			ExecutorID *string `json:"executorId"`
 		}
 		if !decode(c, &req) {
 			return
@@ -1317,6 +1326,14 @@ func (h *catalogHandlers) workflow(c *gin.Context) {
 		if req.ID == "" || req.Name == "" {
 			c.JSON(400, map[string]string{"error": "id and name are required"})
 			return
+		}
+		if req.ExecutorID != nil {
+			executorID := strings.TrimSpace(*req.ExecutorID)
+			if err := validateWorkflowExecutor(executorID); err != nil {
+				c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
+			}
+			v.ExecutorID = executorID
 		}
 		// A generic template id is reserved: no clone, whether its source is a
 		// regular SOP or the template itself, may occupy it, otherwise the

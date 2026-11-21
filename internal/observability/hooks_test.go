@@ -1,10 +1,6 @@
 package observability
 
 import (
-	"encoding/json"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -44,7 +40,6 @@ func TestHookEventParsesExecutionResult(t *testing.T) {
 func TestMatchAdapter(t *testing.T) {
 	live := domain.TelemetryEvent{Source: domain.TelemetrySource{Adapter: AdapterLive}}
 	hooks := domain.TelemetryEvent{Source: domain.TelemetrySource{Adapter: AdapterHooks}}
-	legacyHooks := domain.TelemetryEvent{Source: domain.TelemetrySource{Adapter: AdapterLegacyHooks}}
 	otel := domain.TelemetryEvent{Source: domain.TelemetrySource{Adapter: AdapterOTEL}}
 	platform := domain.TelemetryEvent{Source: domain.TelemetrySource{Adapter: "agentflow-control-plane"}}
 	cases := []struct {
@@ -57,8 +52,6 @@ func TestMatchAdapter(t *testing.T) {
 		{"live", hooks, false},
 		{"live", otel, false},
 		{"hooks", hooks, true},
-		{"hooks", legacyHooks, true},
-		{"live", legacyHooks, false},
 		{"hooks", live, false},
 		{"otel", otel, true},
 		{"all", hooks, true},
@@ -70,70 +63,12 @@ func TestMatchAdapter(t *testing.T) {
 	}
 }
 
-func TestWriteCodeBuddyHookBridge(t *testing.T) {
-	dir := t.TempDir()
-	if err := WriteCodeBuddyHookBridge(dir); err != nil {
-		t.Fatal(err)
-	}
-	for _, rel := range []string{filepath.Join(".agentflow", "observability", "hook.py"), filepath.Join(".agentflow", "codebuddy-settings.json")} {
-		if _, err := os.Stat(filepath.Join(dir, rel)); err != nil {
-			t.Fatal(err)
-		}
-	}
-	raw, _ := os.ReadFile(filepath.Join(dir, ".agentflow", "codebuddy-settings.json"))
-	if !strings.Contains(string(raw), "PreToolUse") || !strings.Contains(string(raw), "base64 -d") {
-		t.Fatalf("settings missing self-healing hook command: %s", raw)
-	}
-}
-
-func TestCodeBuddyHookCommandSelfHeals(t *testing.T) {
-	dir := t.TempDir()
-	relRoot := filepath.Join(".agentflow", "hooks", "codebuddy")
-	if err := WriteCodeBuddyHookBridgeAt(dir, relRoot); err != nil {
-		t.Fatal(err)
-	}
-	hookPath := filepath.Join(dir, relRoot, "hook.py")
-	if err := os.Remove(hookPath); err != nil {
-		t.Fatal(err)
-	}
-	settingsPath := filepath.Join(dir, ".agentflow", "hooks", "codebuddy-settings.json")
-	raw, err := os.ReadFile(settingsPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var settings map[string]any
-	if err := json.Unmarshal(raw, &settings); err != nil {
-		t.Fatal(err)
-	}
-	hooks, _ := settings["hooks"].(map[string]any)
-	pre, _ := hooks["PreToolUse"].([]any)
-	entry, _ := pre[0].(map[string]any)
-	inner, _ := entry["hooks"].([]any)
-	first, _ := inner[0].(map[string]any)
-	cmd, _ := first["command"].(string)
-	if !strings.Contains(cmd, "base64 -d") {
-		t.Fatalf("expected self-healing command, got %q", cmd)
-	}
-	c := exec.Command("bash", "-lc", cmd)
-	c.Dir = dir
-	c.Stdin = strings.NewReader(`{"hook_event_name":"PreToolUse","tool_name":"Bash"}`)
-	if out, err := c.CombinedOutput(); err != nil {
-		t.Fatalf("self-healing hook command failed: %v: %s", err, out)
-	}
-	if _, err := os.Stat(hookPath); err != nil {
-		t.Fatalf("hook.py was not recreated: %v", err)
-	}
-}
-
-func TestInjectCodeBuddyEnv(t *testing.T) {
+func TestInjectTelemetryEnv(t *testing.T) {
 	prev := config.Current()
 	config.SetCurrent(config.Endpoints{CollectorBase: "http://127.0.0.1:50333"})
 	t.Cleanup(func() { config.SetCurrent(prev) })
 	env := map[string]string{}
-	InjectCodeBuddyEnv(env, "run-1", "fix")
-	if env["CODEBUDDY_CODE_ENABLE_TELEMETRY"] != "1" {
-		t.Fatalf("telemetry flag missing: %#v", env)
-	}
+	InjectTelemetryEnv(env, "run-1", "fix")
 	if env["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] != "http://127.0.0.1:50333/api/otel/v1/traces" {
 		t.Fatalf("traces endpoint = %q", env["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"])
 	}

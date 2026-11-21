@@ -240,7 +240,7 @@ test('a job that opens a conversation per execution chooses how many to keep', a
 test('an AI job runs with the saver\'s key without asking whose key to use', async (t) => {
   const app = await loadApp();
   t.after(app.close);
-  const missing = '你还没有配置 CodeBuddy API Key，平台也没有配置共享 Key，定时任务无法执行';
+  const missing = '你还没有配置执行器 API Key，定时任务无法执行';
   let reject = true;
   app.router.post('/api/schedule-jobs', call => reject ? { status: 400, body: { error: missing } } : ({ ...call.body, id: 'new-ai', runAsUserId: 7, runAsName: 'alice' }));
   app.evaluate(`(() => {
@@ -260,7 +260,7 @@ test('an AI job runs with the saver\'s key without asking whose key to use', asy
   form.dispatchEvent(new app.window.Event('submit', { bubbles: true, cancelable: true }));
   await settle(4);
   const messages = [...app.document.querySelectorAll('.toast-item-msg')].map(x => x.textContent).join('|');
-  assert.match(messages, /平台也没有配置共享 Key/, 'a saver with no key and no shared key is told why');
+  assert.match(messages, /没有配置执行器 API Key/, 'a saver with no key is told why');
   assert.equal(app.evaluate(`state.data.scheduleJobs.length`), 0);
 
   reject = false;
@@ -548,9 +548,9 @@ test('AI schedule model picker includes account login CLI models and keeps a sav
       ...(call.search === '?schedule=1' ? [{ id: 'codex:gpt-6-sol', name: 'GPT-6-Sol', family: 'gpt', engine: 'codex' }] : []),
     ],
     engines: [
-      { id: 'codebuddy', name: 'CodeBuddy', configured: true },
+      { id: 'claude-code', name: 'Claude Code', configured: true },
       { id: 'codex', name: 'Codex', configured: call.search === '?schedule=1' },
-      { id: 'claude-code', name: 'Claude Code', configured: false },
+      { id: 'pi', name: 'Pi', configured: false },
     ],
   }));
   await app.evaluate(`(async () => {
@@ -562,9 +562,9 @@ test('AI schedule model picker includes account login CLI models and keeps a sav
   const doc = app.document;
   const form = doc.querySelector('#scheduleJobForm');
   const engine = doc.querySelector('#scheduleEngine');
-  assert.deepEqual([...engine.options].map(o => [o.value, o.disabled]), [['codebuddy', false], ['codex', false], ['claude-code', true]]);
+  assert.deepEqual([...engine.options].map(o => [o.value, o.disabled]), [['claude-code', false], ['codex', false], ['pi', true]]);
   assert.match(engine.options[2].textContent, /缺少凭据/);
-  assert.equal(engine.value, 'codebuddy');
+  assert.equal(engine.value, 'claude-code');
 
   const toggle = doc.querySelector('#scheduleModelPicker [data-model-toggle]');
   const menu = doc.querySelector('#scheduleModelPicker .ai-model-menu');
@@ -584,14 +584,14 @@ test('AI schedule model picker includes account login CLI models and keeps a sav
   menu.querySelector('.ai-model-option').click();
   assert.equal(menu.hidden, true);
 
-  engine.value = 'codebuddy';
+  engine.value = 'claude-code';
   engine.dispatchEvent(new app.window.Event('change'));
   assert.equal(form.elements.assistantModel.value, 'glm-test');
 
   // A job saved on a CLI this editor has no key for stays on that CLI.
-  app.evaluate(`paintScheduleModel('claude-code:opus')`);
-  assert.equal(engine.value, 'claude-code');
+  app.evaluate(`paintScheduleModel('pi:custom')`);
+  assert.equal(engine.value, 'pi');
   assert.equal(engine.selectedOptions[0].disabled, false);
-  assert.equal(form.elements.assistantModel.value, 'claude-code:opus');
-  assert.match(doc.querySelector('#scheduleModelHint').textContent, /默认执行机器的账号登录.*离线时改用个人 API Key.*Key 缺失或不可用时任务失败.*平台共享 Key/);
+  assert.equal(form.elements.assistantModel.value, 'pi:custom');
+  assert.match(doc.querySelector('#scheduleModelHint').textContent, /默认执行机器的账号登录.*离线时改用个人 API Key.*Key 缺失或不可用时任务失败/);
 });

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start LoopForge from the published GHCR image pinned in compose.yaml
+# Start Friday from the published GHCR image pinned in compose.yaml
 # (default), or build this checkout for development.
 #
 # Usage:
@@ -29,7 +29,7 @@ cmd="${1:--d}"
 shift || true
 case "$cmd" in
   up|-d|detach) bash scripts/install.sh ;;
-  dev) LOOPFORGE_BUILD_FROM_SOURCE=1 bash scripts/install.sh ;;
+  dev) FRIDAY_BUILD_FROM_SOURCE=1 bash scripts/install.sh ;;
   release)
     [[ -f .env ]] && python3 - <<'PY'
 import pathlib,re

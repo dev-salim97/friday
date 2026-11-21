@@ -8,19 +8,17 @@ import (
 var genericDockerEpoch = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 // genericBackendDockerfileContent is the platform default image for the
-// LoopForge backend delivery SOP: Node (agent CLIs) + Go + git. It follows
+// Friday backend delivery SOP: Node (agent CLIs) + Go + git. It follows
 // the SkillHub backend image that already runs on the production CVM.
 const genericBackendDockerfileContent = `FROM node:22-bookworm-slim
 
 ARG CLAUDE_CODE_PACKAGE=@anthropic-ai/claude-code
 ARG CODEX_PACKAGE=@openai/codex
-ARG CODEBUDDY_PACKAGE=@tencent-ai/codebuddy-code
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends bash ca-certificates curl git jq openssh-client python3 ripgrep \
     && rm -rf /var/lib/apt/lists/* \
-    && npm install -g "${CLAUDE_CODE_PACKAGE}" "${CODEX_PACKAGE}" \
-    && if [ -n "${CODEBUDDY_PACKAGE}" ]; then npm install -g "${CODEBUDDY_PACKAGE}"; fi
+    && npm install -g "${CLAUDE_CODE_PACKAGE}" "${CODEX_PACKAGE}"
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc libc6-dev \

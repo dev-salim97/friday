@@ -288,7 +288,7 @@ func sshTestIdentity(t *testing.T) (string, ssh.PublicKey) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	block, err := ssh.MarshalPrivateKey(identity, "loopforge integration test")
+	block, err := ssh.MarshalPrivateKey(identity, "friday integration test")
 	if err != nil {
 		t.Fatal(err)
 	}

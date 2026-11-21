@@ -13,7 +13,7 @@ import (
 // A Runner is a long-lived daemon on a user machine or CVM that connects to
 // the control plane over outbound HTTPS only. The platform never opens an
 // inbound port to the machine. A RunnerRuntime is one Agent CLI (claude,
-// codex, codebuddy, ...) discovered on that machine. RunnerTask is a durable
+// codex, ...) discovered on that machine. RunnerTask is a durable
 // execution unit persisted by the control plane; a connection drop never
 // loses a task.
 
@@ -303,9 +303,6 @@ func (r Runner) RuntimeAuthMode(provider string) string {
 			break
 		}
 	}
-	if strings.EqualFold(provider, "codebuddy") {
-		return RuntimeAuthPersonal
-	}
 	return RuntimeAuthLocal
 }
 
@@ -444,8 +441,6 @@ func PublicRunnerTask(task RunnerTask) RunnerTask {
 		return task
 	}
 	copyInvocation := *task.Invocation
-	copyInvocation.CodeBuddyAPIKey = ""
-	copyInvocation.CodeBuddyInternetEnvironment = ""
 	copyInvocation.CodexAPIKey = ""
 	copyInvocation.CodexBaseURL = ""
 	copyInvocation.ClaudeCodeAPIKey = ""
@@ -509,20 +504,18 @@ type RunnerInvocation struct {
 	// paths resolved by the control plane. RecoverOutputs lets the runner
 	// move a missing output file found elsewhere in the workspace into
 	// place, as the control plane does for its own sandboxes.
-	ReportOutputs                bool     `json:"reportOutputs,omitempty"`
-	OutputFiles                  []string `json:"outputFiles,omitempty"`
-	RecoverOutputs               bool     `json:"recoverOutputs,omitempty"`
-	HumanContext                 string   `json:"humanContext,omitempty"`
-	CredentialSource             string   `json:"credentialSource,omitempty"`
-	CodeBuddyAPIKey              string   `json:"codebuddyApiKey,omitempty"`
-	CodeBuddyInternetEnvironment string   `json:"codebuddyInternetEnvironment,omitempty"`
-	CodexAPIKey                  string   `json:"codexApiKey,omitempty"`
-	CodexBaseURL                 string   `json:"codexBaseUrl,omitempty"`
-	ClaudeCodeAPIKey             string   `json:"claudeCodeApiKey,omitempty"`
-	ClaudeCodeBaseURL            string   `json:"claudeCodeBaseUrl,omitempty"`
-	AgentCLIAPIKey               string   `json:"agentCliApiKey,omitempty"`
-	AgentCLIBaseURL              string   `json:"agentCliBaseUrl,omitempty"`
-	AgentCLIProtocol             string   `json:"agentCliProtocol,omitempty"`
+	ReportOutputs     bool     `json:"reportOutputs,omitempty"`
+	OutputFiles       []string `json:"outputFiles,omitempty"`
+	RecoverOutputs    bool     `json:"recoverOutputs,omitempty"`
+	HumanContext      string   `json:"humanContext,omitempty"`
+	CredentialSource  string   `json:"credentialSource,omitempty"`
+	CodexAPIKey       string   `json:"codexApiKey,omitempty"`
+	CodexBaseURL      string   `json:"codexBaseUrl,omitempty"`
+	ClaudeCodeAPIKey  string   `json:"claudeCodeApiKey,omitempty"`
+	ClaudeCodeBaseURL string   `json:"claudeCodeBaseUrl,omitempty"`
+	AgentCLIAPIKey    string   `json:"agentCliApiKey,omitempty"`
+	AgentCLIBaseURL   string   `json:"agentCliBaseUrl,omitempty"`
+	AgentCLIProtocol  string   `json:"agentCliProtocol,omitempty"`
 	// AgentCLIModels is the responsible user's saved catalog for the agent
 	// CLI; Cursor resolves the model's effort to an ID from it.
 	AgentCLIModels []CLIModel `json:"agentCliModels,omitempty"`

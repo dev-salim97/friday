@@ -8,7 +8,6 @@ export default defineConfig({
     proxy: {
       "/api": "http://127.0.0.1:8088",
       "/cursor": "http://127.0.0.1:8088",
-      "/codebuddy": "http://127.0.0.1:8088",
       "/codex": "http://127.0.0.1:8088",
       "/workbuddy": "http://127.0.0.1:8088",
     },

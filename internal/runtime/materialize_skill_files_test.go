@@ -113,7 +113,7 @@ func TestMaterializeSelectedSkillsListsInvocationNameAndRoot(t *testing.T) {
 		},
 	}
 	agent := domain.AgentDefinition{ID: "demodns-unit-test-engineer", Name: "DemoDNS 单元测试工程师", Prompt: "写增量单测。"}
-	if _, err := materialize(workspace, "invoke-skills", domain.ExecutorDefinition{Kind: "codebuddy"}, agent, assets); err != nil {
+	if _, err := materialize(workspace, "invoke-skills", domain.ExecutorDefinition{Kind: "claude-code"}, agent, assets); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := os.ReadFile(filepath.Join(workspace, ".agentflow", "demodns-unit-test-engineer", "agent-system.md"))

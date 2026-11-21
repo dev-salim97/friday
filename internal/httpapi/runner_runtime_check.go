@@ -29,7 +29,7 @@ func (h *runnersHandlers) runnerRuntimeTest(c *gin.Context) {
 		return
 	}
 	provider := strings.TrimSpace(input.Provider)
-	if provider != assistantEngineCodeBuddy && !slices.Contains(assistantCLIEngines(), provider) {
+	if !slices.Contains(assistantCLIEngines(), provider) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "不支持的 CLI"})
 		return
 	}

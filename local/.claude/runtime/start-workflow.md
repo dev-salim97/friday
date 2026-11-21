@@ -10,8 +10,7 @@
 2. `.claude/runtime/workflow-state-spec.md`
 3. `.claude/rules/global.mdc`
 
-可选读取 `.claude/workflows/devflow.md` 做恢复检查。禁止在运行期读取
-`.claude/` 作为 Claude Code 工作流来源。
+可选读取 `.claude/workflows/devflow.md` 做恢复检查。
 
 ## Step 1：工作区初始化
 

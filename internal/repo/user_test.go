@@ -106,7 +106,7 @@ func TestIssueResponsibilityFallsBackToProjectOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer st.Close()
-	if err := st.PutUser(domain.User{ID: 42, LoginName: "zhangsan", ChineseName: "张三", GitToken: "git-user", CodeBuddyAPIKey: "ck-user"}); err != nil {
+	if err := st.PutUser(domain.User{ID: 42, LoginName: "zhangsan", ChineseName: "张三", GitToken: "git-user"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.PutProject(domain.Project{ID: "owned", Name: "Owned", OwnerID: 42, Members: []domain.ProjectMember{{UserID: 42, Role: "maintainer"}}}); err != nil {
@@ -216,7 +216,7 @@ func TestMySQLUserOwnershipRelations(t *testing.T) {
 		st.DB.Exec(`DELETE FROM projects WHERE id=?`, projectID)
 		st.DB.Exec(`DELETE FROM users WHERE login_name=?`, login)
 	}()
-	if err := st.PutUser(domain.User{LoginName: login, ChineseName: "关系测试", GitToken: "git-secret", CodeBuddyAPIKey: "ck-secret", CodeBuddyInternetEnvironment: "ioa"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: login, ChineseName: "关系测试", GitToken: "git-secret"}); err != nil {
 		t.Fatal(err)
 	}
 	owner, _ := st.UserByLoginName(login)

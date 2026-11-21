@@ -11,7 +11,6 @@ paths = subprocess.check_output(
     ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT
 ).decode().split("\0")
 patterns = {
-    "CodeBuddy credential": re.compile(r"ck_[a-zA-Z0-9]{10,}\.[A-Za-z0-9_-]{20,}"),
     "private infrastructure": re.compile(r"\b[a-zA-Z0-9_.-]+(?:\\?\.)woa(?:\\?\.)com\b"),
     "private key": re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"),
     "GitHub credential": re.compile(r"(?:ghp_|gho_|ghs_|ghu_)[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}"),

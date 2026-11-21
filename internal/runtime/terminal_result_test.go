@@ -9,7 +9,7 @@ import (
 )
 
 func TestHandleClaudeStreamMissingResultDoesNotMarkFailed(t *testing.T) {
-	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "codebuddy", Protocol: "stream-json"}, nil)
+	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "claude-code", Protocol: "stream-json"}, nil)
 	adapter.handleClaudeStream(map[string]any{"type": "assistant", "session_id": "s1", "message": map[string]any{
 		"model":   "test",
 		"content": []any{map[string]any{"type": "text", "text": "done"}},
@@ -51,7 +51,7 @@ func TestIsMaxTurnsBudget(t *testing.T) {
 }
 
 func TestHandleClaudeStreamResultMarksCompleted(t *testing.T) {
-	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "codebuddy", Protocol: "stream-json"}, nil)
+	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "claude-code", Protocol: "stream-json"}, nil)
 	adapter.handleClaudeStream(map[string]any{"type": "result", "result": "ok", "is_error": false})
 	if !adapter.Finished() {
 		t.Fatal("result event should finish the session")
@@ -65,7 +65,7 @@ func TestHandleClaudeStreamResultMarksCompleted(t *testing.T) {
 }
 
 func TestVisibleOutputPrefersTerminalResultOverAssistantEnvelope(t *testing.T) {
-	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "codebuddy", Protocol: "stream-json"}, nil)
+	adapter := newProtocolAdapter(domain.ExecutorDefinition{Kind: "claude-code", Protocol: "stream-json"}, nil)
 	adapter.handleClaudeStream(map[string]any{"type": "assistant", "message": map[string]any{
 		"role":    "assistant",
 		"content": []any{map[string]any{"type": "text", "text": "intermediate"}},

@@ -444,7 +444,7 @@ func assistantToolDisplay(name string, input json.RawMessage) (string, string) {
 	case "DeferExecuteTool", "MCP":
 		inner := assistantSessionToolName(str("toolName", "tool", "tool_name", "name", "mcp_tool"))
 		if inner == "" || inner == name {
-			// CodeBuddy streams an empty wrapper input first. Wait for the
+			// The CLI streams an empty wrapper input first. Wait for the
 			// complete snapshot instead of consuming its tool ID with an
 			// opaque DeferExecuteTool label that the filter would keep forever.
 			return "", ""

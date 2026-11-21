@@ -149,12 +149,10 @@ AGENTS.md
 AGENTS.override.md
 CLAUDE.md
 CLAUDE.local.md
-CODEBUDDY.md
 .mcp.json
 .agents/
 .codex/
 .claude/
-.codebuddy/
 `
 	if err := os.WriteFile(filepath.Join(workspace, ".git", "info", "exclude"), []byte(legacyExcludes), 0o600); err != nil {
 		t.Fatal(err)

@@ -19,7 +19,7 @@ export AGENTFLOW_E2E_BASE=http://127.0.0.1:8090
 ```bash
 ./local.sh                                         # 全部 API 用例
 ./local.sh api/30-runs.test.mjs api/35-runner-mode.test.mjs
-AGENTFLOW_E2E_CODEBUDDY_API_KEY=ck_... ./local.sh api/40-model.test.mjs   # 带真实模型
+AGENTFLOW_E2E_CLAUDE_API_KEY=sk-... ./local.sh api/40-model.test.mjs   # 带真实模型
 ./local.sh all                                     # API + UI
 ```
 
@@ -32,14 +32,14 @@ AGENTFLOW_E2E_CODEBUDDY_API_KEY=ck_... ./local.sh api/40-model.test.mjs   # 带�
 | `AGENTFLOW_E2E_BASE` | 验收环境，默认 localhost:8090 |
 | `AGENTFLOW_E2E_MODEL` | 显式设为 `1` 启用付费模型测试，默认关闭 |
 | `AGENTFLOW_E2E_MODEL_ID` | 真实 Agent 节点使用的模型 ID，例如 `deepseek-v4.1-flash` |
-| `AGENTFLOW_E2E_EXECUTOR` | 执行器，默认 `codebuddy` |
+| `AGENTFLOW_E2E_EXECUTOR` | 执行器，默认 `claude` |
 | `AGENTFLOW_E2E_SANDBOX` | 沙箱，默认 `local`，仅对可信的验收任务使用 |
 | `AGENTFLOW_E2E_MODEL_SANDBOX` | 真实模型用例使用的沙箱，镜像里要有执行器 CLI；默认同 `AGENTFLOW_E2E_SANDBOX` |
 | `AGENTFLOW_E2E_REPO_CLONE_URL` | 带代码仓库的用例克隆这个仓库（只读，不推送）。不设置就跳过这些用例；`local.sh` 会自动设成本机裸仓库 |
 | `AGENTFLOW_E2E_REPO_BRANCH` | 上面仓库的基线分支，默认 `main` |
 | `AGENTFLOW_E2E_PROJECT` | 测试项目，默认 `e2e-auto` |
 | `AGENTFLOW_E2E_VIEW_PROJECT` | 第二个页面巡检项目，默认 `welcome` |
-| `LOOPFORGE_TEST_USER` / `LOOPFORGE_TEST_PASSWORD` | UI 真实密码登录；用户名默认 admin，本地密码缺省读取 `.local/admin-password` |
+| `FRIDAY_TEST_USER` / `FRIDAY_TEST_PASSWORD` | UI 真实密码登录；用户名默认 admin，本地密码缺省读取 `.local/admin-password` |
 | `AGENTFLOW_E2E_KEEP` | 设为 `1` 保留资源用于诊断 |
 | `AGENTFLOW_E2E_KNOWN_ERRORS` | 正则。已修复但目标环境尚未部署的前端报错，临时忽略，例如 `'Content Security Policy'` |
 | `E2E_CHROMIUM` | 可选的 Chromium 路径 |

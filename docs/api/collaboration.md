@@ -27,9 +27,6 @@ curl -u "$AGENTFLOW_USER:$AGENTFLOW_PASS" "$AGENTFLOW_URL/api/projects"
   "key":"PLATFORM",
   "defaultRepositoryId":"repo-platform",
   "workflowId":"wf-dev",
-  "codeBuddyApiKey":"",
-  "codeBuddyApiKeyClear":false,
-  "codeBuddyInternetEnvironmentClear":false,
   "tapdClear":false
 }
 ```

@@ -7,13 +7,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PYTHONDONTWRITEBYTECODE=1
 
-for host in codebuddy cursor claude; do
+for host in cursor claude; do
   tests="$ROOT_DIR/.$host/skills/agent-observability/tests"
   echo "== agent-observability unit tests (.$host)"
   python3 -m unittest discover -s "$tests" -t "$tests"
 done
 
-leftovers="$(find "$ROOT_DIR"/.codebuddy "$ROOT_DIR"/.cursor "$ROOT_DIR"/.claude \
+leftovers="$(find "$ROOT_DIR"/.cursor "$ROOT_DIR"/.claude \
   -path '*/agent-observability/logs/*' -type f ! -name .gitkeep -print)"
 if [[ -n "$leftovers" ]]; then
   echo "Tests wrote run output into the source tree:" >&2

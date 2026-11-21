@@ -8,8 +8,7 @@ enabled: true
 
 ## G1：运行资产边界
 
-Claude Code devflow 只读取 `.claude/` 下的工作流资产。`.claude/` 保留给
-CodeBuddy 使用，不能作为 Claude Code 运行时依赖。
+Claude Code devflow 只读取 `.claude/` 下的工作流资产。
 
 ## G2：配置优先
 

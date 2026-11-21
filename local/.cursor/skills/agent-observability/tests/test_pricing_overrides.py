@@ -77,7 +77,7 @@ class _OverridesTestCase(unittest.TestCase):
 
 class OverridesPathResolutionTests(_OverridesTestCase):
     """AC4：路径可覆盖。默认位置刻意放在 skills 树**外**——
-    `scripts/build-classic-hosts.py` 会整棵同步 `.codebuddy/skills`，放树内会让
+    `scripts/build-classic-hosts.py` 会整棵同步 `.codex/skills`，放树内会让
     用户每次改价都产生一次 `--check` drift，并被复制进 .claude/.cursor 宿主包。"""
 
     def test_env_var_wins_over_default(self):
@@ -103,7 +103,7 @@ class OverridesPathResolutionTests(_OverridesTestCase):
         self.assertIsNotNone(default)
         self.assertEqual(
             default,
-            ROOT.parents[2] / ".codebuddy" / "agent-observability" / "pricing.overrides.json",
+            ROOT.parents[2] / ".codex" / "agent-observability" / "pricing.overrides.json",
         )
         self.assertNotIn("skills", default.parts[-3:])
         self.assertFalse(str(default).startswith(str(ROOT)))

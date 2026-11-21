@@ -1,10 +1,7 @@
 package httpapi
 
 import (
-	"context"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,131 +9,11 @@ import (
 	"time"
 
 	"agentflow/internal/domain"
-	"agentflow/internal/engine"
 	"agentflow/internal/repo"
-	"agentflow/internal/runtime"
 	"agentflow/internal/tracker"
 )
 
 const liveTAPDStoryURL = "https://tapd.example.com/tapd_fe/10000000/story/detail/1010000000100000555"
-
-func TestLiveImportTAPDStoryWithExplicitCredentials(t *testing.T) {
-	if os.Getenv("AGENTFLOW_LIVE_TESTS") != "1" {
-		t.Skip("set AGENTFLOW_LIVE_TESTS=1 for configured live integrations")
-	}
-	loadAcceptanceDotEnv()
-	prodDSN := strings.TrimSpace(os.Getenv("AGENTFLOW_MYSQL_DSN"))
-	if prodDSN == "" {
-		t.Skip("AGENTFLOW_MYSQL_DSN is required to copy the acceptance user")
-	}
-	if loopbackMySQLDSN(prodDSN) {
-		t.Skip("AGENTFLOW_MYSQL_DSN points at loopback MySQL; live TAPD import copies from production")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	ident, err := LookupCodeBuddyCredentialReadOnly(ctx, prodDSN, assistantAcceptanceLogin)
-	if err != nil {
-		t.Fatal(err)
-	}
-	st, err := repo.OpenTest()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { st.Close() })
-	user, err := SeedAssistantAcceptance(st, ident)
-	if err != nil {
-		t.Fatal(err)
-	}
-	token := strings.TrimSpace(os.Getenv("AGENTFLOW_MCP_TOKEN"))
-	if token == "" {
-		t.Skip("AGENTFLOW_MCP_TOKEN is required for the TAPD MCP")
-	}
-	if err := st.PutMCPServer(domain.MCPServerDefinition{
-		ID: "mcp-70-project-assistant-test", Name: "TAPD MCP", MarketID: "70",
-		Scope: "project", ProjectID: assistantAcceptanceProjectID, Transport: "http",
-		URL: "https://mcp-gateway.example.com/tapd/", Headers: map[string]string{"Authorization": "Bearer " + token}, TimeoutSec: 60,
-	}); err != nil {
-		t.Fatal(err)
-	}
-	svc := tracker.NewService()
-	svc.ConfigureWithStore(st.SyncConfig(), st)
-	issue, err := svc.ImportTAPDStory(st, assistantAcceptanceProjectID, liveTAPDStoryURL, user.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if issue.Source != "tapd" || issue.ExternalRef == nil || issue.ExternalRef.ExternalID != "1010000000100000555" {
-		t.Fatalf("imported issue identity: id=%s source=%s ref=%+v", issue.ID, issue.Source, issue.ExternalRef)
-	}
-	if !strings.Contains(issue.Title, "国际站") {
-		t.Fatalf("imported title %q does not match the TAPD story", issue.Title)
-	}
-
-	h := New(st, engine.New(st, runtime.NewManager(t.TempDir())), svc, "", "")
-	repoID := ""
-	for _, r := range st.Repositories() {
-		if r.ProjectID == assistantAcceptanceProjectID {
-			repoID = r.ID
-			break
-		}
-	}
-	if repoID == "" {
-		t.Fatal("acceptance project has no repository to bind on import")
-	}
-	imported := requestJSON[map[string]any](t, h, "POST", "/api/issues/import-tapd", map[string]any{
-		"projectId":    assistantAcceptanceProjectID,
-		"url":          liveTAPDStoryURL,
-		"repositoryId": repoID,
-	}, 200)
-	title, _ := imported["title"].(string)
-	if title != issue.Title {
-		t.Fatalf("http import title=%v", imported["title"])
-	}
-	t.Logf("imported TAPD story id=%s title=%s gitTokenCopied=%t", issue.ID, issue.Title, strings.TrimSpace(ident.GitToken) != "")
-}
-
-func TestDisposableStudioForBrowserIT(t *testing.T) {
-	if os.Getenv("AGENTFLOW_DISPOSABLE_STUDIO") != "1" {
-		t.Skip("set AGENTFLOW_DISPOSABLE_STUDIO=1 to serve a sqlite Studio for browser checks")
-	}
-	loadAcceptanceDotEnv()
-	st, err := repo.OpenTest()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { st.Close() })
-	if dsn := strings.TrimSpace(os.Getenv("AGENTFLOW_MYSQL_DSN")); dsn != "" {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		ident, lookupErr := LookupCodeBuddyCredentialReadOnly(ctx, dsn, assistantAcceptanceLogin)
-		cancel()
-		if lookupErr != nil {
-			t.Fatal(lookupErr)
-		}
-		if _, err := SeedAssistantAcceptance(st, ident); err != nil {
-			t.Fatal(err)
-		}
-		var headers map[string]string
-		if token := strings.TrimSpace(os.Getenv("AGENTFLOW_MCP_TOKEN")); token != "" {
-			headers = map[string]string{"Authorization": "Bearer " + token}
-		}
-		if err := st.PutMCPServer(domain.MCPServerDefinition{
-			ID: "mcp-70-project-assistant-test", Name: "TAPD MCP", MarketID: "70",
-			Scope: "project", ProjectID: assistantAcceptanceProjectID, Transport: "http",
-			URL: "https://mcp-gateway.example.com/tapd/", Headers: headers, TimeoutSec: 60,
-		}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	h := New(st, engine.New(st, runtime.NewManager(t.TempDir())), tracker.NewService(), "", "")
-	ln, err := net.Listen("tcp", "127.0.0.1:18089")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = ln.Close() })
-	t.Logf("studio http://%s", ln.Addr().String())
-	if err := http.Serve(ln, h); err != nil && !strings.Contains(err.Error(), "closed") {
-		t.Fatal(err)
-	}
-}
 
 func TestMySQLImportTAPDAndSanitizeClarifyOptions(t *testing.T) {
 	dsn := strings.TrimSpace(os.Getenv("AGENTFLOW_TEST_MYSQL_DSN"))

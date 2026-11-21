@@ -16,7 +16,7 @@ import (
 	"agentflow/internal/domain"
 )
 
-var liveCLIOrder = []string{"codebuddy", "codex", "claude-code", "opencode", "cursor", "agy", "kimi", "pi", "dsh", "zcode"}
+var liveCLIOrder = []string{"codex", "claude-code", "opencode", "cursor", "agy", "kimi", "pi", "dsh", "zcode"}
 
 type liveCLIConfig struct {
 	Key         string `json:"key"`
@@ -154,9 +154,6 @@ func liveCLIUser(kind string, item liveCLIConfig) (domain.User, string) {
 	user := domain.User{ID: 1, LoginName: "live"}
 	model := item.Model
 	switch kind {
-	case "codebuddy":
-		user.CodeBuddyAPIKey = item.Key
-		user.CodeBuddyInternetEnvironment = item.Environment
 	case "codex":
 		user.CodexAPIKey = item.Key
 		user.CodexBaseURL = item.BaseURL

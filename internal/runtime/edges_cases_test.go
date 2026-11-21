@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"agentflow/internal/domain"
 )
@@ -102,9 +101,6 @@ func TestSandboxIsolationEnvironmentConcreteTypes(t *testing.T) {
 	command := CommandSpec{Provider: "other"}
 	if got := command.WithPrivateHomeDir(" "); got.PrivateHome || len(got.environment) != 0 {
 		t.Fatalf("empty private home changed command=%+v", got)
-	}
-	if got := command.WithMCPStartupWait(time.Second); len(got.environment) != 0 {
-		t.Fatalf("non-codebuddy wait changed command=%+v", got)
 	}
 	if _, err := OpenRemoteSandbox(context.Background(), "id", t.TempDir(), domain.SandboxProfile{EnvironmentID: "missing"}, SandboxRequirements{}, SandboxResources{}); err == nil {
 		t.Fatal("missing environment accepted")

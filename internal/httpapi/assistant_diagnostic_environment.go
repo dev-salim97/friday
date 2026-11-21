@@ -52,7 +52,7 @@ func assistantDiagnosticCLIVersion(engine, bin string) (version, source string) 
 			}
 		}
 	}
-	packages := map[string]string{"codex": "@openai/codex", "codebuddy": "@tencent-ai/codebuddy-code", "claude-code": "@anthropic-ai/claude-code"}
+	packages := map[string]string{"codex": "@openai/codex", "claude-code": "@anthropic-ai/claude-code"}
 	resolved, err := filepath.EvalSymlinks(bin)
 	if err == nil && packages[engine] != "" {
 		for dir, depth := filepath.Dir(resolved), 0; depth < 5; dir, depth = filepath.Dir(dir), depth+1 {
@@ -88,13 +88,6 @@ func (a *assistantDiagnosticAttempt) configure(bin string, req assistantCLIReque
 		if endpoint == "" {
 			endpoint = "https://api.anthropic.com"
 		}
-	case "codebuddy":
-		// The CLI selects this endpoint internally. Do not guess a hostname.
-		env := strings.TrimSpace(a.user.CodeBuddyInternetEnvironment)
-		if env == "" {
-			env = "default"
-		}
-		endpoint = "CLI-managed (" + env + ")"
 	default:
 		credential := a.user.AgentCLICredentials[engine]
 		endpoint, protocol = credential.BaseURL, credential.Protocol

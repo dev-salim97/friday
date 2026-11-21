@@ -2,17 +2,17 @@ import {test,expect} from '@playwright/test';
 import fs from 'node:fs';
 import {password, appReady, chat, composer, openHome} from './helpers.mjs';
 
-// A brand-new installation, seen by someone who has never used LoopForge:
+// A brand-new installation, seen by someone who has never used Friday:
 // first visit creates the administrator, the home page explains what to do
 // next, and a teammate can sign up on their own. Runs only against an empty
 // database because it consumes the one-time administrator setup.
 test.describe.configure({mode:'serial'});
-test.skip(process.env.LOOPFORGE_FRESH_INSTALL!=='1','Set LOOPFORGE_FRESH_INSTALL=1 against an installation with no accounts');
+test.skip(process.env.FRIDAY_FRESH_INSTALL!=='1','Set FRIDAY_FRESH_INSTALL=1 against an installation with no accounts');
 test.use({trace:'off',screenshot:'off'});
 
-const admin=process.env.LOOPFORGE_TEST_USER||'admin';
-const member=process.env.LOOPFORGE_UNCONFIGURED_USER||'first-run-member';
-const memberPassword=()=>process.env.LOOPFORGE_UNCONFIGURED_PASSWORD||(process.env.LOOPFORGE_UNCONFIGURED_PASSWORD_FILE?fs.readFileSync(process.env.LOOPFORGE_UNCONFIGURED_PASSWORD_FILE,'utf8').trim():'first-run-member-password');
+const admin=process.env.FRIDAY_TEST_USER||'admin';
+const member=process.env.FRIDAY_UNCONFIGURED_USER||'first-run-member';
+const memberPassword=()=>process.env.FRIDAY_UNCONFIGURED_PASSWORD||(process.env.FRIDAY_UNCONFIGURED_PASSWORD_FILE?fs.readFileSync(process.env.FRIDAY_UNCONFIGURED_PASSWORD_FILE,'utf8').trim():'first-run-member-password');
 
 async function createAccount(page,login,secret){
   await page.locator('[name="login"]').fill(login);
@@ -56,12 +56,7 @@ test('the home page guides a new account and explains the missing model key',asy
   const input=await openHome(page);
   const frame=chat(page);
   await expect(frame.locator('.home-starter')).toHaveCount(3);
-  const notice=frame.locator('.credential-notice');
-  await expect(notice).toContainText('CodeBuddy API Key');
   await input.fill('First question after installing');
-  await notice.getByRole('button',{name:'去配置'}).click();
-  await expect(page.locator('#credentialWizard .credential-pane:not(.is-leaving) input[name="secret"]')).toBeFocused();
-  await page.keyboard.press('Escape');
   await expect(await openHome(page)).toHaveValue('First question after installing');
   await composer(page).fill('');
   expect(errors).toEqual([]);

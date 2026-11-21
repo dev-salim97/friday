@@ -28,13 +28,11 @@ type providerSpec struct {
 }
 
 // defaultProviders lists the CLIs this runner drives in non-interactive
-// mode. Runner tasks can reuse Codex, Claude Code or Antigravity login. CodeBuddy tasks
-// receive the configured CODEBUDDY_API_KEY from the daemon. Additional
+// mode. Runner tasks can reuse Codex, Claude Code or Antigravity login. Additional
 // providers can be detected by name.
 var defaultProviders = []providerSpec{
 	{Kind: "claude-code", Binary: "claude", Update: "update"},
 	{Kind: "codex", Binary: "codex", Update: "update"},
-	{Kind: "codebuddy", Binary: "codebuddy", Update: "update"},
 	// Agent CLIs run in a private HOME. Antigravity can reuse account login;
 	// the others receive the responsible user's key. cursor and agy have no npm
 	// package and are found on PATH only.
@@ -240,10 +238,6 @@ func providerArgv(provider, binary string, prompt string, extraArgs []string) ([
 		return append([]string{binary}, append(args, "-p", "--output-format", "text", prompt)...), nil
 	case "codex":
 		return append([]string{binary}, append(args, "exec", "--skip-git-repo-check", prompt)...), nil
-	case "codebuddy":
-		// Keep CodeBuddy unattended: bypass permission prompts and terminate
-		// option parsing before the positional prompt.
-		return append([]string{binary}, append(args, "-y", "--permission-mode", "bypassPermissions", "--setting-sources", "user", "--", prompt)...), nil
 	default:
 		return nil, fmt.Errorf("provider %q is not supported by this runner (%s/%s)", provider, goruntime.GOOS, goruntime.GOARCH)
 	}

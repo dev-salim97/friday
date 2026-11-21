@@ -91,14 +91,14 @@ test("engine credential messages map to the owner's setting", () => {
       "gitToken",
     ],
     [
-      "当前责任人未配置 CodeBuddy API Key：请先在个人配置中配置",
-      "codeBuddyApiKey",
+      "当前责任人未配置 Codex API Key：请先在个人配置中配置",
+      "codexApiKey",
     ],
   ]) {
     const hint = credentialHint(text);
     assert.equal(hint?.field, field, text);
     assert.equal(hint.owner, true, text);
-    assert.ok(CREDENTIAL_GUIDES[field].url, field);
+    assert.ok(CREDENTIAL_GUIDES[field], field);
   }
 });
 

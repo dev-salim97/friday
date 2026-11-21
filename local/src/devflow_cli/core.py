@@ -69,9 +69,9 @@ def asset_root() -> Path:
         Path(sys.prefix) / "share/devflow",
     ])
     for candidate in candidates:
-        if (candidate / "skills/devflow/SKILL.md").is_file() and (candidate / ".codebuddy").is_dir():
+        if (candidate / "skills/devflow/SKILL.md").is_file() and (candidate / ".codex").is_dir():
             return candidate.resolve()
-    raise DevFlowError("找不到 DevFlow 安装资产；请从源码目录运行或重新安装 loopforge CLI 包")
+    raise DevFlowError("找不到 DevFlow 安装资产；请从源码目录运行或重新安装 friday CLI 包")
 
 
 def load_state(project: Path) -> dict:
@@ -125,21 +125,6 @@ def materialize_portable(host: str, stage: Path) -> None:
             "--project-root", str(stage), "--copy-skills", "--refresh-managed",
         ]
         subprocess.run(command, check=True, capture_output=True, text=True)
-        return
-    if host == "codebuddy":
-        skill_target = stage / ".codebuddy/skills/devflow"
-        skill_target.parent.mkdir(parents=True, exist_ok=True)
-        copy_skills_manifest(skills_root, skill_target.parent)
-        copy_skill(skills_root / "devflow", skill_target)
-        installer = skills_root / "devflow/adapters/codebuddy/install.py"
-        subprocess.run(
-            [sys.executable, str(installer), "--project-root", str(stage), "--refresh-managed"],
-            check=True, capture_output=True, text=True,
-        )
-        clarifier = stage / ".codebuddy/skills/devflow-clarify-requirements"
-        if clarifier.is_symlink():
-            clarifier.unlink()
-            copy_skill(skills_root / "devflow-clarify-requirements", clarifier)
         return
     if host == "codex":
         target = stage / ".agents/skills"
@@ -218,7 +203,7 @@ def validate_choice(host: str, edition: str) -> None:
     if host not in hosts_for(edition):
         available = [item for item in EDITIONS if host in hosts_for(item)]
         hint = (
-            f"；Pi 只有 Portable，请运行: loopforge skills install {host}"
+            f"；Pi 只有 Portable，请运行: friday skills install {host}"
             if host == "pi" and "portable" in available
             else f"；{host} 可用 edition: {', '.join(available)}"
         )
@@ -433,7 +418,7 @@ def doctor(project: Path) -> List[str]:
         root = asset_root()
     except DevFlowError as exc:
         return [str(exc)]
-    for required in ("skills/manifest.json", "skills/devflow/SKILL.md", ".codebuddy", ".codex", ".cursor", ".claude"):
+    for required in ("skills/manifest.json", "skills/devflow/SKILL.md", ".codex", ".cursor", ".claude"):
         if not (root / required).exists():
             problems.append(f"安装资产缺失: {required}")
     for row in status_rows(project):

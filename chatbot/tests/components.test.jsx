@@ -94,7 +94,7 @@ const run = {
     n1: {
       nodeId: "n1",
       status: "failed",
-      error: "未配置 CodeBuddy API Key",
+      error: "未配置 Codex API Key",
       output: "失败",
     },
   },
@@ -204,7 +204,7 @@ describe("content and panels", () => {
     render(
       <>
         <IconButton label="图标按钮" onClick={close}>x</IconButton>
-        <CredentialAction text="未配置 CodeBuddy API Key" />
+        <CredentialAction text="未配置 Codex API Key" />
         <Menu label="菜单" onClose={close}>
           <button role="menuitem">第一项</button>
           <button role="menuitem">第二项</button>
@@ -706,40 +706,6 @@ describe("content and panels", () => {
     await user.click(screen.getByText("重试节点"));
     await user.click(screen.getByText("让 AI 分析"));
     expect(onAsk).toHaveBeenCalled();
-  });
-
-  test("a CodeBuddy key alert links to the key page of the owner's network environment", () => {
-    const { unmount } = render(
-      <RunAlerts
-        runs={[run]}
-        user={{ id: 1 }}
-        users={[{ id: 1, codeBuddyInternetEnvironment: "internal" }]}
-        readOnly={false}
-        onOpenNode={vi.fn()}
-        onAsk={vi.fn()}
-        onChanged={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole("link", { name: /国内站创建 Key/ })).toHaveAttribute(
-      "href",
-      "https://copilot.tencent.com/profile/",
-    );
-    unmount();
-    render(
-      <RunAlerts
-        runs={[{ ...run, executionContext: { responsibleUserId: 2 } }]}
-        user={{ id: 1, codeBuddyInternetEnvironment: "internal" }}
-        users={[{ id: 2, loginName: "owner", codeBuddyInternetEnvironment: "ioa" }]}
-        readOnly={false}
-        onOpenNode={vi.fn()}
-        onAsk={vi.fn()}
-        onChanged={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole("link", { name: /iOA创建 Key/ })).toHaveAttribute(
-      "href",
-      "https://tencent.sso.copilot.tencent.com/profile/keys",
-    );
   });
 
   test("renders a waiting approval alert", () => {

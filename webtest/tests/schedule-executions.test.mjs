@@ -63,7 +63,7 @@ async function change(app, selector, value) {
 
 function executions() {
   return [
-    { id: `sjx-${FAILED_TRACE}`, jobId: 'job-ai', jobName: 'Daily summary', jobKind: 'assistant', projectId: 'project-1', traceId: FAILED_TRACE, triggerOrigin: 'timer', status: 'failed', error: 'CodeBuddy key expired', startedAt: '2026-11-16T08:00:00Z', finishedAt: '2026-11-16T08:00:05Z', durationMs: 5200 },
+    { id: `sjx-${FAILED_TRACE}`, jobId: 'job-ai', jobName: 'Daily summary', jobKind: 'assistant', projectId: 'project-1', traceId: FAILED_TRACE, triggerOrigin: 'timer', status: 'failed', error: 'Executor key expired', startedAt: '2026-11-16T08:00:00Z', finishedAt: '2026-11-16T08:00:05Z', durationMs: 5200 },
     { id: `sjx-${OK_TRACE}`, jobId: 'job-trigger', jobName: '触发配置', jobKind: 'trigger', projectId: 'project-1', traceId: OK_TRACE, triggerOrigin: 'manual_run', status: 'success', pulled: 3, dispatched: 1, runs: [{ issueId: 'issue-1', issueTitle: '登录页改版', runId: 'run-77' }], startedAt: '2026-11-16T07:00:00Z', finishedAt: '2026-11-16T07:01:30Z', durationMs: 90000 },
   ];
 }
@@ -77,7 +77,7 @@ test('execution dashboard lists history with metrics, filters and copyable trace
     state.projectFilter='project-1';
     state.data.schedulerEnabled=true;
     state.data.scheduleJobs=[
-      {id:'job-ai',projectId:'project-1',name:'Daily summary',skipDispatch:true,assistantPrompt:'x',enabled:true,intervalSec:3600,lastStatus:'failed',lastError:'CodeBuddy key expired',lastTraceId:'${FAILED_TRACE}',lastRunAt:'2026-11-16T08:00:00Z'},
+      {id:'job-ai',projectId:'project-1',name:'Daily summary',skipDispatch:true,assistantPrompt:'x',enabled:true,intervalSec:3600,lastStatus:'failed',lastError:'Executor key expired',lastTraceId:'${FAILED_TRACE}',lastRunAt:'2026-11-16T08:00:00Z'},
       {id:'job-trigger',projectId:'project-1',name:'触发配置',workflowId:'wf',enabled:true,intervalSec:300,lastStatus:'success',lastTraceId:'${OK_TRACE}',lastRunAt:'2026-11-16T07:00:00Z'}
     ];
     window.__copied=[];window.__opened=[];
@@ -96,7 +96,7 @@ test('execution dashboard lists history with metrics, filters and copyable trace
   assert.equal(fromJob.split('\n')[1], `Trace ID: ${FAILED_TRACE}`);
   assert.match(fromJob, /任务: Daily summary（job-ai）\n类型: AI 提示词任务\n项目: .+（project-1）/);
   assert.match(fromJob, /状态: 失败/);
-  assert.match(fromJob, /错误: CodeBuddy key expired/);
+  assert.match(fromJob, /错误: Executor key expired/);
   assert.match(fromJob, /页面: http/);
 
   jobList.querySelector('[data-schedule-history="job-ai"]').click();
@@ -112,7 +112,7 @@ test('execution dashboard lists history with metrics, filters and copyable trace
   // Opened from the job row: filtered to that job.
   let rows = panel.querySelectorAll('.sched-exec-row');
   assert.equal(rows.length, 1);
-  assert.match(rows[0].textContent, /失败.*Daily summary.*CodeBuddy key expired.*2026\/11\/16.*5 秒.*89abcdef/s);
+  assert.match(rows[0].textContent, /失败.*Daily summary.*Executor key expired.*2026\/11\/16.*5 秒.*89abcdef/s);
   assert.equal(app.document.querySelector('#aiScheduleExecCount').textContent, '2');
   assert.match(app.document.querySelector('#scheduleExecOverviewScope').textContent, /最近 7 天 · Daily summary/);
 

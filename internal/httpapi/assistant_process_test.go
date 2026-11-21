@@ -229,7 +229,7 @@ func TestConversationStopBeforeRemoteStartReplyConfirmsExit(t *testing.T) {
 	defer cancel()
 	done := make(chan error, 1)
 	go func() {
-		_, err := execute(ctx, "", runtime.CommandSpec{Argv: []string{"sh", "-c", "sleep 30"}, Provider: "codebuddy"}, runtime.RunCredentials{}, nil)
+		_, err := execute(ctx, "", runtime.CommandSpec{Argv: []string{"sh", "-c", "sleep 30"}, Provider: "claude-code"}, runtime.RunCredentials{}, nil)
 		done <- err
 	}()
 	deadline := time.After(3 * time.Second)
@@ -296,7 +296,7 @@ func TestConversationStopGivesUpWhenRunnerStaysOffline(t *testing.T) {
 	defer cancel()
 	done := make(chan error, 1)
 	go func() {
-		_, err := execute(ctx, "", runtime.CommandSpec{Argv: []string{"sh", "-c", "sleep 30"}, Provider: "codebuddy"}, runtime.RunCredentials{}, nil)
+		_, err := execute(ctx, "", runtime.CommandSpec{Argv: []string{"sh", "-c", "sleep 30"}, Provider: "claude-code"}, runtime.RunCredentials{}, nil)
 		done <- err
 	}()
 	deadline := time.After(5 * time.Second)
@@ -355,7 +355,7 @@ func TestConversationProcessRetriesBusyRunner(t *testing.T) {
 	pool := &runtime.ConversationProcessPool{}
 	done := make(chan error, 1)
 	go func() {
-		_, err := execute(context.Background(), "", runtime.CommandSpec{Argv: []string{"sh", "-c", "echo ok"}, Provider: "codebuddy"}, runtime.RunCredentials{}, nil)
+		_, err := execute(context.Background(), "", runtime.CommandSpec{Argv: []string{"sh", "-c", "echo ok"}, Provider: "claude-code"}, runtime.RunCredentials{}, nil)
 		done <- err
 	}()
 	busy := 0

@@ -138,7 +138,7 @@ func TestFrozenRunRequirementsKeepAllProvidersInSameSandbox(t *testing.T) {
 	d, req, _ := runnerPreparationFixture(t)
 	defer d.closeAllRunSandboxes(context.Background())
 	var previous runtime.Sandbox
-	for _, provider := range []string{"terminal", "codebuddy", "codex"} {
+	for _, provider := range []string{"terminal", "codex"} {
 		sb, release, err := d.acquireTaskSandbox(context.Background(), domain.RunnerTask{ID: provider, RunID: req.RunID, Workspace: "runs/prepared/workspace", Provider: provider, Sandbox: req.Sandbox})
 		if err != nil {
 			t.Fatal(err)
@@ -189,7 +189,7 @@ func TestRunnerConversationWorkspaceWaveReusesReadinessWithoutPreparingDuringAct
 	if result := d.readRunnerWorkspace(context.Background(), request); result.Status != 200 {
 		t.Fatal(result)
 	}
-	task := domain.RunnerTask{ID: "active-role", RunID: request.RunID, Workspace: "runs/prepared/workspace", Provider: "codebuddy", Sandbox: request.Sandbox}
+	task := domain.RunnerTask{ID: "active-role", RunID: request.RunID, Workspace: "runs/prepared/workspace", Provider: "claude-code", Sandbox: request.Sandbox}
 	_, release, err := d.acquireTaskSandbox(context.Background(), task)
 	if err != nil {
 		t.Fatal(err)
@@ -580,7 +580,7 @@ func TestRunnerIDEJoinsRunningSOPWithoutPreparationSteps(t *testing.T) {
 	defer d.closeAllRunSandboxes(context.Background())
 	request.RunStatus = "running"
 	request.Workflow = &domain.WorkflowDefinition{Nodes: []domain.WorkflowNode{{ID: "agent", Type: "agent"}}}
-	task := domain.RunnerTask{ID: "running-node", RunID: request.RunID, Workspace: "runs/prepared/workspace", Provider: "codebuddy", Sandbox: request.Sandbox}
+	task := domain.RunnerTask{ID: "running-node", RunID: request.RunID, Workspace: "runs/prepared/workspace", Provider: "claude-code", Sandbox: request.Sandbox}
 	_, release, err := d.acquireTaskSandbox(context.Background(), task)
 	if err != nil {
 		t.Fatal(err)

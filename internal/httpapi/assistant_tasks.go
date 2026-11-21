@@ -134,11 +134,7 @@ func (h *assistantHandlers) runTaskNow(c *gin.Context) {
 	task, err := loadAssistantTask(h.repo, current.ID, c.Param("id"))
 	engine, _ := assistantModelEngine(task.Model)
 	if !ok || !scheduleHasPersonalCredential(h.repo, user, engine) {
-		msg := "请先在个人配置中配置自己的 CodeBuddy API Key"
-		if engine != assistantEngineCodeBuddy {
-			msg = assistantEngineMissingKey(engine)
-		}
-		c.JSON(400, gin.H{"error": msg})
+		c.JSON(400, gin.H{"error": assistantEngineMissingKey(engine)})
 		return
 	}
 	if err != nil {
@@ -243,10 +239,7 @@ func (h *assistantHandlers) executeAssistantTask(ctx context.Context, user domai
 			if machineOffline {
 				return fail(fmt.Sprintf("未配置 %s API Key。请启动 Runner，或在个人配置中填写 Key 后重试", assistantEngineLabel(engine)))
 			}
-			if engine != assistantEngineCodeBuddy {
-				return fail(assistantEngineMissingKey(engine))
-			}
-			return fail("未配置 CodeBuddy API Key")
+			return fail(assistantEngineMissingKey(engine))
 		}
 		var err error
 		if model, err = scheduledRunModel(ctx, model, user); err != nil {
@@ -470,23 +463,14 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-// scheduledRunModel resolves the model a scheduled run uses. The CodeBuddy
-// model list is an in-memory cache that is empty after a restart, so it is
-// refreshed with the owner's key before a model is rejected. A run never
+// scheduledRunModel resolves the model a scheduled run uses. A run never
 // silently switches to another, possibly more expensive, model.
 func scheduledRunModel(ctx context.Context, requested string, user domain.User) (string, error) {
 	requested = strings.TrimSpace(requested)
-	env := user.CodeBuddyInternetEnvironment
-	catalog := withCodeBuddyPersonalModels(loadAssistantModels(ctx, env), user)
+	catalog := loadAssistantModels(ctx)
 	model := assistantAllowedUserModel(requested, catalog, user)
 	if requested == "" || model == requested {
 		return model, nil
-	}
-	if engine, _ := assistantModelEngine(requested); engine == assistantEngineCodeBuddy {
-		refreshCLIModels(ctx, env, user.CodeBuddyAPIKey)
-		if model = assistantAllowedUserModel(requested, loadAssistantModels(ctx, env), user); model == requested {
-			return model, nil
-		}
 	}
 	return "", fmt.Errorf("定时任务指定的模型 %s 在负责人的账号下不可用，本次没有运行；请在定时任务里改选可用的模型", requested)
 }

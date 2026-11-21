@@ -55,9 +55,8 @@ type PlatformAccount struct {
 	ChineseName string `json:"chineseName,omitempty"`
 	Admin       bool   `json:"admin"`
 	// Password is false for users who sign in through GitHub or a gateway.
-	Password        bool       `json:"password"`
-	CodeBuddyAPIKey bool       `json:"codeBuddyApiKeyConfigured"`
-	CreatedAt       *time.Time `json:"createdAt,omitempty"`
+	Password  bool       `json:"password"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
 }
 
 // ListPlatformAccounts lists every user, oldest first.
@@ -69,14 +68,11 @@ func (r *UsersRepo) ListPlatformAccounts() ([]PlatformAccount, error) {
 		PlatformRole string
 		CreatedAt    *time.Time
 		HasPassword  bool
-		HasKey       bool
 	}
 	err := r.DB.Raw(`SELECT u.id, u.login_name, u.chinese_name, u.platform_role, u.created_at,
-		(l.user_id IS NOT NULL) AS has_password,
-		(c.codebuddy_api_key IS NOT NULL AND c.codebuddy_api_key <> '') AS has_key
+		(l.user_id IS NOT NULL) AS has_password
 		FROM users u
 		LEFT JOIN local_accounts l ON l.user_id = u.id
-		LEFT JOIN user_configs c ON c.user_id = u.id
 		ORDER BY u.id ASC`).Scan(&rows).Error
 	if err != nil {
 		return nil, err
@@ -86,7 +82,7 @@ func (r *UsersRepo) ListPlatformAccounts() ([]PlatformAccount, error) {
 		out = append(out, PlatformAccount{
 			UserID: row.ID, LoginName: row.LoginName, ChineseName: row.ChineseName,
 			Admin:    IsAllowlistedPlatformAdmin(row.LoginName) || domain.IsPlatformAdmin(domain.User{PlatformRole: row.PlatformRole}),
-			Password: row.HasPassword, CodeBuddyAPIKey: row.HasKey, CreatedAt: row.CreatedAt,
+			Password: row.HasPassword, CreatedAt: row.CreatedAt,
 		})
 	}
 	return out, nil

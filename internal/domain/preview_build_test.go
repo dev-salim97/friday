@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestAttachPreviewBuildAppendsCodeBuddyNode(t *testing.T) {
+func TestAttachPreviewBuildAppendsBuildNode(t *testing.T) {
 	wf := WorkflowDefinition{
 		ID:      "front",
 		Preview: &PreviewContract{Enabled: true, Model: "gpt-5.6-terra"},
@@ -86,10 +86,10 @@ func TestPreviewContractClampsRetentionTo30Days(t *testing.T) {
 	}
 }
 
-func TestPreviewContractRejectsNonCodeBuddy(t *testing.T) {
+func TestPreviewContractRejectsNonDefaultExecutor(t *testing.T) {
 	c := &PreviewContract{Enabled: true, ExecutorID: "claude", Model: "x"}
 	if err := c.Validate(); err == nil {
-		t.Fatal("expected CodeBuddy-only error")
+		t.Fatal("expected executor-only error")
 	}
 	disabled := &PreviewContract{Enabled: false, ExecutorID: "claude"}
 	if err := disabled.Validate(); err != nil {

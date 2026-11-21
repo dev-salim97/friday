@@ -18,7 +18,7 @@ func TestScheduledJobMarksEveryExecutionConversation(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err := st.PutUser(domain.User{LoginName: "schedule-source", CodeBuddyAPIKey: "test-key"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "schedule-source", ClaudeCodeAPIKey: "test-key"}); err != nil {
 		t.Fatal(err)
 	}
 	user, _ := st.UserByLoginName("schedule-source")
@@ -53,7 +53,7 @@ func TestSavingScheduledConversationKeepsItsSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err := st.PutUser(domain.User{LoginName: "keep-source", CodeBuddyAPIKey: "test-key"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "keep-source", ClaudeCodeAPIKey: "test-key"}); err != nil {
 		t.Fatal(err)
 	}
 	user, _ := st.UserByLoginName("keep-source")
@@ -89,7 +89,7 @@ func TestDeleteScheduledSessionsForTaskRemovesOnlyThatTask(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err := st.PutUser(domain.User{LoginName: "delete-source", CodeBuddyAPIKey: "test-key"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "delete-source", ClaudeCodeAPIKey: "test-key"}); err != nil {
 		t.Fatal(err)
 	}
 	user, _ := st.UserByLoginName("delete-source")
@@ -124,7 +124,7 @@ func TestPruneScheduledSessionsKeepsLatestAndLeavesSOPAlone(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err := st.PutUser(domain.User{LoginName: "prune-source", CodeBuddyAPIKey: "test-key"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "prune-source", ClaudeCodeAPIKey: "test-key"}); err != nil {
 		t.Fatal(err)
 	}
 	user, _ := st.UserByLoginName("prune-source")
@@ -165,7 +165,7 @@ func TestPruneScheduledSessionsKeepsLatestAndLeavesSOPAlone(t *testing.T) {
 func writeSharedRoot(t *testing.T, id string, modified time.Time) string {
 	t.Helper()
 	root := assistantSharedSessionRoot(id)
-	file := filepath.Join(root, "home", ".codebuddy", "plugins", "marketplace.json")
+	file := filepath.Join(root, "home", ".claude", "plugins", "marketplace.json")
 	if err := os.MkdirAll(filepath.Dir(file), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestDeletingConversationRemovesItsSharedRoot(t *testing.T) {
 	}
 	t.Cleanup(st.Close)
 	for _, login := range []string{"shared-owner", "shared-other"} {
-		if err := st.PutUser(domain.User{LoginName: login, CodeBuddyAPIKey: "test-key"}); err != nil {
+		if err := st.PutUser(domain.User{LoginName: login, ClaudeCodeAPIKey: "test-key"}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -225,7 +225,7 @@ func TestPruneOrphanSharedRootsKeepsLiveAndRecentRoots(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err := st.PutUser(domain.User{LoginName: "orphan-owner", CodeBuddyAPIKey: "test-key"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "orphan-owner", ClaudeCodeAPIKey: "test-key"}); err != nil {
 		t.Fatal(err)
 	}
 	owner, _ := st.UserByLoginName("orphan-owner")

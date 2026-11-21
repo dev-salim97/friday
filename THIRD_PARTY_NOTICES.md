@@ -4,8 +4,8 @@
 
 Portions of the following paths are derived from the Superpowers project:
 
-- `local/.codebuddy/skills/brainstorming/`
-- `local/.codebuddy/skills/writing-plans/`
+- `local/classic-reference/skills/brainstorming/`
+- `local/classic-reference/skills/writing-plans/`
 - `local/.codex/skills/superpowers/brainstorming/`
 - `local/.cursor/skills/brainstorming/`
 - `local/.cursor/skills/writing-plans/`
@@ -48,7 +48,7 @@ SOFTWARE.
 
 ## Executor CLI packages
 
-The Docker build downloads pinned Codex, CodeBuddy and DeepSeek Harness (`@deepseek-ai/dsh`, MIT) CLI packages from their provider registries. DeepSeek Harness depends on `@img/sharp-libvips-linux-x64` / `@img/sharp-libvips-linux-arm64`, unmodified prebuilt libvips shared libraries under LGPL-3.0-or-later; the library versions are listed in the package's `versions.json`, and their sources are available from https://github.com/libvips/libvips and https://github.com/lovell/sharp-libvips. Claude Code is proprietary and is not included in published images. When a conversation asks to install a missing CLI, the platform downloads the pinned `@anthropic-ai/claude-code` or `@deepseek-ai/dsh` package, or the public npm package for OpenCode, Kimi Code or Pi, into the installation's data directory. Cursor CLI and Antigravity are installed with their providers' installers. An SOP sandbox that selects Claude Code, OpenCode, Kimi Code or Pi installs the same package on first use. These packages and their bundled dependencies retain the licenses/notices shipped by their providers and are subject to those providers' terms; they are not relicensed under LoopForge's MIT license. Provider accounts, credentials and service terms apply separately. The installed packages retain their original license/readme files.
+The Docker build downloads pinned Codex and DeepSeek Harness (`@deepseek-ai/dsh`, MIT) CLI packages from their provider registries. DeepSeek Harness depends on `@img/sharp-libvips-linux-x64` / `@img/sharp-libvips-linux-arm64`, unmodified prebuilt libvips shared libraries under LGPL-3.0-or-later; the library versions are listed in the package's `versions.json`, and their sources are available from https://github.com/libvips/libvips and https://github.com/lovell/sharp-libvips. Claude Code is proprietary and is not included in published images. When a conversation asks to install a missing CLI, the platform downloads the pinned `@anthropic-ai/claude-code` or `@deepseek-ai/dsh` package, or the public npm package for OpenCode, Kimi Code or Pi, into the installation's data directory. Cursor CLI and Antigravity are installed with their providers' installers. An SOP sandbox that selects Claude Code, OpenCode, Kimi Code or Pi installs the same package on first use. These packages and their bundled dependencies retain the licenses/notices shipped by their providers and are subject to those providers' terms; they are not relicensed under Friday's MIT license. Provider accounts, credentials and service terms apply separately. The installed packages retain their original license/readme files.
 
 The platform source was contributed by the repository owner from the recorded upstream master and is distributed under the root MIT license.
 

@@ -53,12 +53,10 @@ func appendEnvironment(base []string, overlays ...map[string]string) []string {
 
 func controlledBaseEnvironment(base []string) []string {
 	blocked := []string{
-		"CODEBUDDY_API_KEY=",
 		"OPENAI_API_KEY=", "CODEX_API_KEY=", "OPENAI_BASE_URL=",
 		"ANTHROPIC_API_KEY=", "ANTHROPIC_AUTH_TOKEN=", "ANTHROPIC_BASE_URL=",
 		"CLAUDE_CODE_OAUTH_TOKEN=", "CODEX_HOME=", "CLAUDE_CONFIG_DIR=",
 		"CLAUDE_CODE_USE_BEDROCK=", "CLAUDE_CODE_USE_VERTEX=", "CLAUDE_CODE_USE_FOUNDRY=",
-		"CODEBUDDY_INTERNET_ENVIRONMENT=",
 		"AGENTFLOW_GIT_TOKEN=",
 		"GH_TOKEN=",
 		"GITHUB_TOKEN=",
@@ -444,8 +442,8 @@ func seatbeltResolvePath(abs string) string {
 	}
 }
 
-// bunFSMountPoint is the virtual root Bun-compiled CLIs (Claude Code,
-// CodeBuddy) resolve their embedded files under. A variable for tests.
+// bunFSMountPoint is the virtual root Bun-compiled CLIs (Claude Code)
+// resolve their embedded files under. A variable for tests.
 var bunFSMountPoint = "/$bunfs"
 
 // ensureBunFSMountPoint makes sure bwrap can mount a private tmpfs at

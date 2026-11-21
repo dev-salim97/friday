@@ -13,7 +13,7 @@ import (
 
 func TestAssistantCLIReportsResultUsage(t *testing.T) {
 	dir := t.TempDir()
-	bin := filepath.Join(dir, "codebuddy")
+	bin := filepath.Join(dir, "claude")
 	script := `#!/bin/sh
 cat <<'JSON'
 {"type":"assistant","message":{"content":[{"type":"text","text":"完成"}]}}
@@ -23,9 +23,9 @@ JSON
 	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	var got []domain.TokenUsage
-	raw, _, err := runAssistantCLI(context.Background(), assistantCLIRequest{Prompt: "检查", SessionRoot: dir, OnUsage: func(u domain.TokenUsage) { got = append(got, u) }}, domain.User{ID: 1, CodeBuddyAPIKey: "test-key"}, nil)
+	raw, _, err := runAssistantCLI(context.Background(), assistantCLIRequest{Prompt: "检查", SessionRoot: dir, OnUsage: func(u domain.TokenUsage) { got = append(got, u) }}, domain.User{ID: 1, ClaudeCodeAPIKey: "test-key"}, nil)
 	if err != nil || raw != "完成" {
 		t.Fatalf("raw=%q err=%v", raw, err)
 	}
@@ -40,14 +40,14 @@ JSON
 
 func TestAssistantCLISkipsUsageWithoutTokens(t *testing.T) {
 	dir := t.TempDir()
-	bin := filepath.Join(dir, "codebuddy")
+	bin := filepath.Join(dir, "claude")
 	script := "#!/bin/sh\necho '{\"type\":\"result\",\"result\":\"完成\",\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}'\n"
 	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	called := false
-	if _, _, err := runAssistantCLI(context.Background(), assistantCLIRequest{Prompt: "检查", SessionRoot: dir, OnUsage: func(domain.TokenUsage) { called = true }}, domain.User{ID: 1, CodeBuddyAPIKey: "test-key"}, nil); err != nil {
+	if _, _, err := runAssistantCLI(context.Background(), assistantCLIRequest{Prompt: "检查", SessionRoot: dir, OnUsage: func(domain.TokenUsage) { called = true }}, domain.User{ID: 1, ClaudeCodeAPIKey: "test-key"}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if called {
@@ -55,16 +55,16 @@ func TestAssistantCLISkipsUsageWithoutTokens(t *testing.T) {
 	}
 }
 
-// generateWithFakeCLI runs one private generation against a fake CodeBuddy
+// generateWithFakeCLI runs one private generation against a fake Claude
 // binary and returns the stored assistant message.
 func generateWithFakeCLI(t *testing.T, script string) (assistantMessage, []byte) {
 	t.Helper()
 	h, user := workbenchFixture(t)
-	bin := filepath.Join(t.TempDir(), "codebuddy")
+	bin := filepath.Join(t.TempDir(), "claude")
 	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	sid := "usage-" + filepath.Base(t.TempDir())
 	body, _ := json.Marshal(assistantRequest{SessionID: sid, ProjectID: "workbench", Messages: []assistantMessage{{Role: "user", Content: "检查文件"}}})
 	c, rec := workbenchContext(user, "POST", "/api/assistant/generations", bytes.NewBuffer(body))

@@ -80,7 +80,7 @@ test('flow preview properties update model and SPA fallback in observable state'
   spa.dispatchEvent(new app.window.Event('change'));
   assert.equal(app.evaluate(`state.workflow.preview.model`), model.value);
   assert.equal(app.evaluate(`state.workflow.preview.spaFallback`), false);
-  assert.match(app.document.querySelector('#properties').textContent, /CodeBuddy 模型/);
+  assert.match(app.document.querySelector('#properties').textContent, /构建模型/);
 });
 
 test('SOP wizard creates a workflow and publish/delete actions send expected requests', async (t) => {

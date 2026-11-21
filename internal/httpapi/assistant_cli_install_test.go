@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -18,32 +17,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-func TestMissingCLIErrorOffersInstall(t *testing.T) {
-	bin := t.TempDir()
-	t.Setenv("PATH", bin)
-	t.Setenv("HOME", t.TempDir())
-	t.Setenv("AGENTFLOW_MANAGED_CLI_ROOT", "")
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", "")
-	t.Setenv("AGENTFLOW_OPENCODE_BIN", "")
-	t.Setenv("AGENTFLOW_RUNTIME_CLI_DIR", t.TempDir())
-
-	_, err := resolveAssistantEngineBin("opencode")
-	if hostHas("opencode") {
-		t.Log("host already has opencode; checking the error text directly")
-		err = assistantCLIMissingError{engine: "opencode", binary: "opencode"}
-	}
-	if !errors.Is(err, errAssistantCLIMissing) || err.Error() != "OpenCode（opencode）没有安装在当前服务器上。安装后即可在对话里使用。" {
-		t.Fatalf("opencode: %v", err)
-	}
-	_, err = resolveCodeBuddyBin()
-	if hostHas("codebuddy") {
-		err = assistantCLIMissingError{engine: "codebuddy", binary: "codebuddy"}
-	}
-	if !errors.Is(err, errAssistantCLIMissing) || err.Error() != "CodeBuddy（codebuddy）没有安装在当前服务器上。安装后即可在对话里使用。" {
-		t.Fatalf("codebuddy: %v", err)
-	}
-}
 
 func hostHas(binary string) bool {
 	for _, dir := range []string{"/usr/local/bin", "/usr/bin", "/opt/homebrew/bin"} {
@@ -279,7 +252,7 @@ func TestInstallCLIClearsTheStoredGenerationFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err = store.PutAssistantSession(user.ID, domain.AssistantSession{
-		ID: "other-chat", Model: "codebuddy", Executor: "codebuddy", Title: "other",
+		ID: "other-chat", Model: "claude-code:default", Executor: "claude-code", Title: "other",
 		Messages: []domain.AssistantMessage{{Role: "assistant", Content: `{"message":""}`, Unfinished: assistantGenerationFailedMessage}},
 	}); err != nil {
 		t.Fatal(err)

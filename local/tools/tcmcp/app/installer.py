@@ -66,7 +66,7 @@ def config_path(client: str) -> Path:
         return Path(override).expanduser().resolve()
     if client == "codex":
         return Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))).expanduser() / "config.toml"
-    if client not in ("cursor", "codebuddy", "workbuddy"):
+    if client not in ("cursor", "workbuddy"):
         raise ValueError("不支持的客户端")
     return Path.home() / f".{client}" / "mcp.json"
 

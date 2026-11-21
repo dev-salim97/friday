@@ -26,14 +26,14 @@ class CollectorTests(unittest.TestCase):
         tokens = {"input": 1000, "output": 200, "cache_read": 0, "total": 1200}
         self.assertIsNone(emitter.cost_of(tokens, "unknown-model"))
 
-    def test_emit_adds_codebuddy_cli_data_source(self):
+    def test_emit_adds_codex_cli_data_source(self):
         with tempfile.TemporaryDirectory() as td:
             log_path = Path(td) / "metrics.ndjson"
 
             emitter.emit(log_path, {"event": "start", "sid": "s-data-source"})
 
             record = json.loads(log_path.read_text(encoding="utf-8").strip())
-            self.assertEqual(record["data_source"], "codebuddy-cli")
+            self.assertEqual(record["data_source"], "agent-cli")
 
     def test_emit_preserves_explicit_data_source(self):
         with tempfile.TemporaryDirectory() as td:

@@ -30,7 +30,7 @@ knowledge:
 
 # compatibility field for workflow-state.json.
 # Claude Code runtime uses the main Claude Code thread as orchestrator and does not use
-# CodeBuddy team_create/send_message/team_delete.
+# team_create/send_message/team_delete.
 runtime_mode: ide
 
 max_parallel_sub_developers: 6
@@ -56,8 +56,8 @@ routing_table:
 global_agent_rules: |
   【Claude Code devflow 全局规则】
   1. 每个阶段开始前必须读取 workflow-state.json。
-  2. 阶段执行只读取 .claude 下的工作流资产，不读取 .claude 作为运行时依赖。
-  3. 不调用 CodeBuddy 的 team_create、send_message、team_delete。
+  2. 阶段执行只读取 .claude 下的工作流资产。
+  3. 不调用 team_create、send_message、team_delete。
   4. 完成阶段后写回 workflow-state.json，并向主 Claude Code 线程返回阶段报告。
   5. 主 Claude Code 线程根据 routing_table 决定下一阶段。
   6. 阶段报告必须是紧凑结构化格式（≤500 字），带全 event、stage、status、

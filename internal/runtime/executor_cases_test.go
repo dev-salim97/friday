@@ -38,7 +38,7 @@ func (s *cvRProtocolSandbox) Exec(_ context.Context, command CommandSpec, sink E
 
 func TestPrepareRemoteProvidersAndBuiltinGate(t *testing.T) {
 	runner := NewExecutorRunner()
-	for _, kind := range []string{"claude-code", "codebuddy", "codex", "custom"} {
+	for _, kind := range []string{"claude-code", "codex", "custom"} {
 		workspace := t.TempDir()
 		prepared, err := runner.PrepareRemote(workspace, RemoteInvocation{
 			InvocationID: "inv-" + kind,
@@ -155,7 +155,7 @@ func TestProviderRequirementAndCommandHelpers(t *testing.T) {
 	if !merged.BunFS || len(merged.CLIStates) != 2 {
 		t.Fatalf("merged=%+v", merged)
 	}
-	for _, kind := range []string{"claude-code", "codebuddy", "codex", "custom"} {
+	for _, kind := range []string{"claude-code", "codex", "custom"} {
 		command, err := PrepareProviderCommand(domain.ExecutorDefinition{Kind: kind, Binary: kind}, "prompt", "runner", InvocationOptions{})
 		if err != nil || len(command.Argv) == 0 {
 			t.Fatalf("%s command=%+v err=%v", kind, command, err)
@@ -304,7 +304,7 @@ func TestSmallExecutionAndIsolationBranches(t *testing.T) {
 	if commandResult(nil) != "process exited successfully" || commandResult(errors.New("x")) != "x" {
 		t.Fatal("command result")
 	}
-	for kind, want := range map[string]string{"claude-code": "claude-code", "codebuddy": "codebuddy", "codex": "codex", "mock": "mock"} {
+	for kind, want := range map[string]string{"claude-code": "claude-code", "codex": "codex", "mock": "mock"} {
 		if got := providerForKind(kind).Kind(); got != want {
 			t.Fatalf("%s kind=%q", kind, got)
 		}

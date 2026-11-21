@@ -104,7 +104,7 @@ func TestScheduledAssistantNativeGatewayKeepsWorkspaceAndTerminalReply(t *testin
 	endpoints.AgentToolGateway = server.URL
 	config.SetCurrent(endpoints)
 	defer config.SetCurrent(previous)
-	bin := filepath.Join(t.TempDir(), "codebuddy")
+	bin := filepath.Join(t.TempDir(), "claude")
 	// Exercise the real CLI-to-gateway protocol using only a loopback server.
 	script := "#!" + python + `
 import json, sys, urllib.request
@@ -127,7 +127,7 @@ raise SystemExit(1)
 	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	task := assistantTask{ID: "native-scheduled", Name: "Native schedule", ProjectID: "workbench", Prompt: "巡检并生成报告"}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()

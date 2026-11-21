@@ -3,14 +3,14 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_DIR="${1:-$ROOT_DIR/dist/release}"
-ASSET_NAME="loopforge-workflow.tar.gz"
+ASSET_NAME="friday-workflow.tar.gz"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-PAYLOAD_DIR="$TMP_DIR/loopforge-workflow"
+PAYLOAD_DIR="$TMP_DIR/friday-workflow"
 mkdir -p "$PAYLOAD_DIR" "$OUTPUT_DIR"
 
-for path in bin src skills .codebuddy .codex .cursor .claude; do
+for path in bin src skills .codex .cursor .claude; do
   cp -R "$ROOT_DIR/$path" "$PAYLOAD_DIR/$path"
 done
 python3 "$ROOT_DIR/scripts/prepare-notices.py"
@@ -24,7 +24,7 @@ find "$PAYLOAD_DIR" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
 # agent-observability run output (metrics, state, debug logs) is local-only.
 find "$PAYLOAD_DIR" -path '*/agent-observability/logs/*' -type f ! -name .gitkeep -delete
 
-tar -czf "$OUTPUT_DIR/$ASSET_NAME" -C "$TMP_DIR" loopforge-workflow
+tar -czf "$OUTPUT_DIR/$ASSET_NAME" -C "$TMP_DIR" friday-workflow
 if command -v sha256sum >/dev/null 2>&1; then
   (cd "$OUTPUT_DIR" && sha256sum "$ASSET_NAME" > "$ASSET_NAME.sha256")
 else

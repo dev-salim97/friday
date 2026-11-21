@@ -320,7 +320,7 @@ func TestDetectionProviderAndDaemonBasics(t *testing.T) {
 	if _, ok := providerBinaryPath([]domain.RunnerRuntime{{Provider: "x", Status: domain.RuntimeStatusDisabled}}, "x"); ok {
 		t.Fatal("disabled provider selected")
 	}
-	for _, provider := range []string{"claude-code", "codex", "codebuddy"} {
+	for _, provider := range []string{"claude-code", "codex"} {
 		argv, err := providerArgv(provider, "bin", "prompt", []string{"--x"})
 		if err != nil || argv[0] != "bin" || argv[len(argv)-1] != "prompt" {
 			t.Fatalf("%s argv=%v err=%v", provider, argv, err)

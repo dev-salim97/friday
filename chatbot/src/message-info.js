@@ -73,7 +73,7 @@ export function messageInfo(message = {}) {
       label: "Agent",
       value: String(message.speakerName || "").trim() || "主 Bot",
     },
-    { key: "tool", label: "编码工具", value: "CodeBuddy" },
+    { key: "tool", label: "编码工具", value: "Friday" },
     { key: "model", label: "模型", value: model || NOT_REPORTED },
     {
       key: "elapsed",

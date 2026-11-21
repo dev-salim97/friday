@@ -82,7 +82,7 @@ func TestAssistantChatRecoversWithoutJSONFollowup(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err := st.PutUser(domain.User{LoginName: "mcp-user", CodeBuddyAPIKey: "alice-secret"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "mcp-user", ClaudeCodeAPIKey: "alice-secret"}); err != nil {
 		t.Fatal(err)
 	}
 	user, ok := st.UserByLoginName("mcp-user")
@@ -182,7 +182,7 @@ func TestAssistantScheduledWritesApplyIssuePatches(t *testing.T) {
 	if !ok {
 		t.Fatal("seed user")
 	}
-	user.CodeBuddyAPIKey = "scheduled-secret"
+	user.ClaudeCodeAPIKey = "scheduled-secret"
 	if err := st.PutUser(user); err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestScheduledTaskKeepsPlaintextAndDoesNotParseJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err := st.PutUser(domain.User{LoginName: "task-native", CodeBuddyAPIKey: "task-secret"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "task-native", ClaudeCodeAPIKey: "task-secret"}); err != nil {
 		t.Fatal(err)
 	}
 	user, ok := st.UserByLoginName("task-native")

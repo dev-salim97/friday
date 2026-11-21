@@ -54,7 +54,7 @@ describe("execution machine picker", () => {
     );
     await user.type(screen.getByRole("combobox"), "Linux");
     expect(
-      screen.queryByRole("option", { name: /LoopForge 云端/ }),
+      screen.queryByRole("option", { name: /Friday 云端/ }),
     ).not.toBeInTheDocument();
     await user.clear(screen.getByRole("combobox"));
     await user.type(screen.getByRole("combobox"), "没有这台机器");
@@ -73,7 +73,7 @@ describe("execution machine picker", () => {
     const { user, trigger } = await openPicker();
     expect(trigger).toHaveTextContent("选择执行机器");
     expect(screen.getByText("请先绑定个人执行机器")).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /LoopForge 云端/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Friday 云端/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("option", { name: "管理执行机器" }));
     expect(manage).toHaveBeenCalledOnce();
   });
@@ -131,7 +131,7 @@ describe("execution machine picker", () => {
     const { user, trigger } = await openPicker();
     expect(trigger).toHaveTextContent("执行机器加载失败");
     expect(
-      screen.queryByRole("option", { name: /LoopForge 云端/ }),
+      screen.queryByRole("option", { name: /Friday 云端/ }),
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole("option", { name: "重新加载" }));
     expect(chat.refreshMachines).toHaveBeenCalledTimes(2);

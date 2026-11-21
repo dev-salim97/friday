@@ -62,7 +62,7 @@ func TestNativeHookForwardsExactInputAndFailsClosed(t *testing.T) {
 }
 
 func TestConversationSupportsEveryRegisteredCLI(t *testing.T) {
-	for _, kind := range append([]string{"codebuddy", "codex", "claude-code"}, domain.AgentCLIExecutorKinds...) {
+	for _, kind := range append([]string{"codex", "claude-code"}, domain.AgentCLIExecutorKinds...) {
 		t.Run(kind, func(t *testing.T) {
 			root := t.TempDir()
 			command := CommandSpec{Argv: []string{conversationBinary(kind), "--prompt", "task"}, Provider: kind}

@@ -50,7 +50,7 @@ def session_id_of(data: dict[str, Any]) -> str:
 
 def cwd(data: dict[str, Any]) -> str:
     """解析当前项目工作目录。"""
-    return str(data.get("cwd") or os.environ.get("CODEBUDDY_PROJECT_DIR") or os.getcwd())
+    return str(data.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
 
 
 def normalize_phase(raw: str | None) -> str:

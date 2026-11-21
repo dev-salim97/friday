@@ -1,4 +1,4 @@
-const prefix = "loopforge.assistant.";
+const prefix = "friday.assistant.";
 
 export function readComposerPreference(name) {
   try {

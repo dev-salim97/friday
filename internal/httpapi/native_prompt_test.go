@@ -88,7 +88,7 @@ func TestNativeShouldRetryTerminal(t *testing.T) {
 	if nativeShouldRetryTerminal(ctx, errors.New("canceled")) {
 		t.Fatal("canceled context must not retry")
 	}
-	if nativeShouldRetryTerminal(context.Background(), errors.New("请先配置 CodeBuddy API Key")) {
+	if nativeShouldRetryTerminal(context.Background(), errors.New("请先配置 Claude Code API Key")) {
 		t.Fatal("credential errors must not retry")
 	}
 }

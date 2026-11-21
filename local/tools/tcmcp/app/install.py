@@ -20,7 +20,7 @@ from app.generate import build_zip
 from app.models import Selection
 
 router = APIRouter()
-CLIENTS = ("cursor", "codebuddy", "codex", "workbuddy")
+CLIENTS = ("cursor", "codex", "workbuddy")
 TTL = 24 * 60 * 60
 MAX_PACKAGES = 200
 TOKEN = re.compile(r"^[a-f0-9]{32}$")
@@ -106,7 +106,6 @@ tcmcp_install
 
 
 @router.get("/cursor")
-@router.get("/codebuddy")
 @router.get("/codex")
 @router.get("/workbuddy")
 def installer(request: Request, project: str = ""):

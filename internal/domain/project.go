@@ -26,15 +26,12 @@ type Project struct {
 	RunEval             RunEvalPolicy     `json:"runEval,omitempty"`
 	// Deprecated project-level credential fields are kept only so old payloads
 	// can be decoded and scrubbed by the schema migration.
-	GitToken                     string    `json:"-"`
-	GitHubCredentialConfigured   bool      `json:"-"`
-	CodeBuddyAPIKey              string    `json:"-"`
-	CodeBuddyAPIKeyConfigured    bool      `json:"-"`
-	CodeBuddyInternetEnvironment string    `json:"-"`
-	TAPDWorkspaceID              string    `json:"tapdWorkspaceId,omitempty"`
-	TAPDIterationID              string    `json:"tapdIterationId,omitempty"`
-	CreatedAt                    time.Time `json:"createdAt"`
-	UpdatedAt                    time.Time `json:"updatedAt"`
+	GitToken                   string    `json:"-"`
+	GitHubCredentialConfigured bool      `json:"-"`
+	TAPDWorkspaceID            string    `json:"tapdWorkspaceId,omitempty"`
+	TAPDIterationID            string    `json:"tapdIterationId,omitempty"`
+	CreatedAt                  time.Time `json:"createdAt"`
+	UpdatedAt                  time.Time `json:"updatedAt"`
 	// ArchivedAt marks a deleted project. It is hidden from project lists and
 	// syncs but its requirements, runs and settings are kept so it can be
 	// restored; the id stays taken.
@@ -45,8 +42,6 @@ type Project struct {
 func PublicProject(p Project) Project {
 	p.GitToken = ""
 	p.GitHubCredentialConfigured = false
-	p.CodeBuddyAPIKey = ""
-	p.CodeBuddyAPIKeyConfigured = false
 	return p
 }
 

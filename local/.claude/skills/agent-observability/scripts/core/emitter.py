@@ -11,7 +11,7 @@
 历史 x_* 扩展字段、stop skill/rule 汇总、schema 版本号等都不再生成。
 
 `cost_usd` 的价格表 = 内置 `config/pricing.json` 与用户覆盖文件（默认
-`<project_root>/.codebuddy/agent-observability/pricing.overrides.json`，可用
+`<project_root>/.codex/agent-observability/pricing.overrides.json`，可用
 `AOBS_PRICING_OVERRIDES_PATH` 改路径）的字段级合并结果，详见 `load_prices()`。
 """
 from __future__ import annotations
@@ -27,14 +27,14 @@ from . import cls_sink
 from . import state as st
 
 DEFAULT_PRICES_PATH = Path(__file__).resolve().parents[2] / "config" / "pricing.json"
-DEFAULT_DATA_SOURCE = "codebuddy-cli"
+DEFAULT_DATA_SOURCE = "agent-cli"
 
 
 def _default_overrides_path() -> Path | None:
-    """用户定价覆盖文件的默认位置：`<project_root>/.codebuddy/agent-observability/pricing.overrides.json`。
+    """用户定价覆盖文件的默认位置：`<project_root>/.codex/agent-observability/pricing.overrides.json`。
 
     刻意放在 `skills/` 树**外**：`scripts/build-classic-hosts.py` 会整棵同步
-    `.codebuddy/skills`，放树内会 (a) 每次改动都产生 `--check` drift，(b) 把用户的
+    `.codex/skills`，放树内会 (a) 每次改动都产生 `--check` drift，(b) 把用户的
     自定义价格复制进 `.claude`/`.cursor` 宿主包；放树外则既不参与同步，也不会被
     `config/pricing.json` 的后续更新冲掉。
     """
@@ -42,7 +42,7 @@ def _default_overrides_path() -> Path | None:
         project_root = Path(__file__).resolve().parents[5]
     except IndexError:
         return None
-    return project_root / ".codebuddy" / "agent-observability" / "pricing.overrides.json"
+    return project_root / ".codex" / "agent-observability" / "pricing.overrides.json"
 
 
 # None 表示"拿不到项目根"，此时等同于"没有覆盖文件"（纯内置价格表）。

@@ -22,7 +22,7 @@ func prepareAssistantAgentCLIInvocation(kind string, o assistantEngineInvocation
 	for id, server := range servers {
 		entry := map[string]any{}
 		for key, value := range server {
-			// CodeBuddy's per-tool defer_loading extension.
+			// The per-tool defer_loading extension.
 			if key != "tools" {
 				entry[key] = value
 			}

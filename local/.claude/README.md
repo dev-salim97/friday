@@ -1,6 +1,6 @@
 # DevFlow Classic for Claude Code
 
-本目录是由 `.codebuddy` 参考工作流和 Classic 公共契约生成的 Claude Code 宿主包。
+本目录是由 `classic-reference` 参考工作流和 Classic 公共契约生成的 Claude Code 宿主包。
 它属于 Classic edition，不依赖 `skills/devflow` Portable edition。不要直接修改；
 修改参考工作流或适配规则后运行 `python3 scripts/build-classic-hosts.py --write`。
 

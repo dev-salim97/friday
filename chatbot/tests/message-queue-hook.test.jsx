@@ -5,12 +5,12 @@ const state = vi.hoisted(() => ({ transcript: [], generation: null, generationGa
 const { apiMock, writeMock } = vi.hoisted(() => {
   const apiMock = vi.fn(async (path) => {
     if (path === "/api/auth/current")
-      return { user: { id: 1, loginName: "tester", codeBuddyApiKeyConfigured: true } };
+      return { user: { id: 1, loginName: "tester" } };
     if (path === "/api/projects") return [{ id: "p1", name: "项目一", ownerId: 1, members: [1] }];
     if (path === "/api/assistant/models")
-      return { default: "m1", sponsoredModel: "m1", models: [{ id: "m1", name: "模型一" }] };
+      return { default: "m1", models: [{ id: "m1", name: "模型一" }] };
     if (path === "/api/assistant/preferences") return structuredClone(state.preferences);
-    if (path === "/api/users") return [{ id: 1, loginName: "tester", codeBuddyApiKeyConfigured: true }];
+    if (path === "/api/users") return [{ id: 1, loginName: "tester" }];
     if (path === "/api/assistant/sessions") return [];
     if (path.startsWith("/api/assistant/sessions/s2")) {
       if (path.includes("/generation")) throw Object.assign(new Error("not found"), { status: 404 });

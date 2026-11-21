@@ -46,13 +46,13 @@ if stored('COMPOSE_FILE') == 'compose.yaml:compose.dev.yaml':
     print('skip')
     raise SystemExit(0)
 
-image = stored('LOOPFORGE_IMAGE')
+image = stored('FRIDAY_IMAGE')
 if not image:
     compose = pathlib.Path('compose.yaml')
     if not compose.is_file():
         sys.stderr.write('MIRROR needs compose.yaml to find the pinned image.\n')
         raise SystemExit(1)
-    match = re.search(r'(?m)^[ \t]*image:[ \t]*\$\{LOOPFORGE_IMAGE:-([^}]+)\}[ \t]*$', compose.read_text())
+    match = re.search(r'(?m)^[ \t]*image:[ \t]*\$\{FRIDAY_IMAGE:-([^}]+)\}[ \t]*$', compose.read_text())
     if not match:
         sys.stderr.write('MIRROR could not find the pinned image in compose.yaml.\n')
         raise SystemExit(1)

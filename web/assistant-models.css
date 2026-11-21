@@ -17,7 +17,7 @@
 }
 .ai-model-icon img{width:18px;height:18px;display:block;object-fit:contain;background:transparent}
 .ai-model-icon:is(
-  [data-family=claude],[data-family=codebuddy],[data-family=cursor],[data-family=deepseek],
+  [data-family=claude],[data-family=cursor],[data-family=deepseek],
   [data-family=doubao],[data-family=gemini],[data-family=gpt],[data-family=grok],
   [data-family=mimo],[data-family=minimax],[data-family=moonshot],[data-family=muse],
   [data-family=qianfan],[data-family=qwen]

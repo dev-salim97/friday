@@ -74,33 +74,31 @@ test('executor selection has independent models, credentials and a persistent ch
   };
   await executor.click();
   const options=frame.locator('.permission-menu [role="menuitemradio"]');
-  for(const label of ['CodeBuddy','Codex','Claude Code'])await expect(options.filter({hasText:label})).toHaveCount(1);
+  for(const label of ['Codex','Claude Code'])await expect(options.filter({hasText:label})).toHaveCount(1);
   await page.keyboard.press('Escape');
   await input.fill(draft);
-  for(const [id,label] of [['codex','Codex'],['claude','Claude Code'],['codebuddy','CodeBuddy']]){
+  for(const [id,label] of [['codex','Codex'],['claude','Claude Code']]){
     await choose(label);
     await expect(input).toHaveValue(draft);
-    // Only CodeBuddy has the inline key reminder. All executors require a personal runner.
-    await expect(frame.locator('.credential-notice')).toHaveCount(id==='codebuddy'?1:0);
+    // All executors require a personal runner.
     const response=await page.request.post('/api/assistant/generations',{data:{executor:id,model:'default',projectId:'welcome',messages:[{role:'user',content:'No runner: reject before executing.'}]}});
     expect(response.status()).toBe(400);expect((await response.json()).error).toContain('个人执行机器');
     const models=await page.request.get('/api/assistant/models?executor='+id);
     expect(models.ok()).toBe(true);
     const catalog=await models.json();
     expect(Array.isArray(catalog.models)).toBe(true);
-    if(id==='codebuddy')expect(catalog.default).toBeTruthy();
-    else expect(catalog.models.length).toBeGreaterThan(0);
+    expect(catalog.models.length).toBeGreaterThan(0);
   }
   await choose('Codex');
   await page.reload();
   await expect(composer()).toBeEditable();
   await expect(executorButton(chat(page))).toContainText('Codex');
-  await choose('CodeBuddy');
+  await choose('Claude Code');
   expect((await page.request.get('/api/assistant/models?executor=shell')).status()).toBe(400);
   function composer(){return chat(page).locator('.composer-column textarea')}
 });
 
-test('SOP readiness checks each role executor rather than always requiring CodeBuddy',async({page})=>{
+test('SOP readiness checks each role executor rather than always requiring one executor',async({page})=>{
   await signInUnconfigured(page);
   const {user}=await page.request.get('/api/auth/current').then(r=>r.json());
   expect(!!user.codexApiKeyConfigured).toBe(false);
@@ -109,21 +107,21 @@ test('SOP readiness checks each role executor rather than always requiring CodeB
   if(project.status()===404)expect((await page.request.post('/api/projects',{data:{id:projectId,key:'E2EX',name:'E2E executor setup',ownerId:user.id}})).ok()).toBe(true);
   else expect((await project.json()).ownerId).toBe(user.id);
   try{
-    for(const executor of ['codebuddy','codex','claude']){
+    for(const executor of ['codex','claude']){
       const id=`e2e-provider-${executor}-${suffix}`;ids.push(id);
       expect((await page.request.put('/api/agents',{data:{id,projectId,name:id,executorId:executor,prompt:'Only perform an explicitly assigned task.'}})).ok()).toBe(true);
-      expect((await page.request.put('/api/workflows',{data:{id,projectId,name:id,status:'draft',sandboxProfileId:'local',nodes:[{id:'work',name:'Work',type:'agent',agentId:id,executorId:'codebuddy',position:{x:100,y:100}}],edges:[]}})).ok()).toBe(true);
+      expect((await page.request.put('/api/workflows',{data:{id,projectId,name:id,status:'draft',sandboxProfileId:'local',nodes:[{id:'work',name:'Work',type:'agent',agentId:id,executorId:'claude',position:{x:100,y:100}}],edges:[]}})).ok()).toBe(true);
     }
     await page.reload();await switchProject(page,projectId);
     await openSettingsPage(page,'sops');
     const expectRows=async configured=>{
-      for(const [i,label] of ['CodeBuddy','Codex','Claude Code'].entries()){
+      for(const [i,label] of ['Codex','Claude Code'].entries()){
         const chips=page.locator(`[data-sop="${ids[i]}"] .sop-requirements .sop-badge`);
         const row=chips.filter({hasText:new RegExp(`(^|\\s)${label} API Key`)});
         await expect(row).toHaveCount(1);
-        await expect(row).toHaveClass(new RegExp(configured&&i===1?'\\btone-success\\b':'\\btone-warn\\b'));
+        await expect(row).toHaveClass(new RegExp(configured&&i===0?'\\btone-success\\b':'\\btone-warn\\b'));
         // A role on one executor never asks for another executor's key.
-        for(const other of ['CodeBuddy','Codex','Claude Code'].filter(x=>x!==label))await expect(chips.filter({hasText:new RegExp(`(^|\\s)${other} API Key`)})).toHaveCount(0);
+        for(const other of ['Codex','Claude Code'].filter(x=>x!==label))await expect(chips.filter({hasText:new RegExp(`(^|\\s)${other} API Key`)})).toHaveCount(0);
       }
     };
     await expectRows(false);

@@ -280,7 +280,7 @@ func prepareLocalSnapshotRepository(ctx context.Context, workspace, localPath st
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("copy local source: %w: %s", err, strings.TrimSpace(string(output)))
 	}
-	for _, args := range [][]string{{"init", "-b", "agentflow-base"}, {"config", "user.email", "loopforge@local"}, {"config", "user.name", "LoopForge"}, {"add", "-A"}, {"commit", "-m", "LoopForge baseline", "--quiet"}} {
+	for _, args := range [][]string{{"init", "-b", "agentflow-base"}, {"config", "user.email", "friday@local"}, {"config", "user.name", "Friday"}, {"add", "-A"}, {"commit", "-m", "Friday baseline", "--quiet"}} {
 		cmd = exec.CommandContext(ctx, "git", append([]string{"-C", workspace}, args...)...)
 		if output, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("snapshot local source: %w: %s", err, strings.TrimSpace(string(output)))

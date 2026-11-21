@@ -6,7 +6,7 @@
   const lang = root.dataset.lang === 'en' ? 'en' : 'zh';
   window.lfLang = () => lang;
   window.lfSetLang = next => {
-    localStorage.setItem('loopforge.lang', next === 'en' ? 'en' : 'zh');
+    localStorage.setItem('friday.lang', next === 'en' ? 'en' : 'zh');
     location.reload();
   };
   window.lfT = (zh, en) => (lang === 'en' ? en : zh);

@@ -44,14 +44,6 @@ func (h *usersHandlers) user(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-	if raw := body.CodeBuddyInternetEnvironment; raw != nil {
-		environment, ok := domain.NormalizeCodeBuddyInternetEnvironment(*raw)
-		if !ok {
-			c.JSON(http.StatusBadRequest, map[string]string{"error": "CodeBuddy 网络环境只能是国际站（留空）、国内站（internal）或 iOA（ioa）"})
-			return
-		}
-		body.CodeBuddyInternetEnvironment = &environment
-	}
 	baseURLs := []*string{body.CodexBaseURL, body.ClaudeCodeBaseURL}
 	for _, cred := range body.AgentCLICredentials {
 		baseURLs = append(baseURLs, cred.BaseURL)

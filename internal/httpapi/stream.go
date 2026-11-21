@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -17,7 +16,6 @@ import (
 	"agentflow/internal/domain"
 	"agentflow/internal/engine"
 	"agentflow/internal/gitwork"
-	"agentflow/internal/managedcli"
 	"agentflow/internal/runtime"
 
 	"github.com/gin-gonic/gin"
@@ -185,50 +183,6 @@ func (h *streamHandlers) chatClarify(c *gin.Context) {
 func statDir(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
-}
-
-// resolveCodeBuddyBin locates the codebuddy executable. It first honors an
-// explicit override (AGENTFLOW_CODEBUDDY_BIN), then the managed inventory if
-// configured (read-only), otherwise consults PATH, and finally
-// probes well-known install locations. The service PATH may not include the
-// user's ~/.local/bin, so relying on PATH alone is not enough.
-func resolveCodeBuddyBin() (string, error) {
-	if override := strings.TrimSpace(os.Getenv("AGENTFLOW_CODEBUDDY_BIN")); override != "" {
-		if fileExecutable(override) {
-			return override, nil
-		}
-	}
-	if root := strings.TrimSpace(os.Getenv("AGENTFLOW_MANAGED_CLI_ROOT")); root != "" {
-		inventory, err := managedcli.ReadInventory(root)
-		if err != nil {
-			return "", fmt.Errorf("读取托管 CodeBuddy 清单失败: %w", err)
-		}
-		if binary, ok := inventory.BinaryFor("codebuddy"); ok {
-			return binary, nil
-		}
-		return "", fmt.Errorf("托管 CodeBuddy 尚未安装，请检查 worker 的 CLI 安装状态")
-	}
-	if p, err := exec.LookPath("codebuddy"); err == nil {
-		return p, nil
-	}
-	home, _ := os.UserHomeDir()
-	if strings.TrimSpace(home) == "" {
-		home = "/root"
-	}
-	candidates := []string{
-		filepath.Join(home, ".local", "bin", "codebuddy"),
-		"/usr/local/bin/codebuddy",
-		"/usr/bin/codebuddy",
-	}
-	for _, c := range candidates {
-		if fileExecutable(c) {
-			return c, nil
-		}
-	}
-	if path, ok := runtime.OnDemandCLIPath("codebuddy"); ok {
-		return path, nil
-	}
-	return "", assistantCLIMissingError{engine: assistantEngineCodeBuddy, binary: "codebuddy"}
 }
 
 // fileExecutable reports whether path is a regular file with an executable bit.
@@ -475,7 +429,7 @@ func (h *streamHandlers) executeClarify(ctx context.Context, issue domain.Issue,
 	}
 	prompt.WriteString(clarifyRoundBudgetHint(clarifyAssistantRounds(request.History)))
 	prompt.WriteString("\n请基于以上对话继续澄清，只围绕「## 需求」本身，完成后调用 submit_clarification。")
-	cbPath, cbErr := resolveCodeBuddyBin()
+	cbPath, cbErr := resolveAssistantEngineBin(assistantEngineClaude)
 	if cbErr != nil {
 		return nil, "", nil, cbErr
 	}
@@ -569,7 +523,7 @@ func (h *streamHandlers) executeClarify(ctx context.Context, issue domain.Issue,
 		workDir = analyzedRepos[0].dir
 	} else if len(analyzedRepos) > 1 {
 		// Multi-repository clarify: copy every analyzed repository into a
-		// durable workspace as a real directory. CodeBuddy Read/Grep/Glob do
+		// durable workspace as a real directory. Read/Grep/Glob do
 		// not follow out-of-tree symlinks, so linking the cache is not enough.
 		// Resetting leftover links never deletes the caches.
 		ws, err := ensureClarifyWorkspace(responsible.ID, wsKey)
@@ -644,7 +598,7 @@ func (h *streamHandlers) executeClarify(ctx context.Context, issue domain.Issue,
 	clarifyID := fmt.Sprintf("clarify-%d", time.Now().UnixNano())
 	modelID := clarifyAllowedModel(request.Model)
 	credentials := runtime.RunCredentials{
-		CodeBuddy:          runtime.CodeBuddyCredential{APIKey: strings.TrimSpace(responsible.CodeBuddyAPIKey), InternetEnvironment: strings.TrimSpace(responsible.CodeBuddyInternetEnvironment)},
+		ClaudeCode:         runtime.ProviderCredential{APIKey: strings.TrimSpace(responsible.ClaudeCodeAPIKey), BaseURL: strings.TrimSpace(responsible.ClaudeCodeBaseURL)},
 		GitHTTPCredentials: h.repo.GitHTTPCredentialSecrets(ctx, responsible.ID),
 	}
 	turnPrompt := userMsg

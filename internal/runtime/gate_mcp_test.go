@@ -58,7 +58,7 @@ func TestMaterializeInvocationInjectsGateMCP(t *testing.T) {
 	compiled, err := materializeInvocation(
 		workspace,
 		"invoke-gate",
-		domain.ExecutorDefinition{Kind: "codebuddy"},
+		domain.ExecutorDefinition{Kind: "claude-code"},
 		domain.AgentDefinition{ID: "reviewer", Name: "Reviewer"},
 		domain.AgentAssetBundle{},
 		InvocationOptions{GateResultPath: ".agentflow/gate-results/review/attempt-1.json"},

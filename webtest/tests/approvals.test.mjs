@@ -25,7 +25,7 @@ test('approval helpers explain gates, failures, pauses, and contextual payloads'
         paused:pausedRunPanelHTML({...run,pauseRequested:true,nodes:{review:{status:'waiting_approval',activity:'用户暂停'}}}),
         recovery:failedNodeRecoveryCalloutHTML(run.id,{id:'build',name:'构建',type:'script'},{error:'exit 1'}),
         agentRecovery:failedNodeRecoveryCalloutHTML(run.id,{id:'ship',name:'发布',type:'agent'},
-          {error:'CodeBuddy API Key invalid',gateResult:{decision:'pass',summary:'已实现',findings:[{title:'校验',evidence:'失败'}]}}),
+          {error:'Claude Code API Key invalid',gateResult:{decision:'pass',summary:'已实现',findings:[{title:'校验',evidence:'失败'}]}}),
         callout:approvalCalloutHTML(run.workflowSnapshot.nodes[1],run.nodes.review,run.workflowSnapshot.nodes),
         retryPanel:failedResumePanelHTML({...run,status:'failed',nodes:{build:{status:'failed'}},
           workflowSnapshot:{...run.workflowSnapshot,nodes:[{id:'build',name:'构建',type:'script'}]}}),
@@ -43,7 +43,7 @@ test('approval helpers explain gates, failures, pauses, and contextual payloads'
   assert.match(result.paused, /运行已暂停/);
   assert.match(result.recovery, /手动通过，继续下游/);
   assert.match(result.agentRecovery, /补充信息，重跑当前节点/);
-  assert.match(result.agentRecovery, /去配置 CodeBuddy API Key/);
+  assert.match(result.agentRecovery, /去配置 Claude Code API Key/);
   assert.match(result.callout, /等待人工确认/);
   assert.match(result.retryPanel, /重试失败节点/);
   assert.equal(JSON.stringify(result.pausedNodes), JSON.stringify(['review']));

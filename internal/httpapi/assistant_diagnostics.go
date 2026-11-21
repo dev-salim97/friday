@@ -104,9 +104,7 @@ func (d *assistantDiagnosticsCollector) fail(ctx context.Context, err error, use
 	}
 	if f.Code == "AUTHENTICATION_FAILED" && len(d.report.Attempts) > 0 {
 		engine := d.report.Attempts[len(d.report.Attempts)-1].Engine
-		if engine != assistantEngineCodeBuddy {
-			f.Message = fmt.Sprintf("%s 请求鉴权失败，请检查个人配置后重试", assistantEngineLabel(engine))
-		}
+		f.Message = fmt.Sprintf("%s 请求鉴权失败，请检查个人配置后重试", assistantEngineLabel(engine))
 	}
 	d.report.Failure = &f
 	if err != nil {
@@ -410,7 +408,7 @@ var (
 )
 
 func sanitizeAssistantDiagnostic(text string, user domain.User, limit int) string {
-	secrets := []string{user.CodeBuddyAPIKey, user.CodexAPIKey, user.ClaudeCodeAPIKey, user.GitToken, user.GongfengRefreshToken}
+	secrets := []string{user.CodexAPIKey, user.ClaudeCodeAPIKey, user.GitToken, user.GongfengRefreshToken}
 	for _, credential := range user.AgentCLICredentials {
 		secrets = append(secrets, credential.APIKey)
 	}
@@ -470,7 +468,7 @@ func (h *assistantHandlers) generationDiagnostics(c *gin.Context) {
 	c.Header("Cache-Control", "no-store")
 	if c.Query("download") == "1" {
 		data, _ := json.MarshalIndent(report, "", "  ")
-		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="loopforge-diagnostics-%s.json"`, url.PathEscape(report.GenerationID)))
+		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="friday-diagnostics-%s.json"`, url.PathEscape(report.GenerationID)))
 		c.Header("X-Content-Type-Options", "nosniff")
 		c.Data(200, "application/json; charset=utf-8", data)
 		return

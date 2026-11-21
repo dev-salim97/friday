@@ -111,7 +111,7 @@ func (d *Daemon) taskProviderBinary(task domain.RunnerTask) (string, bool) {
 }
 
 func managedCLIEnvironment(provider string) map[string]string {
-	if provider == "claude-code" || provider == "codebuddy" {
+	if provider == "claude-code" {
 		return map[string]string{"DISABLE_AUTOUPDATER": "1", "DISABLE_UPDATES": "1"}
 	}
 	return nil

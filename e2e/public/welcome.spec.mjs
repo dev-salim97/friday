@@ -17,7 +17,7 @@ for(const variant of [
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.setViewportSize({width:variant.width,height:variant.height});
     await page.addInitScript(({lang,theme})=>{
-      localStorage.setItem('loopforge.lang',lang);
+      localStorage.setItem('friday.lang',lang);
       localStorage.setItem('agentflow.theme.v3',theme);
     },variant);
     await signInUnconfigured(page);
@@ -83,7 +83,7 @@ test('sending without an execution machine preserves the draft and exposes machi
   await expect(input).toHaveValue(text);
   expect(writes).toBe(0);
   await frame.getByRole('button',{name:'执行机器：选择执行机器'}).click();
-  await expect(frame.getByRole('option',{name:'LoopForge 云端'})).toHaveCount(0);
+  await expect(frame.getByRole('option',{name:'Friday 云端'})).toHaveCount(0);
   await frame.getByRole('option',{name:'管理执行机器'}).click();
   await expect(page).toHaveURL(/#\/runners/);
 });
@@ -93,7 +93,7 @@ test('the home composer asks a real model on the default personal runner',async(
   test.setTimeout(300_000);
   const {password}=await import('./helpers.mjs');
   await page.goto('/login.html');
-  await page.locator('[name="login"]').fill(process.env.LOOPFORGE_TEST_USER||'admin');
+  await page.locator('[name="login"]').fill(process.env.FRIDAY_TEST_USER||'admin');
   await page.locator('[name="password"]').fill(password());
   await page.locator('#loginSubmit').click();
   await appReady(page);
@@ -124,7 +124,7 @@ for(const variant of [
   test(`repository setup explains the missing token and aligns its checkbox: ${variant.name}`,async({page},info)=>{
     await page.setViewportSize({width:variant.width,height:variant.height});
     await page.addInitScript(({lang,theme})=>{
-      localStorage.setItem('loopforge.lang',lang);localStorage.setItem('agentflow.theme.v3',theme);
+      localStorage.setItem('friday.lang',lang);localStorage.setItem('agentflow.theme.v3',theme);
     },variant);
     await signInUnconfigured(page);
     const identity=(await page.request.get('/api/auth/current').then(r=>r.json())).user;
@@ -156,7 +156,7 @@ for(const variant of [
       await expect(modal.locator('#repositoryCredentialHint')).toHaveAttribute('data-configured','false');
       if(variant.lang==='en')await expect(modal.locator('#repositoryCredentialHint')).not.toContainText(/[\u3400-\u9fff]/);
       await page.screenshot({path:info.outputPath(`repository-${variant.name}.png`)});
-      await modal.locator('[name="repoUrl"]').fill('https://github.com/example/loopforge-e2e-fixture');
+      await modal.locator('[name="repoUrl"]').fill('https://github.com/example/friday-e2e-fixture');
       const saved=page.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/repositories');
       await modal.locator('button[type="submit"]').click();
       const response=await saved;expect(response.ok()).toBe(true);repositoryId=(await response.json()).id;

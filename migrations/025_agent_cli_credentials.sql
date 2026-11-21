@@ -1,5 +1,5 @@
 -- Personal credentials for the agent CLIs (OpenCode, Cursor, Antigravity,
--- Kimi, Pi, DeepSeek Harness). CodeBuddy, Codex and Claude Code keep their
+-- Kimi, Pi, DeepSeek Harness). Codex and Claude Code keep their
 -- existing columns. Apply manually; startup does not run this script.
 -- gorm AutoMigrate also adds the column on process start.
 

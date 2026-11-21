@@ -47,7 +47,7 @@ func (m *Manager) commandEnvironment() []string {
 	home := filepath.Join(m.Root, "updater-home")
 	return append(env,
 		"PATH="+path, "HOME="+home, "TMPDIR="+filepath.Join(m.Root, "tmp"),
-		"CODEX_HOME="+filepath.Join(home, ".codex"), "CLAUDE_CONFIG_DIR="+filepath.Join(home, ".claude"), "CODEBUDDY_CONFIG_DIR="+filepath.Join(home, ".codebuddy"),
+		"CODEX_HOME="+filepath.Join(home, ".codex"), "CLAUDE_CONFIG_DIR="+filepath.Join(home, ".claude"),
 		"DISABLE_AUTOUPDATER=1", "DISABLE_UPDATES=1", "CI=1", "NO_COLOR=1",
 		"NPM_CONFIG_USERCONFIG="+filepath.Join(home, "npmrc-user"), "NPM_CONFIG_GLOBALCONFIG="+filepath.Join(home, "npmrc-global"),
 		"NPM_CONFIG_CACHE="+filepath.Join(m.Root, "npm-cache"),

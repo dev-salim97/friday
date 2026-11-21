@@ -115,7 +115,7 @@ func (h *scheduleHandlers) scheduleJobs(c *gin.Context) {
 		}
 		requestedModel := job.AssistantModel
 		if job.SkipDispatch {
-			job.AssistantModel = assistantScheduledModel(job.AssistantModel, loadAssistantModels(c.Request.Context(), ""))
+			job.AssistantModel = assistantScheduledModel(job.AssistantModel, loadAssistantModels(c.Request.Context()))
 		}
 		if job.ProjectID == "" {
 			job.ProjectID = "platform"
@@ -220,8 +220,7 @@ func (h *scheduleHandlers) scheduleJobs(c *gin.Context) {
 // bindScheduleRunAs binds an AI job to the user who saves it: the creator, and
 // later whoever edits it, so nobody can make a prompt run with another
 // member's credentials. The binding is never taken from the request. The saver's
-// default machine login or own key is used, else the platform's shared CodeBuddy key
-// (limited to the models it allows, its default when requestedModel is empty);
+// default machine login or own key is used;
 // with neither the save is refused, since the job could not run. Without a
 // signed-in user the job stays on the project owner's keys. A saver without
 // a usable key may still stop the job when nothing it runs changes; only
@@ -262,24 +261,12 @@ func (h *scheduleHandlers) bindScheduleRunAs(c *gin.Context, job *domain.Schedul
 		c.JSON(200, stored)
 		return true
 	}
-	_, shared, ok := scheduleCredentialUser(h.repo, self, engine)
-	if !ok {
+	if !scheduleHasPersonalCredential(h.repo, self, engine) {
 		if stopOnly() {
 			return false
 		}
 		c.JSON(400, gin.H{"error": scheduleMissingKeyError(engine)})
 		return false
-	}
-	if shared != nil {
-		model, allowed := assistantSponsoredModelFor(shared, scheduleSharedRequestedModel(requestedModel))
-		if !allowed {
-			if stopOnly() {
-				return false
-			}
-			c.JSON(400, gin.H{"error": "你还没有配置个人 CodeBuddy API Key，定时任务会使用平台共享 Key，只能选平台管理员允许的模型（" + strings.Join(shared, "、") + "）；要用其他模型，请先在个人配置中填写自己的 Key"})
-			return false
-		}
-		job.AssistantModel = model
 	}
 	job.RunAsUserID, job.RunAsName = self.ID, scheduleUserName(self)
 	return true
@@ -306,23 +293,11 @@ func scheduleRunConfigUnchanged(prior, job domain.ScheduleJob) bool {
 		maps.Equal(prior.ParameterValues, job.ParameterValues)
 }
 
-// scheduleSharedRequestedModel treats the CLI-default placeholder as "no
-// model chosen", which the shared key resolves to its own default.
-func scheduleSharedRequestedModel(model string) string {
-	if model = strings.TrimSpace(model); model == assistantDefaultModel {
-		return ""
-	}
-	return model
-}
-
 func scheduleMissingKeyError(engine string) string {
 	if assistantSupportsRunnerLogin(engine) {
 		return fmt.Sprintf("你还没有可用的 %s 凭据，请在默认执行机器启用账号登录（Runner %s 及以上），或在个人配置填写 API Key", assistantEngineLabel(engine), domain.RunnerVersionCLISettings)
 	}
-	if engine != assistantEngineCodeBuddy {
-		return fmt.Sprintf("你还没有配置 %s API Key，平台共享 Key 只支持 CodeBuddy 模型：请先在个人配置中填写，或改选 CodeBuddy 模型", assistantEngineLabel(engine))
-	}
-	return "你还没有配置 CodeBuddy API Key，平台也没有配置共享 Key，定时任务无法执行：请先在个人配置中填写自己的 Key，或联系平台管理员配置共享 Key"
+	return fmt.Sprintf("你还没有配置 %s API Key，定时任务无法执行：请先在个人配置中填写自己的 Key", assistantEngineLabel(engine))
 }
 
 func scheduleUserName(user domain.User) string {

@@ -161,8 +161,8 @@ test('users: list, detail and credential flags never leak secrets', async () => 
   const users = list(await get('/api/users'));
   const raw = JSON.stringify(users);
   assert.doesNotMatch(raw, /afp_[a-z0-9]{8,}/i);
-  assert.doesNotMatch(raw, /"(gitToken|codeBuddyApiKey)":"[^"]+"/);
-  const me = users.find(u => u.codeBuddyApiKeyConfigured) || users[0];
+  assert.doesNotMatch(raw, /"(gitToken|claudeCodeApiKey)":"[^"]+"/);
+  const me = users.find(u => u.claudeCodeApiKeyConfigured) || users[0];
   // Per-user endpoints are write-only; reads go through the list.
   await api('GET', `/api/users/${me.id}`, undefined, { expect: 405 });
   await api('GET', `/api/users/${me.id}/credentials`, undefined, { expect: [404, 405] });

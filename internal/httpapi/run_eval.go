@@ -94,8 +94,8 @@ func (h *runsHandlers) startRunEval(c *gin.Context) {
 		return
 	}
 	user, ok := h.repo.User(current.ID)
-	if !ok || strings.TrimSpace(user.CodeBuddyAPIKey) == "" {
-		c.JSON(http.StatusBadRequest, map[string]string{"error": "请先在个人配置中配置自己的 CodeBuddy API Key"})
+	if !ok {
+		c.JSON(http.StatusBadRequest, map[string]string{"error": "请先登录后评测"})
 		return
 	}
 	if rec, busy := h.repo.ActiveRunEval(id); busy {
@@ -116,14 +116,13 @@ func (h *runsHandlers) startRunEval(c *gin.Context) {
 	if c.Request.ContentLength > 0 && !decode(c, &req) {
 		return
 	}
-	// Run evals run on CodeBuddy only: refuse a "codex:…" id instead of
-	// silently evaluating with the CodeBuddy default.
-	if engine, _ := assistantModelEngine(req.Model); engine != assistantEngineCodeBuddy {
-		c.JSON(http.StatusBadRequest, map[string]string{"error": "运行评测目前只支持 CodeBuddy 模型，请改选 CodeBuddy 模型"})
+	if !assistantModelCredentialConfigured(user, req.Model) {
+		engine, _ := assistantModelEngine(req.Model)
+		c.JSON(http.StatusBadRequest, map[string]string{"error": assistantEngineMissingKey(engine)})
 		return
 	}
-	catalog := loadAssistantModels(c.Request.Context(), user.CodeBuddyInternetEnvironment)
-	model := assistantAllowedModel(req.Model, catalog)
+	catalog := loadAssistantModels(c.Request.Context())
+	model := assistantAllowedUserModel(req.Model, catalog, user)
 	project, _ := h.repo.Project(run.ExecutionContext.ProjectID)
 	rec := domain.RunEvalRecord{
 		ID:        "eval-" + randomID(),

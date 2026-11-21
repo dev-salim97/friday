@@ -39,11 +39,11 @@ func cvBNewHTTPFixture(t *testing.T) cvBHTTPFixture {
 	return cvBHTTPFixture{h: New(s, e, tracker.NewService(), "", ""), s: s, e: e, user: user}
 }
 
-// cvBGiveCodeBuddyKey lets the fixture user save AI scheduled tasks, which
+// cvBGiveClaudeKey lets the fixture user save AI scheduled tasks, which
 // run with the saver's key.
-func cvBGiveCodeBuddyKey(t *testing.T, f *cvBHTTPFixture) {
+func cvBGiveClaudeKey(t *testing.T, f *cvBHTTPFixture) {
 	t.Helper()
-	user, err := f.s.UpdateUserCredentials(f.user.ID, repo.UserCredentialUpdate{CodeBuddyAPIKey: "cvb-key"})
+	user, err := f.s.UpdateUserCredentials(f.user.ID, repo.UserCredentialUpdate{ClaudeCodeAPIKey: "cvb-key"})
 	if err != nil {
 		t.Fatal(err)
 	}

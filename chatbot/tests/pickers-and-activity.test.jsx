@@ -110,12 +110,12 @@ describe("pickers and activity", () => {
     expect(storedApprovalMode(1)).toBe("assisted");
     rememberApprovalMode(1, "bogus");
     expect(storedApprovalMode(1)).toBe("assisted");
-    localStorage.setItem("loopforge.assistant.approvalMode.1", "bogus");
+    localStorage.setItem("friday.assistant.approvalMode.1", "bogus");
     expect(storedApprovalMode(1)).toBe("confirm");
   });
 
   test("only restores full permissions for the account that selected them", () => {
-    localStorage.setItem("loopforge.assistant.approvalMode", "auto");
+    localStorage.setItem("friday.assistant.approvalMode", "auto");
     expect(storedApprovalMode(1)).toBe("confirm");
     rememberApprovalMode(1, "auto");
     expect(storedApprovalMode(1)).toBe("auto");
@@ -132,7 +132,7 @@ describe("pickers and activity", () => {
     const steps = [
       { id: "1", kind: "thinking", text: "正在分析", startedAt: start, finishedAt: finish },
       { id: "2", kind: "command", tool: "shell", detail: "npm test", output: "ok", startedAt: start, finishedAt: finish },
-      { id: "3", kind: "read", detail: "/tmp/file.js", startedAt: start, finishedAt: finish, failed: true, output: "未配置 CodeBuddy API Key" },
+      { id: "3", kind: "read", detail: "/tmp/file.js", startedAt: start, finishedAt: finish, failed: true, output: "未配置 Codex API Key" },
       { id: "4", kind: "status", text: "连接服务", startedAt: start, finishedAt: finish },
     ];
     render(<ActivityTrace steps={steps} startedAt={start} finishedAt={finish} />);

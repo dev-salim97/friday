@@ -56,7 +56,7 @@ func roleSubagentName(id string) string {
 
 var roleSubagentUnsafe = regexp.MustCompile(`[^a-z0-9]+`)
 
-// roleAgentFile renders a role as a CodeBuddy agent definition: frontmatter
+// roleAgentFile renders a role as a CLI agent definition: frontmatter
 // with the subagent name, description and the role's skills (already written
 // to the CLI home), then the role's brief followed by its rules.
 func roleAgentFile(item roleSubagent) string {

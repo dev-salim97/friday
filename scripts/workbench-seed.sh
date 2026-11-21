@@ -5,12 +5,12 @@
 # public API only offers real CLIs; everything else goes through the API.
 set -euo pipefail
 
-API="${LOOPFORGE_API:-http://127.0.0.1:18765}"
+API="${FRIDAY_API:-http://127.0.0.1:18765}"
 MYSQL_CONTAINER="${LF_MYSQL_CONTAINER:-lf-workbench-mysql}"
 PROJECT="${LF_PROJECT:-proj-mall}"
 export LF_SESSION_SECRET="${LF_SESSION_SECRET:-lf-workbench-preview}"
 
-sql() { docker exec -i "$MYSQL_CONTAINER" mysql --default-character-set=utf8mb4 -uroot -proot loopforge 2>/dev/null; }
+sql() { docker exec -i "$MYSQL_CONTAINER" mysql --default-character-set=utf8mb4 -uroot -proot friday 2>/dev/null; }
 
 curl -fsS "$API/api/auth/current" >/dev/null || { echo "API $API 不可用，先运行 scripts/workbench-dev.sh" >&2; exit 1; }
 
@@ -37,7 +37,7 @@ analyst = ("wb-analyst", "需求分析师", "读需求，产出一份结构化�
     "输出一份 Markdown 需求分析，包含：1. 目标（一句话）2. 范围（做什么/不做什么）3. 验收标准（可测试的条目）4. 风险 5. 待确认问题。\n"
     "写完后把这份分析作为你的最终回复。")
 for aid, name, desc in agents + [analyst[:3]]:
-    executor = "codebuddy" if aid == analyst[0] else "mock"
+    executor = "codex" if aid == analyst[0] else "mock"
     a = {"id": aid, "name": name, "version": 1, "projectId": project, "description": desc, "instructions": analyst[3] if aid == analyst[0] else desc, "executorId": executor}
     print("INSERT INTO agents (id, name, payload, updated_at) VALUES ('%s', '%s', %s, %s) ON DUPLICATE KEY UPDATE name=VALUES(name), payload=VALUES(payload), updated_at=VALUES(updated_at);" % (aid, name, json.dumps(json.dumps(a, ensure_ascii=False), ensure_ascii=False), now))
 PY
@@ -107,7 +107,7 @@ sop("wb-fe-sop", "前端研发 SOP", "frontend", [("fe-plan", "前端方案", "a
 sop("wb-be-sop", "后端研发 SOP", "backend", [("be-api", "接口设计", "agent", "wb-be-architect"), ("be-review", "接口评审", "approval", ""),
     ("be-dev", "接口实现", "agent", "wb-be-dev"), ("be-test", "接口测试", "script", "")])
 sop("wb-real-analysis", "需求分析 SOP（真实 AI）", "product", [("ra-analyze", "需求分析", "agent", "wb-analyst"), ("ra-review", "确认分析", "approval", "")],
-    "用你在设置里配置的 CodeBuddy Key 真实执行：AI 产出需求分析 → 人工确认。不需要代码仓库，适合自测。")
+    "用你在设置里配置的 Key 真实执行：AI 产出需求分析 → 人工确认。不需要代码仓库，适合自测。")
 
 title = "积分商城 · 兑换流程改版"
 existing = next((s for s in call("GET", f"/api/spaces?projectId={project}") if s.get("title") == title), None)

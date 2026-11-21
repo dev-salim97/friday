@@ -226,7 +226,6 @@ func (e *Engine) acquireRunEnvironment(ctx context.Context, run domain.Run, prof
 func (e *Engine) resolveRunCredentials(run domain.Run) runtime.RunCredentials {
 	userID := run.ExecutionContext.ResponsibleUserID
 	credentials := runtime.RunCredentials{
-		CodeBuddy:          resolveCodeBuddyCredential(e.repo, userID),
 		GitHTTPCredentials: e.repo.GitHTTPCredentialSecrets(context.Background(), userID),
 	}
 	credentials.Extra = runtime.ExtraRunCredentials(userID)
@@ -367,7 +366,7 @@ func (e *Engine) LocalRunWorkspace(run domain.Run) (string, string) {
 		return "", "工作区位于远程执行机器，当前版本暂不支持远程浏览"
 	}
 	if e.foreignWorkspaceBind(run) {
-		return "", "工作区绑定在其他 LoopForge 实例"
+		return "", "工作区绑定在其他 Friday 实例"
 	}
 	workspace := e.sandboxes.RunWorkspace(workspaceRunID(run))
 	if strings.TrimSpace(workspace) == "" {

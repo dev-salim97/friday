@@ -27,7 +27,7 @@ func TestClarifyAllowedModelFallsBackToCatalog(t *testing.T) {
 }
 
 func TestClarifyCommandKeepsReadGrepGlob(t *testing.T) {
-	command, err := prepareClarifyCommand("codebuddy", clarifyDefaultModel, "prompt", "clarify-test", "af1", false)
+	command, err := prepareClarifyCommand("claude", clarifyDefaultModel, "prompt", "clarify-test", "af1", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestClarifyCommandKeepsReadGrepGlob(t *testing.T) {
 
 func TestPrepareClarifyCommandSubmitOnlyDisallowsRead(t *testing.T) {
 	command, err := prepareClarifyCommandWith(clarifyCommandOpts{
-		Bin: "codebuddy", Model: clarifyDefaultModel, Prompt: "submit", RunID: "clarify-test", SessionID: "af1",
+		Bin: "claude", Model: clarifyDefaultModel, Prompt: "submit", RunID: "clarify-test", SessionID: "af1",
 		Native: true, SubmitOnly: true,
 	})
 	if err != nil {
@@ -78,7 +78,7 @@ func TestPrepareClarifyCommandSubmitOnlyDisallowsRead(t *testing.T) {
 }
 
 func TestPrepareClarifyCommandResumeUsesResumeFlag(t *testing.T) {
-	command, err := prepareClarifyCommand("codebuddy", clarifyDefaultModel, "继续", "clarify-test", "af1", true)
+	command, err := prepareClarifyCommand("claude", clarifyDefaultModel, "继续", "clarify-test", "af1", true)
 	if err != nil {
 		t.Fatal(err)
 	}

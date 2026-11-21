@@ -2,7 +2,7 @@
 
 工作台新对话使用已绑定的个人 Runner。发送首条消息前，可以沿用个人默认机器或手动选择。选择保存在当前草稿，发送首条消息开始生成时固定。历史平台执行对话仍可查看，空草稿可以重新选择机器。平台模式、工作区模式、标题生成和独立审批模型都由会话绑定的 Runner 执行。机器不可用时返回错误，等待原机器恢复。
 
-平台模式保留平台管理工具，并限制原生写入和命令。用 `workbench_workspace_open` 选一个运行环境（Docker 或 native：Linux bwrap / macOS seatbelt 沙箱）打开工作区后，当前 CLI 阶段退出并保存原生日志；平台轮换工具令牌，在同一机器上续接原生会话重新启动 CLI，启用原生文件、补丁与命令工具。Docker 与 bwrap 模式下 cwd 都是 `<会话根>/ws`（工作区模式下它挂的就是运行工作区），按 cwd 归档会话的 CLI（Claude Code、CodeBuddy 等）跨模式、换运行环境都能续接。macOS seatbelt 没有每进程挂载命名空间，工作区模式保持 HOME 为 `<会话根>/home`（审批钩子与父目录在沙箱规则中写保护，宿主机其余路径只读），cwd 直接指向运行工作区路径。续接仍然失败时（包括 seatbelt 跨模式 cwd 变化，或原生日志丢失、被服务商拒绝），每个阶段可以用完整对话上下文新建一次原生会话，模式切换后的新会话会被告知已处于哪个模式，不会为重做切换再切一次。Docker 工作区里 CLI 复用工作区现有容器，浏览器与准备脚本使用相同环境；native 工作区使用执行机器上已安装的 CLI。工作区模式的 CLI 按本轮发言人注入 Git Token（只对 github.com 应答的 askpass）、`GH_TOKEN` 与按主机绑定的 SSH 密钥，git 克隆、提交、推送和开 PR 都由 Agent 自己完成，详见 conversation-workspaces.md 的「Git 凭据」。
+平台模式保留平台管理工具，并限制原生写入和命令。用 `workbench_workspace_open` 选一个运行环境（Docker 或 native：Linux bwrap / macOS seatbelt 沙箱）打开工作区后，当前 CLI 阶段退出并保存原生日志；平台轮换工具令牌，在同一机器上续接原生会话重新启动 CLI，启用原生文件、补丁与命令工具。Docker 与 bwrap 模式下 cwd 都是 `<会话根>/ws`（工作区模式下它挂的就是运行工作区），按 cwd 归档会话的 CLI（Claude Code 等）跨模式、换运行环境都能续接。macOS seatbelt 没有每进程挂载命名空间，工作区模式保持 HOME 为 `<会话根>/home`（审批钩子与父目录在沙箱规则中写保护，宿主机其余路径只读），cwd 直接指向运行工作区路径。续接仍然失败时（包括 seatbelt 跨模式 cwd 变化，或原生日志丢失、被服务商拒绝），每个阶段可以用完整对话上下文新建一次原生会话，模式切换后的新会话会被告知已处于哪个模式，不会为重做切换再切一次。Docker 工作区里 CLI 复用工作区现有容器，浏览器与准备脚本使用相同环境；native 工作区使用执行机器上已安装的 CLI。工作区模式的 CLI 按本轮发言人注入 Git Token（只对 github.com 应答的 askpass）、`GH_TOKEN` 与按主机绑定的 SSH 密钥，git 克隆、提交、推送和开 PR 都由 Agent 自己完成，详见 conversation-workspaces.md 的「Git 凭据」。
 
 工作区只提供模式切换、产物、浏览器及任务明确选择的 MCP 集成；开出的 GitHub PR 由平台在每轮结束时自动登记，不需要工具。平台管理和旧的文件操作工具既不出现在目录中，也不能通过直接调用执行。模式切换令牌在旧进程退出后更新，旧令牌失效；交接期间拒绝继续调用工具。切回平台模式保留工作区和原生会话，关闭文件侧栏只改变界面。
 
@@ -38,7 +38,7 @@ Antigravity 的账号登录读取运行 Runner 的系统账号已有的凭据库
 
 ZCode 可通过 GLM Coding Plan 的 API Key 和套餐专用端点使用订阅额度。Start Plan 的额度需要登录 ZCode 账号，无法通过 API Key 使用。详见 [ZCode 模型配置](https://zcode.z.ai/cn/docs/configuration)。
 
-原生会话的工具回调在执行机器上中继。宿主进程使用 Docker host gateway；通过 docker.sock 管理工作区的容器进程自动识别自身容器网络，工作区加入相同网络并访问该地址。自定义路由可通过 `AGENTFLOW_CONVERSATION_RELAY_HOST` 和 `AGENTFLOW_CONVERSATION_DOCKER_NETWORK` 显式指定工作区能访问的执行进程地址与 Docker 网络。会话目录会以相同路径挂进工作区，而 docker.sock 背后的 Docker 守护进程按自己所在主机解析挂载源，因此容器内的平台进程须把 `AGENTFLOW_CONVERSATION_DIR` 设在与宿主机同路径挂载的目录中；`compose.yaml` 将其设为 `${LOOPFORGE_DATA_DIR}/conversations`。Runner 不读该变量，原生会话目录固定在其工作区根目录的 `.conversations` 下，容器内运行 Runner 时须同路径挂载该工作区目录。未设置时会话目录位于 `AGENTFLOW_ASSISTANT_SESSION_DIR` 下，该目录在命名卷里时打开工作区会报 `mkdirat ... read-only file system`。附件等按用户保存的助手数据仍在 `AGENTFLOW_ASSISTANT_SESSION_DIR`，不挂进工作区。Docker 工作区直接在主容器中运行 SOP 脚本和 CLI。历史容器存在指令遮蔽挂载时，工作区下次取得执行权后会重建容器并保留工作区文件。标记为重建时运行的准备脚本随后在新容器补跑。
+原生会话的工具回调在执行机器上中继。宿主进程使用 Docker host gateway；通过 docker.sock 管理工作区的容器进程自动识别自身容器网络，工作区加入相同网络并访问该地址。自定义路由可通过 `AGENTFLOW_CONVERSATION_RELAY_HOST` 和 `AGENTFLOW_CONVERSATION_DOCKER_NETWORK` 显式指定工作区能访问的执行进程地址与 Docker 网络。会话目录会以相同路径挂进工作区，而 docker.sock 背后的 Docker 守护进程按自己所在主机解析挂载源，因此容器内的平台进程须把 `AGENTFLOW_CONVERSATION_DIR` 设在与宿主机同路径挂载的目录中；`compose.yaml` 将其设为 `${FRIDAY_DATA_DIR}/conversations`。Runner 不读该变量，原生会话目录固定在其工作区根目录的 `.conversations` 下，容器内运行 Runner 时须同路径挂载该工作区目录。未设置时会话目录位于 `AGENTFLOW_ASSISTANT_SESSION_DIR` 下，该目录在命名卷里时打开工作区会报 `mkdirat ... read-only file system`。附件等按用户保存的助手数据仍在 `AGENTFLOW_ASSISTANT_SESSION_DIR`，不挂进工作区。Docker 工作区直接在主容器中运行 SOP 脚本和 CLI。历史容器存在指令遮蔽挂载时，工作区下次取得执行权后会重建容器并保留工作区文件。标记为重建时运行的准备脚本随后在新容器补跑。
 
 模式交接时，交接工具要求模型只回复一句「好的。」再结束旧阶段，交接之后的展示由平台隐藏；不要求“不输出任何内容”，否则模型可能只产出推理、没有正文的回合，该回合写入原生日志后，续接时会被模型服务拒绝（如 `the conversation must end with a user message`）。交接工具成功后，旧阶段即使未输出 `type=result` 或异常退出，也继续完成交接。续接原生会话时，如果原生日志缺失，或模型服务在本阶段产生任何输出或工具调用之前就拒绝了续接（400/422、会话结构无效、无结果退出），平台用完整对话上下文新建一次原生会话重试；已有输出或工具调用的中断，以及鉴权、限流、额度、网络、执行机器不可用等原因，仍续接原会话或直接报错，不重复执行副作用。
 
@@ -48,18 +48,17 @@ ZCode 可通过 GLM Coding Plan 的 API Key 和套餐专用端点使用订阅额
 
 ## 本轮验收（2026-11-13）
 
-每轮实际部署前均由独立子 Agent Review，修复确认的问题后再部署。在独立 Docker MySQL、双 API 与远程 Runner 中，CodeBuddy 使用 CLI 默认模型完成云端和远程 Runner 的原生文件创建、编辑、命令读回，以及「帮我批准」模式下的原生命令；原生日志确认该默认模型为 Claude-Sonnet-5。全程无原生操作审批卡。
+每轮实际部署前均由独立子 Agent Review，修复确认的问题后再部署。在独立 Docker MySQL、双 API 与远程 Runner 中，原生 CLI 使用默认模型完成云端和远程 Runner 的原生文件创建、编辑、命令读回，以及「帮我批准」模式下的原生命令；原生日志确认该默认模型为 Claude-Sonnet-5。全程无原生操作审批卡。
 
-实际测试发现数字容器 UID 缺少系统用户记录时，CodeBuddy 的 `os.userInfo()` 会失败。现已在受控准备中读取实际 UID/GID，仅为缺失身份追加禁登录账户，使用稳定 CLI HOME；已有身份和容器执行用户保持不变。修复后，非 root 服务使用默认 root 镜像的云端模型测试通过。Debian 与 Alpine 的缺失/已有 UID、只读两种组合、重复准备及容器防护回归均通过；只读镜像缺身份时明确提示预置账户。
+实际测试发现数字容器 UID 缺少系统用户记录时，CLI 的 `os.userInfo()` 会失败。现已在受控准备中读取实际 UID/GID，仅为缺失身份追加禁登录账户，使用稳定 CLI HOME；已有身份和容器执行用户保持不变。修复后，非 root 服务使用默认 root 镜像的云端模型测试通过。Debian 与 Alpine 的缺失/已有 UID、只读两种组合、重复准备及容器防护回归均通过；只读镜像缺身份时明确提示预置账户。
 
 | 场景 | 模型 | 取消请求返回 | 确认本轮结束 |
 | --- | --- | --- | --- |
-| 远程 Runner，另一 API 取消 | CodeBuddy/CLI 默认模型 | 27 ms | 443 ms |
 | 远程 Runner，另一 API 取消 | ZCode/DeepSeek 官方 | 26 ms | 404 ms |
 
 两种 CLI 均在真实原生命令创建独立进程组后停止，立即续聊写入，跨过延迟写入时点后确认无残留文件。ZCode 临时凭证清零，原生 session ID、日志与续聊保留。云端 Chrome 实测停止后恢复发送界面，无「正在停止」文案；60 秒延迟子进程未写入，原会话续聊成功。
 
-移除界面模式切换入口后，浏览器确认右上角无切换按钮、审批模式显示「请求批准」。CodeBuddy/Hy4 在远程 Runner 上完成自动往返：工作区原生写入后，查询平台角色时由 Agent 自动切回平台，再要求追加文件时自动回到同一工作区并核对两行内容；执行机器与工作区不变，回复不出现内部交接说明。显式选择 Hy4 的云端原生写入、编辑、命令读回及「帮我批准」模式同样通过。
+移除界面模式切换入口后，浏览器确认右上角无切换按钮、审批模式显示「请求批准」。Hy4 在远程 Runner 上完成自动往返：工作区原生写入后，查询平台角色时由 Agent 自动切回平台，再要求追加文件时自动回到同一工作区并核对两行内容；执行机器与工作区不变，回复不出现内部交接说明。显式选择 Hy4 的云端原生写入、编辑、命令读回及「帮我批准」模式同样通过。
 
 前端 52 个文件、353 项测试及生产构建通过；Repo、HTTP API、Runner 全包通过。Engine 在本机低并行下通过，已排除已知基线用例 `TestControlPlaneCancelRequestsRunningWorker`，未记为全量无失败。相关 runtime race、Linux 子进程、启动取消专项及 MySQL 并发建会话回归通过。MySQL 回归同步缺失行的锁竞争，验证 1213 死锁后仅重试完整数据库事务；其他连接/提交错误不重放。
 
@@ -78,7 +77,6 @@ ZCode 可通过 GLM Coding Plan 的 API Key 和套餐专用端点使用订阅额
 | Dsh | Hy4 | 远程平台首轮、工作区原生写读与具体审批通过 |
 | Antigravity | DeepSeek 官方 | 远程平台调用打开工作区、原生写读与审批、切回平台查询的完整往返通过 |
 | ZCode | Hy4、DeepSeek 官方 | 官方源码构建 CLI，远程平台首轮、工作区原生写读、技能脚本、拒绝审批、取消后原会话恢复、切换模型与返回平台查询通过；Hy4 的复杂步骤耗时较长 |
-| CodeBuddy | Hy4 | 适配与调用限制有自动化覆盖；两份验收凭据均返回 401，未完成真实模型验收 |
 
 网关兼容各 CLI 的 MCP 名称和包装调用，工作区旧平台工具仍在实际调用入口拒绝。模式轮换、旧令牌撤销、审批前无效果、技能可执行位和远程资产同步有自动化回归。浏览器实测了机器选择与锁定、模式切换、具体原生写入审批；点击批准前检查目标不存在，批准后从工作区核对内容。
 

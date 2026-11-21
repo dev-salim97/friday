@@ -1,6 +1,6 @@
 """Skill / Rule 静态扫描层。
 
-这一层只负责扫描项目里的 `.codebuddy/skills` 与 `.codebuddy/rules`：
+这一层只负责扫描项目里的 `.codex/skills` 与 `.codex/rules`：
 - 识别有哪些可用 skill / rule
 - 提取它们的基础元数据与 frontmatter
 - 提供 path-based 命中推断依赖的 inventory 信息
@@ -28,8 +28,8 @@ APPLY_AGENTS_RE = re.compile(r"^applyAgents:\s*(.+?)(?=\n\w+:|\n---|\Z)", re.S |
 EXCLUDE_AGENTS_RE = re.compile(r"^excludeAgents:\s*(.+?)(?=\n\w+:|\n---|\Z)", re.S | re.M)
 
 # 固定的 inventory 根目录（仅限项目内）
-PROJECT_SKILLS_REL = Path(".codebuddy/skills")
-PROJECT_RULES_REL = Path(".codebuddy/rules")
+PROJECT_SKILLS_REL = Path(".codex/skills")
+PROJECT_RULES_REL = Path(".codex/rules")
 
 # 支持识别的 skill 子模块根目录
 SUBMODULE_DIRS = {"references", "scripts", "templates", "examples", "checklists", "roles"}
@@ -129,7 +129,7 @@ def _parse_rule_frontmatter(rule_path: Path) -> dict[str, Any]:
 
 
 def _classify_source(path: Path, cwd: Path | None) -> str:
-    """识别来源类型；当前只支持项目内 `.codebuddy` 路径。"""
+    """识别来源类型；当前只支持项目内 `.codex` 路径。"""
     if not cwd:
         return "unknown"
     try:
@@ -137,7 +137,7 @@ def _classify_source(path: Path, cwd: Path | None) -> str:
         cwd_str = str(cwd.resolve())
     except Exception:
         return "unknown"
-    if path_str.startswith(cwd_str + "/.codebuddy/"):
+    if path_str.startswith(cwd_str + "/.codex/"):
         return "project"
     return "unknown"
 
@@ -158,7 +158,7 @@ def _collect_submodules(skill_dir: Path) -> dict[str, list]:
 
 
 def scan_skills_and_rules(cwd: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    """扫描项目固定根目录：`.codebuddy/skills` 与 `.codebuddy/rules`。"""
+    """扫描项目固定根目录：`.codex/skills` 与 `.codex/rules`。"""
     skills: dict = {}
     rules: dict = {}
     cwd_path = Path(cwd) if cwd else None
@@ -259,7 +259,7 @@ def _extract_skill_from_path(path_str: str) -> str | None:
     """从路径中抽取被引用的 skill 名。"""
     parts = _path_parts(path_str)
     for i in range(len(parts) - 2):
-        if parts[i] == ".codebuddy" and parts[i + 1] == "skills":
+        if parts[i] == ".codex" and parts[i + 1] == "skills":
             name = parts[i + 2]
             if name and re.fullmatch(r"[a-zA-Z0-9_\-]+", name):
                 return name
@@ -270,7 +270,7 @@ def _extract_rule_from_path(path_str: str) -> str | None:
     """从路径中抽取被引用的 rule 名。"""
     parts = _path_parts(path_str)
     for i in range(len(parts) - 2):
-        if parts[i] == ".codebuddy" and parts[i + 1] == "rules":
+        if parts[i] == ".codex" and parts[i + 1] == "rules":
             name = parts[i + 2]
             if name.lower().endswith(".mdc"):
                 name = Path(name).stem
@@ -427,7 +427,7 @@ def is_brainstorming_call(data: dict) -> bool:
 
 
 def extract_paths_from_tool_call(data: dict) -> tuple[list[str], list[str]]:
-    """只根据 `.codebuddy` 根目录下的结构化路径推断 skill/rule。"""
+    """只根据 `.codex` 根目录下的结构化路径推断 skill/rule。"""
     tool_input = data.get("tool_input") or {}
     if not isinstance(tool_input, dict):
         return [], []
@@ -458,7 +458,7 @@ def extract_submodule_hits(data: dict) -> list[dict[str, str]]:
     for p in path_values:
         parts = _path_parts(p)
         for i in range(len(parts) - 3):
-            if parts[i] == ".codebuddy" and parts[i + 1] == "skills":
+            if parts[i] == ".codex" and parts[i + 1] == "skills":
                 skill_name = parts[i + 2]
                 sub_root = parts[i + 3]
                 if not re.fullmatch(r"[a-zA-Z0-9_\-]+", skill_name):
@@ -477,7 +477,7 @@ def extract_submodule_hits(data: dict) -> list[dict[str, str]]:
 
 
 def extract_bash_skill_scripts(data: dict) -> list[str]:
-    """从命令文本中的显式 `.codebuddy/skills` 路径识别 skill 脚本。"""
+    """从命令文本中的显式 `.codex/skills` 路径识别 skill 脚本。"""
     if data.get("tool_name") not in ("Bash", "bash", "execute_command"):
         return []
     tool_input = data.get("tool_input") or {}

@@ -47,7 +47,7 @@ func TestApprovalReviewInputTruncatesLongMessage(t *testing.T) {
 }
 
 func TestApprovalReviewInputAttributesRolesAndRedacts(t *testing.T) {
-	user := domain.User{ID: 10, CodeBuddyAPIKey: "private-test-key"}
+	user := domain.User{ID: 10, ClaudeCodeAPIKey: "private-test-key"}
 	input := approvalReviewInput(assistantRequest{Messages: []assistantMessage{
 		{Role: "user", AuthorID: 20, Content: "删除生产"},
 		{Role: "user", AuthorID: 10, Content: "我的 key private-test-key"},
@@ -63,7 +63,7 @@ func TestApprovalReviewInputAttributesRolesAndRedacts(t *testing.T) {
 	if input.Messages[0].AuthorID != 20 {
 		t.Fatalf("author id lost: %+v", input.Messages[0])
 	}
-	if strings.Contains(input.Messages[1].Content, user.CodeBuddyAPIKey) {
+	if strings.Contains(input.Messages[1].Content, user.ClaudeCodeAPIKey) {
 		t.Fatalf("key not redacted: %q", input.Messages[1].Content)
 	}
 }

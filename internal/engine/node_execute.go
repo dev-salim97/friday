@@ -186,13 +186,33 @@ func (e *Engine) execute(ctx context.Context, runID string) {
 	}
 }
 
+// resolveWorkflowNodeExecutor applies the SOP-wide 执行 CLI (wf.ExecutorID)
+// on top of the role's own CLI. The preview build node keeps its fixed CLI.
+func resolveWorkflowNodeExecutor(st *repo.Store, wf domain.WorkflowDefinition, node domain.WorkflowNode, agent domain.AgentDefinition) (domain.ExecutorDefinition, error) {
+	override := strings.TrimSpace(wf.ExecutorID)
+	if override == "" || domain.IsPreviewBuildAgent(node.AgentID) || domain.IsPreviewBuildAgent(agent.ID) {
+		return resolveNodeExecutor(st, node, agent)
+	}
+	ex, err := resolveNodeExecutor(st, node, domain.AgentDefinition{ID: agent.ID, ExecutorID: override})
+	if err != nil {
+		return domain.ExecutorDefinition{}, fmt.Errorf("SOP 执行 CLI：%w", err)
+	}
+	// A role's model and effort are tuned for its own CLI. They carry over
+	// only when that CLI is the same kind; otherwise the chosen CLI's default
+	// model applies.
+	if own, ownErr := resolveNodeExecutor(st, node, agent); ownErr == nil && own.Kind == ex.Kind {
+		ex.Model, ex.Effort = own.Model, own.Effort
+	}
+	return ex, nil
+}
+
 func resolveNodeExecutor(st *repo.Store, node domain.WorkflowNode, agent domain.AgentDefinition) (domain.ExecutorDefinition, error) {
 	executorID := agent.ExecutorID
 	if executorID == "" {
 		executorID = node.ExecutorID
 	}
 	if executorID == "" {
-		executorID = "codebuddy"
+		executorID = "claude"
 	}
 	ex, found := repo.BuiltInExecutor(executorID)
 	if !found && executorID == "mock" {
@@ -233,7 +253,7 @@ func workflowSandboxRequirements(st *repo.Store, wf domain.WorkflowDefinition) (
 		if !ok {
 			return runtime.SandboxRequirements{}, fmt.Errorf("agent %q not found", node.AgentID)
 		}
-		executor, err := resolveNodeExecutor(st, node, agent)
+		executor, err := resolveWorkflowNodeExecutor(st, wf, node, agent)
 		if err != nil {
 			return runtime.SandboxRequirements{}, err
 		}
@@ -689,7 +709,7 @@ func (e *Engine) executeNode(ctx context.Context, runID string, wf domain.Workfl
 			err = fmt.Errorf("agent %q not found", node.AgentID)
 			break
 		}
-		ex, errResolve := resolveNodeExecutor(e.repo, node, agent)
+		ex, errResolve := resolveWorkflowNodeExecutor(e.repo, wf, node, agent)
 		if errResolve != nil {
 			err = errResolve
 			break
@@ -771,15 +791,11 @@ func (e *Engine) executeNode(ctx context.Context, runID string, wf domain.Workfl
 				options.GateResultPath = gateResultPath(nodeControlKey(current, node.ID), attempt)
 			}
 			ex := ex
-			if cb := sb.credentialSnapshot().CodeBuddy; ex.Kind == "codebuddy" && cb.Sponsored {
-				ex = e.sponsoredExecutor(runID, ex, cb.SponsoredModels, sink)
-			}
 			if execMachine := e.defaultExecutionRunner(current); execMachine != "" {
 				// 执行机器 mode (bind-cli): the responsible user selected a default
 				// execution machine, so the compiled task book, asset bundle, and
 				// repository checkout are dispatched there; Codex / Claude Code use
-				// that machine's own CLI login, CodeBuddy uses the responsible
-				// user's platform API key. Gates follow on the same machine and
+				// that machine's own CLI login. Gates follow on the same machine and
 				// workspace. An empty selection keeps the cloud mode below.
 				workspace := runnerWorkspaceRel(current, node.ID)
 				result, dispatchErr := e.dispatchRunnerTask(ctx, execMachine, current, effectiveNode, sb, workspace, ex, agent, assets, prompt, invocationID, options, sink)

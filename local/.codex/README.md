@@ -1,7 +1,7 @@
 # Codex DevFlow 使用说明
 
 `.codex/` 存放 Codex 原生 devflow 工作流资产。Codex 运行时只读取
-本目录，不依赖 `.codebuddy/`。
+本目录。
 
 ## 如何启动
 
@@ -39,8 +39,6 @@ Codex devflow 运行期只读取以下本地资产：
 - `.codex/rules/*.mdc`
 - `.codex/checklists/*.md`
 
-`.codebuddy/` 是 CodeBuddy 的运行资产副本。两边可以保持流程契约一致，但 Codex
-执行过程中不要读取 `.codebuddy/` 作为运行时来源。
 
 ## Skill 发现入口
 
@@ -150,9 +148,8 @@ $devflow-codex resume <task_slug>
 
 ## 重要规则
 
-- 不要调用 CodeBuddy 专属原语，例如 `team_create`、`send_message`、
+- 不要调用 team 类专属原语，例如 `team_create`、`send_message`、
   `team_delete`。
-- 不要把 `.codebuddy/` 当作 Codex 运行时来源。
 - 不要修改已应用且按项目约定不可变的数据库迁移文件。
 - TASK-03 不要把正式产物写入 `04-e2e/` 或 `05-knowledge/`。
 - 中/大需求不要跳过 TASK-01，也不要以“无需追加澄清”为由自动进入 TASK-02。

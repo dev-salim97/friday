@@ -78,16 +78,16 @@ func TestSeatbeltProfileConversationHomeAndGuardOrder(t *testing.T) {
 
 func TestEnsureConversationCLIResolvesNativeBinaryOverride(t *testing.T) {
 	binDir := t.TempDir()
-	fakeCodeBuddy := filepath.Join(binDir, "custom-codebuddy")
-	if err := os.WriteFile(fakeCodeBuddy, []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
+	fakeClaude := filepath.Join(binDir, "custom-claude")
+	if err := os.WriteFile(fakeClaude, []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", fakeCodeBuddy)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", fakeClaude)
 	t.Setenv("PATH", t.TempDir())
 	sb := &processSandbox{driver: "seatbelt", workspace: t.TempDir()}
-	got, err := ensureConversationCLI(context.Background(), sb, "codebuddy", t.TempDir())
-	if err != nil || got != fakeCodeBuddy {
-		t.Fatalf("ensureConversationCLI=%q err=%v, want %q", got, err, fakeCodeBuddy)
+	got, err := ensureConversationCLI(context.Background(), sb, "claude-code", t.TempDir())
+	if err != nil || got != fakeClaude {
+		t.Fatalf("ensureConversationCLI=%q err=%v, want %q", got, err, fakeClaude)
 	}
 }
 
@@ -106,7 +106,7 @@ func TestConversationProcessSeatbeltExecution(t *testing.T) {
 	root := t.TempDir()
 	workspace := t.TempDir()
 	binDir := t.TempDir()
-	cliScript := filepath.Join(binDir, "fake-codebuddy")
+	cliScript := filepath.Join(binDir, "fake-claude")
 	// Exercise cwd, HOME, workspace writes, sibling writes inside home/.cursor,
 	// read-only guard file/parent protection, and host write denial under sandbox-exec.
 	script := `#!/bin/sh
@@ -136,7 +136,7 @@ echo '{"type":"result","result":"seatbelt-ok"}'
 	if err := os.WriteFile(cliScript, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", cliScript)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", cliScript)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -158,7 +158,7 @@ echo '{"type":"result","result":"seatbelt-ok"}'
 	spec := &domain.RunnerSandboxSpec{Profile: domain.SandboxProfile{ID: "native", Driver: domain.SandboxDriverNative}}
 	start, err := pool.Handle(ctx, root, workspace, spec, ConversationProcessRequest{
 		Operation: "start",
-		Command:   &ConversationCommand{Provider: "codebuddy", Argv: []string{"codebuddy"}},
+		Command:   &ConversationCommand{Provider: "claude-code", Argv: []string{"claude"}},
 	}, nil, factory)
 	if err != nil {
 		t.Fatalf("start seatbelt conversation failed: %v", err)
@@ -208,7 +208,7 @@ func TestConversationProcessSeatbeltDockerDaemon(t *testing.T) {
 	root := t.TempDir()
 	workspace := t.TempDir()
 	binDir := t.TempDir()
-	cliScript := filepath.Join(binDir, "docker-probe-codebuddy")
+	cliScript := filepath.Join(binDir, "docker-probe-claude")
 	script := `#!/bin/sh
 set -eu
 docker ps -q >/dev/null
@@ -218,7 +218,7 @@ echo "SEATBELT_DOCKER_DAEMON_OK"
 	if err := os.WriteFile(cliScript, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", cliScript)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", cliScript)
 	t.Setenv("DOCKER_HOST", "")
 	t.Setenv("DOCKER_CONFIG", "")
 
@@ -242,7 +242,7 @@ echo "SEATBELT_DOCKER_DAEMON_OK"
 	spec := &domain.RunnerSandboxSpec{Profile: domain.SandboxProfile{ID: "native", Driver: domain.SandboxDriverNative}}
 	start, err := pool.Handle(ctx, root, workspace, spec, ConversationProcessRequest{
 		Operation: "start",
-		Command:   &ConversationCommand{Provider: "codebuddy", Argv: []string{"codebuddy"}},
+		Command:   &ConversationCommand{Provider: "claude-code", Argv: []string{"claude"}},
 	}, nil, factory)
 	if err != nil {
 		t.Fatalf("start seatbelt docker probe failed: %v", err)

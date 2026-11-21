@@ -26,7 +26,7 @@ func BaselineAlignResolverAgent() domain.AgentDefinition {
 		Shared:      true,
 		Description: "全平台共用：把默认分支合入集成分支并解决冲突。不跑项目测试，不写修复报告，不发 MR。",
 		Prompt:      "你只做基线对齐，不是需求修复。\n1. 在当前工作分支执行 git fetch 并 merge 默认分支\n2. 逐块解决冲突，保留双方有效实现；拿不准时选对业务影响更小的一侧并在提交说明里写清\n3. git add 冲突文件并创建合并提交，提交说明列出冲突文件与取舍\n4. 不要 push，不要改默认分支，不要跑项目单测或 E2E，不要写 fix-plan.md / fix-report.md / review-report.md\n5. 结束后用几句话说明每个冲突文件的取舍即可",
-		ExecutorID:  "codebuddy",
+		ExecutorID:  "claude",
 	}
 }
 
@@ -234,7 +234,6 @@ func (r *CatalogRepo) PutExecutor(v domain.ExecutorDefinition) error {
 // but they are no longer a user-managed runtime asset.
 func BuiltInExecutors() []domain.ExecutorDefinition {
 	return []domain.ExecutorDefinition{
-		{ID: "codebuddy", Name: "CodeBuddy", Kind: "codebuddy", Binary: "codebuddy", Args: []string{"-p", "--output-format", "stream-json", "--include-partial-messages", "-y", "--setting-sources", "none"}, Protocol: "stream-json"},
 		{ID: "codex", Name: "Codex", Kind: "codex", Binary: "codex", Args: []string{"exec", "--json", "--sandbox", "workspace-write", "--skip-git-repo-check"}, Protocol: "jsonl"},
 		{ID: "claude", Name: "Claude Code", Kind: "claude-code", Binary: "claude", Args: []string{"-p", "--output-format", "stream-json", "--permission-mode", "dontAsk"}, Protocol: "stream-json"},
 		{ID: "opencode", Name: "OpenCode", Kind: "opencode", Binary: "opencode", Protocol: "stream-json"},
@@ -898,7 +897,7 @@ func bindDefaultWorkflow(v *domain.Issue, projectWorkflowID, projectIssueWorkflo
 		return
 	} else if wf := strings.TrimSpace(projectWorkflowID); wf != "" && isGenericWorkflowID(wf) {
 		// Projects defaulting to a built-in generic template (e.g. the
-		// LoopForge backend delivery SOP a new project starts with) run their
+		// Friday backend delivery SOP a new project starts with) run their
 		// synced Gongfeng issues on it too; projects bound to a production SOP
 		// keep the production default below.
 		v.WorkflowID = wf

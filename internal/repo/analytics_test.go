@@ -17,7 +17,7 @@ func TestAnalyticsScopesRunsAndComputesOperationalMetrics(t *testing.T) {
 	now := time.Now().UTC().Add(-time.Minute)
 	wf := domain.WorkflowDefinition{ID: "delivery", Name: "Delivery", Nodes: []domain.WorkflowNode{{ID: "build", Name: "Build", AgentID: "developer", ExecutorID: "mock"}}}
 	for _, run := range []domain.Run{
-		{ID: "good", WorkflowID: wf.ID, WorkflowSnapshot: wf, Status: "succeeded", ExecutionContext: domain.TelemetryContext{ProjectID: "alpha"}, Nodes: map[string]*domain.NodeRun{"build": {NodeID: "build", Status: "succeeded", ReworkCount: 1, Model: "deepseek", Usage: domain.TokenUsage{TotalTokens: 20, CostUSD: .02}, StartedAt: now, FinishedAt: now.Add(time.Second)}}, Usage: domain.TokenUsage{TotalTokens: 20, CostUSD: .02}, ToolCalls: 3, Artifacts: []domain.Artifact{{ID: "a"}}, TelemetrySequence: 1, Telemetry: []domain.TelemetryEvent{{Sequence: 1, Source: domain.TelemetrySource{Adapter: "codebuddy"}}}, LogSequence: 1, Logs: []domain.LogRecord{{Sequence: 1, Level: "info"}}, CreatedAt: now, UpdatedAt: now.Add(2 * time.Second)},
+		{ID: "good", WorkflowID: wf.ID, WorkflowSnapshot: wf, Status: "succeeded", ExecutionContext: domain.TelemetryContext{ProjectID: "alpha"}, Nodes: map[string]*domain.NodeRun{"build": {NodeID: "build", Status: "succeeded", ReworkCount: 1, Model: "deepseek", Usage: domain.TokenUsage{TotalTokens: 20, CostUSD: .02}, StartedAt: now, FinishedAt: now.Add(time.Second)}}, Usage: domain.TokenUsage{TotalTokens: 20, CostUSD: .02}, ToolCalls: 3, Artifacts: []domain.Artifact{{ID: "a"}}, TelemetrySequence: 1, Telemetry: []domain.TelemetryEvent{{Sequence: 1, Source: domain.TelemetrySource{Adapter: "claude-code"}}}, LogSequence: 1, Logs: []domain.LogRecord{{Sequence: 1, Level: "info"}}, CreatedAt: now, UpdatedAt: now.Add(2 * time.Second)},
 		{ID: "bad", WorkflowID: wf.ID, WorkflowSnapshot: wf, Status: "failed", ExecutionContext: domain.TelemetryContext{ProjectID: "alpha"}, Nodes: map[string]*domain.NodeRun{"build": {NodeID: "build", Status: "failed", Error: "tests failed\nfull detail"}}, CreatedAt: now, UpdatedAt: now.Add(4 * time.Second)},
 		{ID: "other", WorkflowID: wf.ID, WorkflowSnapshot: wf, Status: "succeeded", ExecutionContext: domain.TelemetryContext{ProjectID: "beta"}, Nodes: map[string]*domain.NodeRun{}, CreatedAt: now, UpdatedAt: now.Add(time.Second)},
 	} {
@@ -29,7 +29,7 @@ func TestAnalyticsScopesRunsAndComputesOperationalMetrics(t *testing.T) {
 	if got.Summary.TotalRuns != 2 || got.Summary.SucceededRuns != 1 || got.Summary.FailedRuns != 1 || got.Summary.CompletionRate != 50 || got.Summary.ReworkedRuns != 1 || got.Summary.TotalReworks != 1 {
 		t.Fatalf("unexpected summary: %#v", got.Summary)
 	}
-	if got.Summary.P95DurationMs < got.Summary.P50DurationMs || got.Coverage.RunsWithTelemetry != 1 || got.Coverage.AdapterEvents["codebuddy"] != 1 || len(got.Failures) != 1 || got.Failures[0].Code != "tests failed" {
+	if got.Summary.P95DurationMs < got.Summary.P50DurationMs || got.Coverage.RunsWithTelemetry != 1 || got.Coverage.AdapterEvents["claude-code"] != 1 || len(got.Failures) != 1 || got.Failures[0].Code != "tests failed" {
 		t.Fatalf("unexpected analytics detail: %#v", got)
 	}
 	alpha := s.WorkflowMetricsFor("alpha")

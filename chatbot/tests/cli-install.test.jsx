@@ -14,7 +14,7 @@ function jsonResponse(body, status = 200) {
 }
 
 test("offers install only for a missing CLI failure", () => {
-  expect(cliInstallHint("请先在个人配置中配置自己的 CodeBuddy API Key")).toBeNull();
+  expect(cliInstallHint("请先在个人配置中配置自己的 Codex API Key")).toBeNull();
   expect(
     cliInstallHint(
       "Claude Code（claude-code）没有安装在当前服务器上。安装后即可在对话里使用。",
@@ -62,7 +62,7 @@ test("stays on automatic install when a reload finds the download still running"
 });
 
 test("a reload shows automatic install before the status request returns", () => {
-  sessionStorage.setItem("loopforge.cli-install.opencode", "installing");
+  sessionStorage.setItem("friday.cli-install.opencode", "installing");
   vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
   render(
     <CLIInstallAction text="OpenCode（opencode）没有安装在当前服务器上。安装后即可在对话里使用。" />,

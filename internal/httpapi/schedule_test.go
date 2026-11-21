@@ -362,7 +362,7 @@ func TestEnsureBaselineAlignWorkflowUsesPlatformAgentNotProjectFixer(t *testing.
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	if err := st.PutAgent(domain.AgentDefinition{ID: "issue-fix-engineer", Name: "修复并提交", ProjectID: "skillhub", ExecutorID: "codebuddy"}); err != nil {
+	if err := st.PutAgent(domain.AgentDefinition{ID: "issue-fix-engineer", Name: "修复并提交", ProjectID: "skillhub", ExecutorID: "claude"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.PutWorkflow(domain.WorkflowDefinition{

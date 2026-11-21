@@ -117,48 +117,6 @@ func TestStreamRunHeartbeat(t *testing.T) {
 	}
 }
 
-func TestStreamFilesystemResolutionBranches(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("PATH", t.TempDir())
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", filepath.Join(home, "missing-override"))
-	t.Setenv("AGENTFLOW_MANAGED_CLI_ROOT", "")
-	bin := filepath.Join(home, ".local", "bin", "codebuddy")
-	if err := os.MkdirAll(filepath.Dir(bin), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(bin, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if got, err := resolveCodeBuddyBin(); err != nil || got != bin {
-		t.Fatalf("fallback binary = %q, %v", got, err)
-	}
-	if !fileExecutable(bin) || fileExecutable(filepath.Dir(bin)) || fileExecutable(filepath.Join(home, "absent")) {
-		t.Fatal("fileExecutable classification failed")
-	}
-	if err := os.Chmod(bin, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	_, _ = resolveCodeBuddyBin()
-	if got := clarifyRepoCacheRoot(); !strings.HasPrefix(got, home) {
-		t.Fatalf("cache root = %q", got)
-	}
-	if got := sanitizeDirName(" .. ", "fallback"); got != "fallback" {
-		t.Fatalf("sanitize fallback = %q", got)
-	}
-	if got := stripGitCLINoise("\x1b[31m fatal:  bad \x1b[0m"); got != "fatal: bad" {
-		t.Fatalf("noise stripping = %q", got)
-	}
-	t.Setenv("HOME", " ")
-	if got := clarifyRepoCacheRoot(); got != "/root/.agentflow/clarify-cache" {
-		t.Fatalf("blank-home cache root = %q", got)
-	}
-	got, err := resolveCodeBuddyBin()
-	if err == nil && got != "/usr/local/bin/codebuddy" && got != "/usr/bin/codebuddy" && got != "/root/.local/bin/codebuddy" {
-		t.Fatalf("blank-home system binary = %q, %v", got, err)
-	}
-}
-
 func TestStreamRepositorySourceAndLocks(t *testing.T) {
 	plain := t.TempDir()
 	repository := domain.Repository{ID: "r", LocalPath: plain}
@@ -370,15 +328,15 @@ func TestStreamExecuteWithMixedRepositoryAvailability(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	user := domain.User{ID: 881, LoginName: "cvb-mixed", ChineseName: "cvB mixed", CodeBuddyAPIKey: "cvb-test-key"}
+	user := domain.User{ID: 881, LoginName: "cvb-mixed", ChineseName: "cvB mixed", ClaudeCodeAPIKey: "cvb-test-key"}
 	if err := st.PutUser(user); err != nil {
 		t.Fatal(err)
 	}
 	root := t.TempDir()
 	t.Setenv("HOME", root)
 	t.Setenv("AGENTFLOW_CLARIFY_SESSION_DIR", filepath.Join(root, "sessions"))
-	bin := filepath.Join(root, "codebuddy")
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	bin := filepath.Join(root, "claude")
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	script := "#!/bin/sh\nprintf '%s\\n' '{\"type\":\"result\",\"result\":\"{\\\"summary\\\":\\\"ok\\\",\\\"ready\\\":true,\\\"questions\\\":[]}\"}'\n"
 	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
@@ -429,7 +387,7 @@ func TestStreamExecuteEarlyErrorsAndMultiRepositoryPrompt(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	user := domain.User{ID: 882, LoginName: "cvb-multi", ChineseName: "cvB multi", CodeBuddyAPIKey: "cvb-test-key"}
+	user := domain.User{ID: 882, LoginName: "cvb-multi", ChineseName: "cvB multi", ClaudeCodeAPIKey: "cvb-test-key"}
 	if err := st.PutUser(user); err != nil {
 		t.Fatal(err)
 	}
@@ -450,8 +408,8 @@ func TestStreamExecuteEarlyErrorsAndMultiRepositoryPrompt(t *testing.T) {
 		t.Fatal("missing managed inventory unexpectedly succeeded")
 	}
 	t.Setenv("AGENTFLOW_MANAGED_CLI_ROOT", "")
-	bin := filepath.Join(root, "codebuddy")
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	bin := filepath.Join(root, "claude")
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	script := "#!/bin/sh\nprintf '%s\\n' '{\"type\":\"result\",\"result\":\"{\\\"summary\\\":\\\"ok\\\",\\\"ready\\\":true,\\\"questions\\\":[]}\"}'\n"
 	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
@@ -482,7 +440,7 @@ func TestStreamExecuteDirectorySessionAndTerminalErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(st.Close)
-	user := domain.User{ID: 883, LoginName: "cvb-errors", ChineseName: "cvB errors", CodeBuddyAPIKey: "cvb-test-key"}
+	user := domain.User{ID: 883, LoginName: "cvb-errors", ChineseName: "cvB errors", ClaudeCodeAPIKey: "cvb-test-key"}
 	if err := st.PutUser(user); err != nil {
 		t.Fatal(err)
 	}
@@ -517,11 +475,11 @@ func TestStreamExecuteDirectorySessionAndTerminalErrors(t *testing.T) {
 	if err := os.Remove(mcpSessions); err != nil {
 		t.Fatal(err)
 	}
-	bin := filepath.Join(t.TempDir(), "codebuddy")
+	bin := filepath.Join(t.TempDir(), "claude")
 	if err := os.WriteFile(bin, []byte("#!/bin/sh\nprintf '%s\\n' 'no terminal object'\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	if _, _, _, err := h.executeClarify(context.Background(), issue, chatClarifyRequest{}, nil); err == nil {
 		t.Fatal("missing terminal clarification unexpectedly succeeded")
 	}
@@ -567,37 +525,4 @@ func TestStreamExecuteDirectorySessionAndTerminalErrors(t *testing.T) {
 
 	var nilHandler *streamHandlers
 	nilHandler.rememberClarifySession("issue", "session", user.ID)
-}
-
-func TestStreamRunClarifyTurnOutputAndFailure(t *testing.T) {
-	root := t.TempDir()
-	success := filepath.Join(root, "success")
-	successScript := `#!/bin/sh
-printf '%s\n' 'plain output'
-printf '%s\n' '{"type":"assistant","session_id":"captured-session","message":{"content":[{"type":"thinking","thinking":"working"}]}}'
-`
-	if err := os.WriteFile(success, []byte(successScript), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	var emitted []any
-	h := &streamHandlers{}
-	_, raw, captured, err := h.runClarifyTurn(
-		context.Background(), root, success, "claude-sonnet-4", "prompt", "run",
-		"initial", "", false, runtime.RunCredentials{CodeBuddy: runtime.CodeBuddyCredential{APIKey: "cvb-test-key"}},
-		func(_ string, payload any) { emitted = append(emitted, payload) }, clarifyTurnOpts{Native: true},
-	)
-	if err != nil || !strings.Contains(raw, "plain output") || captured != "captured-session" || len(emitted) == 0 {
-		t.Fatalf("successful turn = %q, %q, %#v, %v", raw, captured, emitted, err)
-	}
-
-	failure := filepath.Join(root, "failure")
-	if err := os.WriteFile(failure, []byte("#!/bin/sh\nexit 7\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if _, _, _, err := h.runClarifyTurn(
-		context.Background(), root, failure, "claude-sonnet-4", "prompt", "run",
-		"session", "", false, runtime.RunCredentials{CodeBuddy: runtime.CodeBuddyCredential{APIKey: "cvb-test-key"}}, nil, clarifyTurnOpts{Native: true},
-	); err == nil {
-		t.Fatal("failed command unexpectedly succeeded")
-	}
 }

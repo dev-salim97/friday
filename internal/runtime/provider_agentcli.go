@@ -281,7 +281,7 @@ func WriteKimiConversationAgent(path, systemPrompt string, readOnly bool) error 
 	if readOnly {
 		denied = strings.Join(kimiChatDisallowedTools, ", ")
 	}
-	content := "---\nname: agentflow-chat\ndescription: LoopForge AI 对话\ndisallowedTools: [" + denied + "]\n---\n" + body + "\n"
+	content := "---\nname: agentflow-chat\ndescription: Friday AI 对话\ndisallowedTools: [" + denied + "]\n---\n" + body + "\n"
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}

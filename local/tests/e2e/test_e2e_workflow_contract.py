@@ -143,7 +143,7 @@ def run_project_tests(root):
 class WorkflowContractE2E(unittest.TestCase):
     def install(self, host, with_sample=False):
         project = h.new_project(self, with_sample=with_sample)
-        h.loopforge("skills", "install", host, "--project-root", project)
+        h.friday("skills", "install", host, "--project-root", project)
         return project
 
     def isolated_medium(self, host, slug):
@@ -181,47 +181,29 @@ class WorkflowContractE2E(unittest.TestCase):
         self.assertEqual("in_progress", load_state(state)["stages"]["SOLO"]["status"])
 
     def test_isolated_start_requires_registered_executor(self):
-        project, state = self.isolated_medium("codebuddy", "executor-guard")
+        project, state = self.isolated_medium("claude", "executor-guard")
         advance_to_design(project, state)
         blocked = h.run_workflow(project, "start", "--state", state, "--stage", "DESIGN", check=False)
         self.assertNotEqual(0, blocked.returncode)
         self.assertIn("configure the required devflow-architect executor", blocked.stderr)
 
-    def test_isolated_assign_rejects_wrong_team(self):
-        project, state = self.isolated_medium("codebuddy", "team-guard")
-        advance_to_design(project, state)
-        wrong = h.run_workflow(
-            project, "assign", "--state", state, "--stage", "DESIGN",
-            "--role", "devflow-architect",
-            "--executor-type", "devflow-stage-team-member",
-            "--executor-id", "agent-design",
-            "--dispatch-tool", "task",
-            "--team-name", "wrong-team",
-            check=False,
-        )
-        self.assertNotEqual(0, wrong.returncode)
-        self.assertIn("require --team-name", wrong.stderr)
-
     def test_helper_registration_records_research_executor(self):
-        project, state = self.isolated_medium("codebuddy", "helper-audit")
+        project, state = self.isolated_medium("claude", "helper-audit")
         advance_to_design(project, state)
-        team = load_state(state)["team_name"]
         h.run_workflow(
             project, "helper", "--state", state, "--stage", "DESIGN",
             "--role", "devflow-code-explorer",
-            "--executor-type", "devflow-research-team-member",
+            "--executor-type", "devflow-research-helper",
             "--executor-id", "helper-design",
             "--purpose", "核对设计与需求输入",
-            "--dispatch-tool", "task",
-            "--team-name", team,
+            "--dispatch-tool", "agent",
         )
         helper = load_state(state)["stages"]["DESIGN"]["helpers"][0]
         self.assertEqual("devflow-code-explorer", helper["role"])
-        self.assertEqual("devflow-research-team-member", helper["executor_type"])
+        self.assertEqual("devflow-research-helper", helper["executor_type"])
         self.assertEqual("helper-design", helper["executor_id"])
-        self.assertEqual("team", helper["executor_topology"])
-        self.assertEqual(team, helper["team_name"])
-        self.assertEqual("task", helper["dispatch_tool"])
+        self.assertEqual("spawn", helper["executor_topology"])
+        self.assertEqual("agent", helper["dispatch_tool"])
 
     def test_test_stage_recovers_from_real_failing_command(self):
         project = self.install("claude", with_sample=False)

@@ -27,7 +27,7 @@ func TestWorkspaceTerminalSandboxUsesOverlayAndPrivateCredentials(t *testing.T) 
 	if err := os.WriteFile(filepath.Join(bin, "env-tool"), []byte("#!/bin/sh\nprintf '%s' \"$SOP_ENV_MARKER\"\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	sb := &managedSandbox{Sandbox: &localSandbox{workspace: workspace, environment: map[string]string{"PATH": bin + ":" + os.Getenv("PATH"), "SOP_ENV_MARKER": "same-environment"}}, workspace: workspace, credentials: RunCredentials{GitHTTPCredentials: testHTTPSCredentials("run-owned-token"), CodeBuddy: CodeBuddyCredential{APIKey: "not-for-terminal"}}}
+	sb := &managedSandbox{Sandbox: &localSandbox{workspace: workspace, environment: map[string]string{"PATH": bin + ":" + os.Getenv("PATH"), "SOP_ENV_MARKER": "same-environment"}}, workspace: workspace, credentials: RunCredentials{GitHTTPCredentials: testHTTPSCredentials("run-owned-token"), ClaudeCode: ProviderCredential{APIKey: "not-for-terminal"}}}
 	var released atomic.Int32
 	var pool TerminalPool
 	ctx, cancel := context.WithCancel(context.Background())
@@ -39,7 +39,7 @@ func TestWorkspaceTerminalSandboxUsesOverlayAndPrivateCredentials(t *testing.T) 
 	}
 	defer pool.CloseScope("run:1")
 	cancel() // HTTP lifetime must not kill a terminal returned to the browser.
-	input := `env-tool > tool-result; printf '%s|%s|%s|%s' "$AGENTFLOW_DATABASE_URL" "$AGENTFLOW_TEST_SECRET" "$OPENAI_API_KEY" "$CODEBUDDY_API_KEY" > leaked; printf 'protocol=https\nhost=github.com\n\n' | git credential fill | python3 -c 'import sys,hashlib; c=dict(l.strip().split("=",1)for l in sys.stdin if "="in l);print(hashlib.sha256(c["password"].encode()).hexdigest())' > git-token` + "\n"
+	input := `env-tool > tool-result; printf '%s|%s|%s|%s' "$AGENTFLOW_DATABASE_URL" "$AGENTFLOW_TEST_SECRET" "$OPENAI_API_KEY" "$ANTHROPIC_API_KEY" > leaked; printf 'protocol=https\nhost=github.com\n\n' | git credential fill | python3 -c 'import sys,hashlib; c=dict(l.strip().split("=",1)for l in sys.stdin if "="in l);print(hashlib.sha256(c["password"].encode()).hexdigest())' > git-token` + "\n"
 	if _, err := pool.HandleSandbox(context.Background(), nil, "run:1", domain.WorkspaceTerminalRequest{Operation: "input", ID: opened.ID, Data: input}, nil); err != nil {
 		t.Fatal(err)
 	}

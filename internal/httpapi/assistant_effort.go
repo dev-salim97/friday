@@ -14,7 +14,7 @@ import (
 // custom gateways. Cursor uses the saved family mapping that drives its CLI.
 func assistantModelEfforts(ctx context.Context, user domain.User, model string) []string {
 	engine, _ := assistantModelEngine(model)
-	if engine == assistantEngineCodeBuddy || engine == runtime.AgentCLICursor {
+	if engine == runtime.AgentCLICursor {
 		return assistantModelEffortsIn(model, assistantEngineCustomModels(user, engine))
 	}
 	_, baseURL := assistantEngineCredential(user, engine)
@@ -34,8 +34,7 @@ func assistantModelEffortsForBaseURL(model string, catalog []domain.CLIModel, ba
 
 // assistantModelEffortsIn prefers configured levels, then discovered levels,
 // then the built-in model or CLI capabilities.
-// The CodeBuddy fallback mirrors CodeBuddy Code 2.180.0's model capabilities.
-// Unknown CodeBuddy, Codex and Claude Code models fall back to low/medium/high.
+// Unknown Codex and Claude Code models fall back to low/medium/high.
 func assistantModelEffortsIn(model string, catalog []domain.CLIModel) []string {
 	return assistantModelEffortsInCatalog(model, catalog, false)
 }
@@ -106,7 +105,7 @@ func assistantModelEffortsInCatalog(model string, catalog []domain.CLIModel, run
 	if engine == assistantEngineCodex {
 		return []string{"low", "medium", "high"}
 	}
-	// Keep the legacy fallback for CodeBuddy and custom Claude gateways.
+	// Keep the legacy fallback for custom Claude gateways.
 	switch id {
 	case "hy4std", "hy4-preview-ioa":
 		return []string{"high"}

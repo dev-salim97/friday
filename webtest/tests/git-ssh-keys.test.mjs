@@ -18,13 +18,13 @@ test('configured Git SSH credentials accept additional keys and support write-on
     return keys;
   });
   app.evaluate(`
-    state.currentUser={...state.data.users[0],id:1,isGuest:false,gitSshKeyConfigured:true,codeBuddyApiKeyConfigured:true};
+    state.currentUser={...state.data.users[0],id:1,isGuest:false,gitSshKeyConfigured:true,claudeCodeApiKeyConfigured:true};
     state.data.users=[state.currentUser];
     renderPersonalSettings();
     openCredentialWizard();
   `);
   const wizard = app.document.querySelector('#credentialWizard');
-  assert.equal(wizard.querySelector('[data-wizard-kind="codeBuddyApiKey"]').disabled, true);
+  assert.equal(wizard.querySelector('[data-wizard-kind="claudeCodeApiKey"]').disabled, true);
   const sshOption = wizard.querySelector('[data-wizard-kind="gitSshKey"]');
   assert.equal(sshOption.disabled, false, 'SSH supports adding more keys after the first one');
   sshOption.click();

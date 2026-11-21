@@ -262,7 +262,7 @@ func (e *Engine) ActiveRunCount() int {
 }
 
 // Drain stops claiming work and parks in-flight runs so a replacement worker
-// can resume them. Waiting for CodeBuddy nodes to finish would outlive
+// can resume them. Waiting for agent nodes to finish would outlive
 // systemd TimeoutStopSec and get the process SIGKILL'd mid-exec.
 func (e *Engine) Drain(ctx context.Context) error {
 	e.mu.Lock()

@@ -23,20 +23,25 @@ var (
 	gongfengIssueURLRe = regexp.MustCompile(`(?i)https?://git\.example\.com/[^\s<>"'）】\]]+/issues/\d+`)
 )
 
+// clarifyAllowedModel returns the Claude Code model a clarification runs on;
+// anything unusable falls back to the CLI default.
 func clarifyAllowedModel(id string) string {
-	return assistantAllowedModel(id, assistantKnownCatalog())
+	if _, model := assistantModelEngine(id); model != "" && assistantValidEngineModel(model) {
+		return model
+	}
+	return clarifyDefaultModel
 }
 
-// errClarifyNeedsCodeBuddy is returned when a clarification asks for a model of
-// another CLI: clarification runs on CodeBuddy only, so a "codex:…" id must be
-// refused instead of being swapped for the CodeBuddy default.
-var errClarifyNeedsCodeBuddy = errors.New("需求澄清目前只支持 CodeBuddy 模型，请在模型列表中改选 CodeBuddy 模型")
+// errClarifyNeedsClaude is returned when a clarification asks for a model of
+// another CLI: clarification runs on Claude Code only, so a "codex:…" id must
+// be refused instead of being swapped for the default.
+var errClarifyNeedsClaude = errors.New("需求澄清目前只支持 Claude Code 模型，请在模型列表中改选 Claude Code 模型")
 
 // clarifyModelEngineError reports whether id names a model of a CLI that
 // requirement clarification cannot run.
 func clarifyModelEngineError(id string) error {
-	if engine, _ := assistantModelEngine(id); engine != assistantEngineCodeBuddy {
-		return errClarifyNeedsCodeBuddy
+	if engine, _ := assistantModelEngine(id); engine != assistantEngineClaude {
+		return errClarifyNeedsClaude
 	}
 	return nil
 }

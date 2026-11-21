@@ -267,7 +267,7 @@ type execResult struct {
 // reliably reaches the CLI's shell and MCP children, streams output through
 // the batcher, renews the task lease while running, and honors a cancel
 // requested through the lease renewal response. extraEnv injects
-// task-scoped credentials (e.g. CODEBUDDY_API_KEY for CodeBuddy tasks).
+// task-scoped credentials (e.g. provider API keys).
 func (d *Daemon) executeProcess(ctx context.Context, task domain.RunnerTask, argv []string, extraEnv ...map[string]string) execResult {
 	batcher := newEventBatcher(task, d.client)
 	if err := d.client.StartTask(ctx, task.ID); err != nil {
@@ -285,8 +285,8 @@ func (d *Daemon) executeProcess(ctx context.Context, task domain.RunnerTask, arg
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = dir
 	// Agent CLI credentials live in the user environment on this machine;
-	// the platform additionally injects task-scoped credentials (currently
-	// the CodeBuddy API key, which cannot come from a local CLI login).
+	// the platform additionally injects task-scoped credentials (e.g.
+	// provider API keys that cannot come from a local CLI login).
 	cmd.Env = os.Environ()
 	for _, env := range extraEnv {
 		for key, value := range env {

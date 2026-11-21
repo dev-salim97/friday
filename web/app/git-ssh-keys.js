@@ -23,7 +23,7 @@ async function renderGitSSHMissingHint(element, remote) {
   try {
     const keys = await loadGitSSHKeys();
     if (element.sshHintVersion !== version || state.currentUser?.id !== userId) return;
-    if (keys.some(key => globalThis.LoopForgeGitSSHHost(key.host) === remote.host)) return;
+    if (keys.some(key => globalThis.FridayGitSSHHost(key.host) === remote.host)) return;
     element.textContent = window.lfT?.(
       `尚未配置 ${remote.host} 的 SSH 密钥，可稍后在「个人配置 → Git SSH 密钥」添加。`,
       `No SSH key configured for ${remote.host}. You can add one later in Personal settings → Git SSH keys.`,
@@ -52,7 +52,7 @@ function openGitSSHKeys(remote = '') {
   const previous = $('#gitSSHKeyDialog');
   if (previous?.open) return;
   const opener = document.activeElement;
-  const repository = globalThis.LoopForgeGitSSH?.(remote);
+  const repository = globalThis.FridayGitSSH?.(remote);
   const endpoint = `/api/users/${encodeURIComponent(user.id)}/git-ssh-keys`;
   let keys = [];
   let editing = null;
@@ -205,7 +205,7 @@ function openGitSSHKeys(remote = '') {
     setStatus(keys.length ? '' : '还没有配置 Git SSH 密钥');
     renderList();
     if (repository) {
-      const existing = keys.find(key => globalThis.LoopForgeGitSSHHost(key.host) === repository.host);
+      const existing = keys.find(key => globalThis.FridayGitSSHHost(key.host) === repository.host);
       openForm(existing || null, repository);
     }
   }).catch(error => setStatus(error.message, true));

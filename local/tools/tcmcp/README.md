@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-MIT. Copyright (C) 2026 Tencent. This directory is an optional LoopForge tool; the repository root [`LICENSE`](../../LICENSE) applies.
+MIT. Copyright (C) 2026 Tencent. This directory is an optional Friday tool; the repository root [`LICENSE`](../../LICENSE) applies.
 
 A [start.spring.io](https://start.spring.io/)-style service: pick Tencent Cloud products and **real resources**, then download a scoped Python MCP project.
 
@@ -10,7 +10,7 @@ Resource IDs go into the generated `config.yaml`. Tool arguments use alias enums
 
 Supported products: Redis, CDB, TDSQL-C, TKE (TKEX), CLS, COS. The first release is read-only. COS lists buckets and objects and reads object metadata; it does not download object bodies.
 
-This tool is not installed by `loopforge install`. Run it from this directory or pull the published image.
+This tool is not installed by `friday install`. Run it from this directory or pull the published image.
 
 ## Run locally
 
@@ -33,11 +33,11 @@ cd web && npm run dev       # UI :5173, proxies /api
 
 ## Docker
 
-LoopForge Local `local-vX.Y.Z` releases also publish this image to GHCR (same version as the CLI):
+Friday Local `local-vX.Y.Z` releases also publish this image to GHCR (same version as the CLI):
 
 ```bash
-docker pull ghcr.io/tencent/loopforge-tcmcp:0.2.1
-docker run --rm -p 127.0.0.1:8088:8088 ghcr.io/tencent/loopforge-tcmcp:0.2.1
+docker pull ghcr.io/tencent/friday-tcmcp:0.2.1
+docker run --rm -p 127.0.0.1:8088:8088 ghcr.io/tencent/friday-tcmcp:0.2.1
 ```
 
 Build from this directory (Node builds the UI; Python serves the API and `web/dist`):
@@ -57,7 +57,7 @@ When exposing this beyond localhost, put TLS and authentication in front of it.
 1. Enter the project name, target alias, region, and a cloud API key used only for this request (**not written into the zip**).
 2. Select products, list resources, select instances / log topics, and optionally rename aliases.
 3. Inspect each tool JSON Schema and enum; disable unused tools.
-4. Generate an install command for Cursor / CodeBuddy / Codex / WorkBuddy and paste it into a terminal.
+4. Generate an install command for Cursor / Codex / WorkBuddy and paste it into a terminal.
 5. Enter SecretId / SecretKey in the terminal (input is shown as typed). The script downloads the project, creates a venv, installs dependencies, checks MCP, and merges client config.
 6. Refresh MCP or restart the client; confirm any trust prompt. The page can still download a ZIP or copy a Docker deploy command.
 
@@ -66,7 +66,6 @@ When exposing this beyond localhost, put TLS and authentication in front of it.
 Each selection gets an install ID valid for 24 hours. The page prints a full command:
 
 ```bash
-curl -fsSL 'http://127.0.0.1:8088/codebuddy?project=<install-id>' | bash
 curl -fsSL 'http://127.0.0.1:8088/cursor?project=<install-id>' | bash
 curl -fsSL 'http://127.0.0.1:8088/codex?project=<install-id>' | bash
 curl -fsSL 'http://127.0.0.1:8088/workbuddy?project=<install-id>' | bash
@@ -75,7 +74,7 @@ curl -fsSL 'http://127.0.0.1:8088/workbuddy?project=<install-id>' | bash
 Short entry points prompt for the install ID:
 
 ```bash
-curl -fsSL http://127.0.0.1:8088/codebuddy | bash
+curl -fsSL http://127.0.0.1:8088/cursor | bash
 ```
 
 macOS / Linux only. Requires Bash, Python 3.11+ (venv / pip), and network access to a Python package index.
@@ -85,7 +84,6 @@ No sudo. Projects land in `~/.local/share/tcmcp/install-*/<project-name>`. Clien
 | Client | Default user config |
 | --- | --- |
 | Cursor | `~/.cursor/mcp.json` |
-| CodeBuddy | `~/.codebuddy/mcp.json` |
 | Codex | `${CODEX_HOME:-~/.codex}/config.toml` |
 | WorkBuddy | `~/.workbuddy/mcp.json` |
 
@@ -109,10 +107,10 @@ Server settings:
 - `TCMCP_INSTALL_STORE`: package directory (default: `tcmcp-installations` under the system temp dir). Share it across workers; mount a volume if containers must keep old links.
 - At most 200 valid packages, 10 MiB each. Expired packages are removed when creating a new one.
 
-Share install links only with people you trust. Use HTTPS for any non-local deploy, and proxy the four script entry points plus `/api/installations`.
+Share install links only with people you trust. Use HTTPS for any non-local deploy, and proxy the three script entry points plus `/api/installations`.
 If the gateway requires auth, the terminal must be able to authenticate; a browser session is not sent to curl or the Python downloader.
 
-Config formats: [Cursor MCP](https://prod.cursor.com/docs/mcp), [CodeBuddy](https://www.codebuddy.cn/docs/cli/codebuddy-dir), [Codex MCP](https://developers.openai.com/codex/mcp), [WorkBuddy MCP](https://staging.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide).
+Config formats: [Cursor MCP](https://prod.cursor.com/docs/mcp), [Codex MCP](https://developers.openai.com/codex/mcp).
 
 ## Generated project
 

@@ -37,7 +37,7 @@ func testAttachmentExists(owner int64, id string) bool {
 func TestDeletingConversationRemovesItsAttachments(t *testing.T) {
 	t.Setenv("AGENTFLOW_ASSISTANT_SESSION_DIR", t.TempDir())
 	h, owner, _ := scheduleSessionFixture(t)
-	if err := h.repo.PutUser(domain.User{LoginName: "sess-peer", CodeBuddyAPIKey: "peer"}); err != nil {
+	if err := h.repo.PutUser(domain.User{LoginName: "sess-peer", ClaudeCodeAPIKey: "peer"}); err != nil {
 		t.Fatal(err)
 	}
 	peer, _ := h.repo.UserByLoginName("sess-peer")

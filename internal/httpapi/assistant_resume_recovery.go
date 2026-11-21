@@ -26,7 +26,7 @@ func (h *assistantHandlers) freshPhasePrompt(req assistantRequest, sourceRoot st
 }
 
 // assistantResumeRejectedRe matches providers refusing a replayed native
-// journal: a 400/422, or the wording CodeBuddy and OpenAI-compatible
+// journal: a 400/422, or the wording CLIs and OpenAI-compatible
 // gateways use for a transcript whose structure they reject.
 var assistantResumeRejectedRe = regexp.MustCompile(`(?i)(must end with a user message|request parameters were rejected|invalid_request_error|invalid request|(?:status|status code|http)[ =:]*(?:400|422)\b|\b(?:400|422) bad request)`)
 

@@ -12,11 +12,11 @@ import (
 
 func TestDockerConversationUserIdentity(t *testing.T) {
 	if os.Getenv("AGENTFLOW_DOCKER_CONVERSATION_SMOKE") != "1" {
-		t.Skip("set AGENTFLOW_DOCKER_CONVERSATION_SMOKE=1 with a Python3/CodeBuddy/Node image")
+		t.Skip("set AGENTFLOW_DOCKER_CONVERSATION_SMOKE=1 with a Python3/Claude Code/Node image")
 	}
 	image := os.Getenv("AGENTFLOW_DOCKER_CONVERSATION_IMAGE")
 	if image == "" {
-		image = "loopforge-cli-lab:local"
+		image = "friday-cli-lab:local"
 	}
 	for _, tc := range []struct {
 		name, user string
@@ -54,7 +54,7 @@ func TestDockerConversationUserIdentity(t *testing.T) {
 			}
 			sandbox := &dockerSandbox{name: name, started: true}
 			for range 2 {
-				_, err = ensureConversationCLI(ctx, sandbox, "codebuddy", "/stable/native/home")
+				_, err = ensureConversationCLI(ctx, sandbox, "claude-code", "/stable/native/home")
 				if tc.readOnly && tc.missing {
 					if err == nil || !strings.Contains(err.Error(), "has no passwd entry") {
 						t.Fatalf("missing clear read-only error: %v", err)

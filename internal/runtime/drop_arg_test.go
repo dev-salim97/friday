@@ -20,33 +20,3 @@ func TestDropArgWithValueRemovesEveryFlagAndForm(t *testing.T) {
 	}
 }
 
-func TestIsolateCodeBuddyFlagsReplacesAllIsolationFlags(t *testing.T) {
-	cases := []struct {
-		name string
-		in   []string
-		want []string
-	}{
-		{
-			name: "binary head with separate and equals forms",
-			in:   []string{"codebuddy", "-p", "--plugin-dir", "/x", "--setting-sources=project", "--permission-mode=dontAsk", "--output-format", "stream-json"},
-			want: []string{"codebuddy", "-p", "--output-format", "stream-json", "-y", "--permission-mode", "bypassPermissions", "--setting-sources", "none"},
-		},
-		{
-			name: "no binary head keeps existing skip-permissions flag",
-			in:   []string{"--dangerously-skip-permissions", "--permission-mode", "plan", "-p"},
-			want: []string{"--dangerously-skip-permissions", "-p", "--permission-mode", "bypassPermissions", "--setting-sources", "none"},
-		},
-		{
-			name: "empty",
-			in:   nil,
-			want: []string{"-y", "--permission-mode", "bypassPermissions", "--setting-sources", "none"},
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := isolateCodeBuddyFlagsWithSource(tc.in, "none"); !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("got %v, want %v", got, tc.want)
-			}
-		})
-	}
-}

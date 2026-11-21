@@ -131,7 +131,7 @@ func TestProviderUserCredentials(t *testing.T) {
 				if st.isMySQL() {
 					// The production migration removes legacy credential columns;
 					// querying them after startup would itself be an invalid test.
-					for _, column := range []string{"git_token", "codebuddy_api_key", "codex_api_key", "claude_code_api_key"} {
+					for _, column := range []string{"git_token", "codex_api_key", "claude_code_api_key"} {
 						if st.DB.Migrator().HasColumn("users", column) {
 							t.Fatalf("legacy credential column still exists: users.%s", column)
 						}

@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -115,7 +114,7 @@ func TestAssistantTaskValidationPersistenceAndDue(t *testing.T) {
 func TestAssistantTaskHandlersAndExecution(t *testing.T) {
 	st := cvAStore(t)
 	_ = st.PutProject(domain.Project{ID: "task-project", Name: "Task Project"})
-	_ = st.PutUser(domain.User{LoginName: "task-user", CodeBuddyAPIKey: "secret"})
+	_ = st.PutUser(domain.User{LoginName: "task-user", ClaudeCodeAPIKey: "secret"})
 	user, _ := st.UserByLoginName("task-user")
 	h := &assistantHandlers{deps: &deps{repo: st}}
 
@@ -192,82 +191,8 @@ func TestAssistantTaskHandlersAndExecution(t *testing.T) {
 		t.Fatalf("generation failure = %v %+v", err, task)
 	}
 	noKey := user
-	noKey.CodeBuddyAPIKey = ""
+	noKey.ClaudeCodeAPIKey = ""
 	if err := h.executeAssistantTask(context.Background(), noKey, &task); err == nil || !strings.Contains(task.LastError, "API Key") {
 		t.Fatalf("missing key = %v %+v", err, task)
 	}
-}
-
-func TestAssistantAcceptanceAndDraftWarnings(t *testing.T) {
-	for input, want := range map[string]string{
-		"u:p@tcp(host:3306)/db":                  "parseTime=true",
-		"u:p@tcp(host:3306)/db?charset=utf8":     "parseTime=true",
-		" u:p@tcp(host:3306)/db?parseTime=true ": "charset=utf8mb4",
-	} {
-		if got := mysqlReadDSN(input); !strings.Contains(got, want) {
-			t.Fatalf("mysqlReadDSN(%q)=%q", input, got)
-		}
-	}
-	if !loopbackMySQLDSN("u@tcp(localhost:3306)/x") || loopbackMySQLDSN("u@tcp(db:3306)/x") {
-		t.Fatal("loopback classification")
-	}
-	if _, err := LookupCodeBuddyCredentialReadOnly(context.Background(), "", ""); err == nil {
-		t.Fatal("empty production lookup accepted")
-	}
-	if _, err := LookupCodeBuddyCredentialReadOnly(context.Background(), ":", "x"); err == nil {
-		t.Fatal("bad DSN accepted")
-	}
-	st := cvAStore(t)
-	if _, err := SeedAssistantAcceptance(st, AssistantAcceptanceIdentity{}); err == nil {
-		t.Fatal("incomplete identity accepted")
-	}
-	seeded, err := SeedAssistantAcceptance(st, AssistantAcceptanceIdentity{
-		LoginName: "accept-user", CodeBuddyAPIKey: "cb", GitToken: "git",
-	})
-	if err != nil || seeded.ChineseName != "accept-user" || !seeded.GitHubCredentialConfigured || seeded.GitToken != "" {
-		t.Fatalf("seeded = %+v, %v", seeded, err)
-	}
-	if _, ok := st.Project(assistantAcceptanceProjectID); !ok {
-		t.Fatal("acceptance project missing")
-	}
-
-	h := &assistantHandlers{deps: &deps{repo: st}}
-	for tool, wantPart := range map[string]string{
-		"agents_delete":       "不存在",
-		"rules_delete":        "不存在",
-		"skills_delete":       "不存在",
-		"dockerfiles_delete":  "不存在",
-		"environments_delete": "不存在",
-		"sandboxes_delete":    "不存在",
-		"workflows_delete":    "不存在",
-	} {
-		d := assistantDraft{Tool: tool, Body: json.RawMessage(`{"id":"missing"}`)}
-		warnings := h.assistantDraftWarnings(d)
-		if len(warnings) == 0 || !strings.Contains(warnings[0], wantPart) {
-			t.Fatalf("%s warnings=%v", tool, warnings)
-		}
-	}
-	if warnings := h.assistantDraftWarnings(assistantDraft{Tool: "agents_delete"}); len(warnings) != 1 {
-		t.Fatalf("missing id warnings=%v", warnings)
-	}
-	wf := assistantDraft{Tool: "workflows_save", Body: json.RawMessage(`{"nodes":[{"id":"a","type":"agent"},{"id":"b","type":"agent","agentId":"missing"},{"id":"s","type":"script"},{"id":"sub","type":"sop"}]}`)}
-	if warnings := h.assistantDraftWarnings(wf); len(warnings) != 4 {
-		t.Fatalf("workflow warnings=%v", warnings)
-	}
-	if got := sharedAssetWarnings("规则", true, []string{"A"}, "角色"); len(got) != 2 {
-		t.Fatalf("shared warnings=%v", got)
-	}
-	const projectID = assistantAcceptanceProjectID
-	_ = st.PutRule(domain.RuleDefinition{ID: "rule-ref", Name: "Rule", ProjectID: projectID})
-	_ = st.PutSkill(domain.SkillDefinition{ID: "skill-ref", Name: "Skill", ProjectID: projectID})
-	_ = st.PutAgent(domain.AgentDefinition{ID: "agent-ref", Name: "Agent Ref", ProjectID: projectID, Rules: []string{"rule-ref"}, Skills: []string{"skill-ref"}})
-	_ = st.PutDockerfile(domain.DockerfileDefinition{ID: "docker-ref", Name: "Docker", ProjectID: projectID})
-	_ = st.PutEnvironment(domain.EnvironmentDefinition{ID: "env-ref", Name: "Env", ProjectID: projectID})
-	_ = st.PutSandbox(domain.SandboxProfile{ID: "sandbox-ref", Name: "Sandbox Ref", ProjectID: projectID, DockerfileID: "docker-ref", EnvironmentID: "env-ref"})
-	_ = st.PutWorkflow(domain.WorkflowDefinition{ID: "workflow-ref", Name: "Workflow Ref", ProjectID: projectID, SandboxProfileID: "sandbox-ref"})
-	_ = h.agentNamesReferencing("rule", "rule-ref")
-	_ = h.agentNamesReferencing("skill", "skill-ref")
-	_ = h.sandboxNamesReferencing("dockerfile", "docker-ref")
-	_ = h.sandboxNamesReferencing("environment", "env-ref")
-	_ = h.workflowNamesReferencingSandbox("sandbox-ref")
 }

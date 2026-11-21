@@ -17,11 +17,11 @@ import build_dashboard_data as bdd  # type: ignore
 
 
 class ToolCallFailedTests(unittest.TestCase):
-    """真实 CodeBuddy CLI transcript 里从没出现过 `is_error` 这个键——实测抓到的
+    """真实 Codex CLI transcript 里从没出现过 `is_error` 这个键——实测抓到的
     rawResponse 形如 {"exitCode": 0, "tool_error_code": "0", ...}（成功）或非 0
     exitCode（失败）。之前只认 is_error，导致这个宿主上失败统计永远是 0。"""
 
-    def test_real_success_shape_from_codebuddy_is_not_a_failure(self):
+    def test_real_success_shape_from_codex_is_not_a_failure(self):
         # 实测数据：ls 一个不存在的路径，但命令写成了 `ls ...; echo "EXIT_CODE=$?"`，
         # 复合命令整体 exitCode 被内层 echo 冲成了 0——工具调用本身没有失败。
         raw_response = {
@@ -576,7 +576,7 @@ class BuildDispatchTests(unittest.TestCase):
        却显示成 5；
     2) team-lead 显示成一个"被 main 派发的子 agent"，但 team-lead 在
        core/agent_identity.py::normalize_role_name 里本来就和 main 归为一类
-       （它是 CodeBuddy 原生 team 基础设施里 lead session 自己的 mailbox 名，
+       （它是 Codex 原生 team 基础设施里 lead session 自己的 mailbox 名，
        不是真实存在的子 agent），面板标题明明叫"Main → 子 Agent 派发次数"，
        混进一个其实等价于 main 自己的假子 agent。"""
 

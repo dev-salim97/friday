@@ -31,7 +31,7 @@ func TestPersonalConversationRunsInItsOwnRootWithProjectSkills(t *testing.T) {
 		}
 	}
 	root := t.TempDir()
-	bin := filepath.Join(root, "codebuddy")
+	bin := filepath.Join(root, "claude")
 	homeFile := filepath.Join(root, "home")
 	script := `#!/bin/sh
 printf '%s' "$HOME" > '` + homeFile + `'
@@ -40,7 +40,7 @@ printf '%s\n' '{"type":"result","result":"好"}'
 	if err := os.WriteFile(bin, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("AGENTFLOW_CODEBUDDY_BIN", bin)
+	t.Setenv("AGENTFLOW_CLAUDE_BIN", bin)
 	send := func(project, session string) string {
 		body, _ := json.Marshal(assistantRequest{ProjectID: project, SessionID: session, Messages: []assistantMessage{{Role: "user", Content: "你好"}}})
 		c, w := workbenchContext(u, "POST", "/api/assistant/chat", bytes.NewBuffer(body))
@@ -55,17 +55,17 @@ printf '%s\n' '{"type":"result","result":"好"}'
 	if home != filepath.Join(assistantConversationRoot(u.ID, "personal-a"), "home") {
 		t.Fatalf("home=%s", home)
 	}
-	if _, err := os.Stat(filepath.Join(home, ".codebuddy", "skills", "notes", "SKILL.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(home, ".claude", "skills", "notes", "SKILL.md")); err != nil {
 		t.Fatal("project skill not written to the conversation home", err)
 	}
 	other := send("", "personal-b")
 	if other == home || strings.HasPrefix(other, assistantCLIHome(u.ID)) {
 		t.Fatalf("conversations share a CLI home: %s", other)
 	}
-	if _, err := os.Stat(filepath.Join(other, ".codebuddy", "skills", "notes", "SKILL.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(other, ".claude", "skills", "notes", "SKILL.md")); !os.IsNotExist(err) {
 		t.Fatal("a conversation without a project received a project skill", err)
 	}
-	if _, err := os.Stat(filepath.Join(other, ".codebuddy", "skills", "shared-notes", "SKILL.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(other, ".claude", "skills", "shared-notes", "SKILL.md")); err != nil {
 		t.Fatal("a conversation without a project did not receive the shared skill", err)
 	}
 	if assistantConversationRoot(u.ID, "same") == assistantConversationRoot(u.ID+1, "same") {
@@ -192,11 +192,11 @@ func TestSkillMentionsAreScopedHintedAndWrittenToHome(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, name := range []string{"lint", "shareddoc"} {
-		if _, err := os.Stat(filepath.Join(root, "home", ".codebuddy", "skills", name, "SKILL.md")); err != nil {
+		if _, err := os.Stat(filepath.Join(root, "home", ".claude", "skills", name, "SKILL.md")); err != nil {
 			t.Fatalf("skill %s not written: %v", name, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(root, "home", ".codebuddy", "skills", "deploy", "SKILL.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, "home", ".claude", "skills", "deploy", "SKILL.md")); !os.IsNotExist(err) {
 		t.Fatalf("another project's private skill was installed: %v", err)
 	}
 	req.Messages[0].References = []domain.AssistantReference{{Type: "skill", ID: "deploy"}}
@@ -260,7 +260,7 @@ func TestEverySharedSkillIsInstalledWithItsSkillMD(t *testing.T) {
 			if err := h.writeConversationAssets(root, req); err != nil {
 				t.Fatal(err)
 			}
-			dir := filepath.Join(root, "home", ".codebuddy", "skills")
+			dir := filepath.Join(root, "home", ".claude", "skills")
 			entries, err := os.ReadDir(dir)
 			if err != nil {
 				t.Fatal(err)
@@ -323,7 +323,7 @@ func TestEverySharedSkillIsInstalledHoweverManyAreShared(t *testing.T) {
 		if err := h.writeConversationAssets(root, assistantRequest{ProjectID: project}); err != nil {
 			t.Fatal(err)
 		}
-		entries, err := os.ReadDir(filepath.Join(root, "home", ".codebuddy", "skills"))
+		entries, err := os.ReadDir(filepath.Join(root, "home", ".claude", "skills"))
 		if err != nil {
 			t.Fatal(err)
 		}

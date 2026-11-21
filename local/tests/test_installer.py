@@ -36,7 +36,7 @@ class InstallerTests(unittest.TestCase):
 
     def test_all_host_and_edition_combinations_install_and_update(self):
         for edition in ("portable", "classic"):
-            for host in ("codebuddy", "codex", "cursor", "claude"):
+            for host in ("codex", "cursor", "claude"):
                 with self.subTest(edition=edition, host=host), tempfile.TemporaryDirectory() as temporary:
                     project = self.project(temporary)
                     written, unchanged = apply_install(project, host, edition)
@@ -122,17 +122,17 @@ class InstallerTests(unittest.TestCase):
 
     def test_force_install_switches_editions_in_both_directions(self):
         cases = (
-            ("portable", "classic", ".codebuddy/commands/devflow.md", ".codebuddy/commands/start-devflow.md"),
-            ("classic", "portable", ".codebuddy/commands/start-devflow.md", ".codebuddy/commands/devflow.md"),
+            ("portable", "classic", ".claude/skills/devflow/SKILL.md", ".claude/commands/start-devflow.md"),
+            ("classic", "portable", ".claude/commands/start-devflow.md", ".claude/skills/devflow/SKILL.md"),
         )
         for source, target, removed_path, installed_path in cases:
             with self.subTest(source=source, target=target), tempfile.TemporaryDirectory() as temporary:
                 project = self.project(temporary)
-                apply_install(project, "codebuddy", source)
+                apply_install(project, "claude", source)
 
-                apply_install(project, "codebuddy", target, force=True)
+                apply_install(project, "claude", target, force=True)
 
-                rows = status_rows(project, "codebuddy")
+                rows = status_rows(project, "claude")
                 self.assertEqual(1, len(rows))
                 self.assertEqual(target, rows[0]["edition"])
                 self.assertFalse((project / removed_path).exists())
@@ -141,14 +141,14 @@ class InstallerTests(unittest.TestCase):
     def test_force_edition_switch_preserves_modified_old_only_file(self):
         with tempfile.TemporaryDirectory() as temporary:
             project = self.project(temporary)
-            apply_install(project, "codebuddy", "portable")
-            old_only = project / ".codebuddy/commands/devflow.md"
+            apply_install(project, "claude", "portable")
+            old_only = project / ".claude/skills/devflow/SKILL.md"
             old_only.write_text("user changed\n", encoding="utf-8")
 
-            apply_install(project, "codebuddy", "classic", force=True)
+            apply_install(project, "claude", "classic", force=True)
 
             self.assertEqual("user changed\n", old_only.read_text(encoding="utf-8"))
-            self.assertEqual("classic", status_rows(project, "codebuddy")[0]["edition"])
+            self.assertEqual("classic", status_rows(project, "claude")[0]["edition"])
 
     def test_edition_registry_is_complete_and_sources_exist(self):
         self.assertEqual("classic", DEFAULT_EDITION)
@@ -204,7 +204,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("portable:", text)
         self.assertIn("sources: skills/", text)
         self.assertIn("classic (default)", text)
-        self.assertIn(".codebuddy/", text)
+        self.assertIn(".claude/", text)
 
         output = StringIO()
         with redirect_stdout(output):
@@ -219,7 +219,7 @@ class InstallerTests(unittest.TestCase):
             output = StringIO()
             with redirect_stdout(output):
                 self.assertEqual(0, main([
-                    "install", "codebuddy", "--project-root", str(project),
+                    "install", "claude", "--project-root", str(project),
                 ]))
             text = output.getvalue()
             self.assertIn(f"project={project.resolve()}", text)
@@ -255,7 +255,6 @@ class InstallerTests(unittest.TestCase):
 
     def test_portable_install_keeps_skill_manifest_with_copied_skills(self):
         skill_roots = {
-            "codebuddy": ".codebuddy/skills",
             "codex": ".agents/skills",
             "cursor": ".cursor/skills",
             "claude": ".claude/skills",
@@ -266,44 +265,8 @@ class InstallerTests(unittest.TestCase):
                 apply_install(project, host, "portable")
                 self.assertTrue((project / relative / "manifest.json").is_file())
 
-    def test_codebuddy_copy_contains_runnable_generic_adapter_installer(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            project = self.project(temporary)
-            apply_install(project, "codebuddy", "portable")
-            downstream = Path(temporary) / "downstream"
-            downstream.mkdir()
-            installer = project / ".codebuddy/skills/devflow/scripts/install_adapter.py"
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(installer),
-                    "--adapter",
-                    "claude",
-                    "--project-root",
-                    str(downstream),
-                    "--copy-skills",
-                    "--refresh-managed",
-                ],
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertTrue((downstream / ".claude/skills/manifest.json").is_file())
-            self.assertTrue((downstream / ".claude/skills/devflow/SKILL.md").is_file())
-
-    def test_codebuddy_portable_agents_use_autorun_bypass_permissions(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            project = self.project(temporary)
-            apply_install(project, "codebuddy", "portable")
-            for name in ("devflow-stage-executor.md", "devflow-research-helper.md"):
-                text = (project / ".codebuddy/agents" / name).read_text(encoding="utf-8")
-                self.assertIn("permissionMode: bypassPermissions", text)
-                self.assertIn("enabledAutoRun: true", text)
-
     def test_classic_install_makes_observability_hook_executable(self):
         hooks = (
-            ("codebuddy", ".codebuddy/skills/agent-observability/scripts/run_hook.sh"),
             ("cursor", ".cursor/skills/agent-observability/scripts/run_hook.sh"),
             ("claude", ".claude/skills/agent-observability/scripts/run_hook.sh"),
         )
@@ -318,10 +281,10 @@ class InstallerTests(unittest.TestCase):
     def test_update_restores_missing_executable_bit_on_hook(self):
         with tempfile.TemporaryDirectory() as temporary:
             project = self.project(temporary)
-            apply_install(project, "codebuddy", "classic")
-            hook = project / ".codebuddy/skills/agent-observability/scripts/run_hook.sh"
+            apply_install(project, "claude", "classic")
+            hook = project / ".claude/skills/agent-observability/scripts/run_hook.sh"
             hook.chmod(0o644)
-            written, unchanged = apply_install(project, "codebuddy", "classic", update_only=True)
+            written, unchanged = apply_install(project, "claude", "classic", update_only=True)
             self.assertEqual(0, written)
             self.assertGreater(unchanged, 0)
             self.assertTrue(hook.stat().st_mode & stat.S_IXUSR)

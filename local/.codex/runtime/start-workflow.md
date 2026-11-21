@@ -10,8 +10,7 @@
 2. `.codex/runtime/workflow-state-spec.md`
 3. `.codex/rules/global.mdc`
 
-可选读取 `.codex/workflows/devflow.md` 做恢复检查。禁止在运行期读取
-`.codebuddy/` 作为 Codex 工作流来源。
+可选读取 `.codex/workflows/devflow.md` 做恢复检查。
 
 ## Step 1：工作区初始化
 

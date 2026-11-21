@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -280,31 +278,6 @@ func TestTAPDParsingAndMessages(t *testing.T) {
 	}
 }
 
-func TestCodeBuddyAuthLoading(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	dir := filepath.Join(home, ".codebuddy")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(dir, "mcp.json")
-	if err := os.WriteFile(path, []byte(`{"mcpServers":{"gongfeng":{"headers":{"Authorization":"Bearer token"}}}}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if got := LoadAuthFromCodeBuddy("gongfeng"); got != "Bearer token" {
-		t.Fatalf("auth = %q", got)
-	}
-	if got := LoadAuthFromCodeBuddy("missing"); got != "" {
-		t.Fatalf("missing auth = %q", got)
-	}
-	if err := os.WriteFile(path, []byte(`{`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if got := LoadAuthFromCodeBuddy("gongfeng"); got != "" {
-		t.Fatalf("malformed auth = %q", got)
-	}
-}
-
 func TestTrackerMappingsAndIDs(t *testing.T) {
 	for _, state := range []string{"opened", "closed", "other"} {
 		if gongfengStateToStatus(state) == "" {
@@ -442,7 +415,7 @@ func TestCatalogBindingHelpers(t *testing.T) {
 		{ID: "gongfeng", Transport: "http", URL: "https://mcp.example/gf"},
 		{ID: "ignored", Transport: "stdio", URL: "https://ignored"},
 	}
-	binding := bindTrackerMCP("tapd", domain.SyncConfig{}, servers, "token", "")
+	binding := bindTrackerMCP("tapd", domain.SyncConfig{}, servers, "token")
 	if binding.URL == "" || !headerHas(binding.Headers, "authorization") {
 		t.Fatalf("binding = %#v", binding)
 	}

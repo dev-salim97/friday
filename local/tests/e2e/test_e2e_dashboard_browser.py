@@ -1,14 +1,14 @@
 """E2E: render the local observability dashboard in a real browser (Playwright).
 
-Records a CodeBuddy session through the installed hooks, builds the dashboard
+Records an agent session through the installed hooks, builds the dashboard
 snapshot, serves it on 127.0.0.1 and checks what a user actually sees: the
 data badge, KPI strip, session table, Devflow run card and auto-dispatch
 health, plus the empty and load-failure states. All requests that leave
 127.0.0.1 (for example web fonts) are blocked, so the page must work offline.
 
 Skipped when the ``playwright`` Python package is not installed, unless
-``LOOPFORGE_E2E_BROWSER=1`` (set in CI), in which case a missing browser fails.
-Screenshots go to ``$LOOPFORGE_E2E_ARTIFACTS`` when set.
+``FRIDAY_E2E_BROWSER=1`` (set in CI), in which case a missing browser fails.
+Screenshots go to ``$FRIDAY_E2E_ARTIFACTS`` when set.
 """
 
 import json
@@ -24,13 +24,13 @@ try:
 except ImportError:  # pragma: no cover - depends on the environment
     sync_playwright = None
 
-REQUIRED = os.environ.get("LOOPFORGE_E2E_BROWSER") == "1"
+REQUIRED = os.environ.get("FRIDAY_E2E_BROWSER") == "1"
 
 
 def setUpModule():
     if sync_playwright is None:
         if REQUIRED:
-            raise RuntimeError("LOOPFORGE_E2E_BROWSER=1 but the playwright package is not installed")
+            raise RuntimeError("FRIDAY_E2E_BROWSER=1 but the playwright package is not installed")
         raise unittest.SkipTest("playwright is not installed (pip install playwright && playwright install chromium)")
 
 
@@ -39,7 +39,7 @@ class DashboardBrowserE2E(unittest.TestCase):
     def setUpClass(cls):
         cls.playwright = sync_playwright().start()
         cls.browser = cls.playwright.chromium.launch()
-        cls.shots = Path(os.environ.get("LOOPFORGE_E2E_ARTIFACTS") or tempfile.mkdtemp(prefix="loopforge-e2e-shots-"))
+        cls.shots = Path(os.environ.get("FRIDAY_E2E_ARTIFACTS") or tempfile.mkdtemp(prefix="friday-e2e-shots-"))
         cls.shots.mkdir(parents=True, exist_ok=True)
 
     @classmethod
@@ -49,7 +49,7 @@ class DashboardBrowserE2E(unittest.TestCase):
 
     def setUp(self):
         self.project = h.new_project(self, with_sample=False)
-        h.loopforge("install", "codebuddy", "--project-root", self.project)
+        h.friday("install", "claude", "--project-root", self.project)
         self.state_path = h.seed_classic_run(self.project)
 
     def open(self, directory):
@@ -93,7 +93,6 @@ class DashboardBrowserE2E(unittest.TestCase):
         # The seeded run has only finished Phase 0, so it must not claim to be done.
         self.assertIn("进行中", run_card)
         self.assertNotIn("已完成", run_card)
-        self.assertEqual("1", page.locator("#hDispatch").inner_text().strip())
         page.screenshot(path=str(self.shots / "dashboard-devflow.png"), full_page=False)
         self.assertEqual([], errors)
 
@@ -108,7 +107,7 @@ class DashboardBrowserE2E(unittest.TestCase):
         self.assertEqual([], errors)
 
     def test_missing_snapshot_shows_a_load_error(self):
-        dashboard = self.project / ".codebuddy/skills/agent-observability/scripts/dashboard"
+        dashboard = self.project / ".claude/skills/agent-observability/scripts/dashboard"
         self.assertFalse((dashboard / "dashboard-data.json").exists())
         page, _ = self.open(dashboard)
         page.locator("#dataStatusBadge").filter(has_text="加载 dashboard-data.json 失败").wait_for(timeout=10000)

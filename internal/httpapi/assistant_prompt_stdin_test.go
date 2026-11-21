@@ -39,37 +39,6 @@ func assertPromptOnStdin(t *testing.T, name string, command runtime.CommandSpec,
 	}
 }
 
-func TestAssistantCodeBuddyOversizedPromptUsesStdin(t *testing.T) {
-	prompt := oversizedAssistantPrompt()
-	cases := map[string]assistantCommandOpts{
-		"platform":  {Bin: "codebuddy", Config: "/tmp/mcp.json", Prompt: prompt, SessionID: "s1", Native: true},
-		"workspace": {Bin: "codebuddy", Config: "/tmp/mcp.json", Prompt: prompt, SessionID: "s1", Native: true, Workspace: true},
-		"resume":    {Bin: "codebuddy", Config: "/tmp/mcp.json", Prompt: prompt, SessionID: "s1", Native: true, Resume: true},
-		"report":    {Bin: "codebuddy", Config: "/tmp/mcp.json", Prompt: prompt, ReportOnly: true},
-		"review":    {Bin: "codebuddy", Config: "/tmp/mcp.json", Prompt: prompt, ReviewOnly: true},
-	}
-	for name, opts := range cases {
-		command, err := prepareAssistantCommand(opts)
-		if err != nil {
-			t.Fatalf("%s: %v", name, err)
-		}
-		assertPromptOnStdin(t, name, command, prompt)
-		if !runtime.ConversationCommandFor(command, runtime.RunCredentials{}).Interactive {
-			t.Fatalf("%s: remote conversation must forward stdin", name)
-		}
-	}
-}
-
-func TestAssistantCodeBuddyShortPromptStaysOnArgv(t *testing.T) {
-	command, err := prepareAssistantCommand(assistantCommandOpts{Bin: "codebuddy", Config: "/tmp/mcp.json", Prompt: "你好", SessionID: "s1", Native: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if command.Argv[len(command.Argv)-1] != "你好" || command.Stdin != nil {
-		t.Fatalf("short prompt should stay positional: %q", command.Argv[len(command.Argv)-2:])
-	}
-}
-
 func TestAssistantClaudeOversizedPromptUsesStdin(t *testing.T) {
 	root := t.TempDir()
 	config := filepath.Join(root, "mcp.json")
@@ -86,7 +55,7 @@ func TestAssistantClaudeOversizedPromptUsesStdin(t *testing.T) {
 
 func TestClarifyOversizedPromptUsesStdin(t *testing.T) {
 	prompt := oversizedAssistantPrompt()
-	command, err := prepareClarifyCommandWith(clarifyCommandOpts{Bin: "codebuddy", Prompt: prompt, SessionID: "s", Native: true, MCPConfig: "/tmp/mcp.json", SubmitOnly: true})
+	command, err := prepareClarifyCommandWith(clarifyCommandOpts{Bin: "claude", Prompt: prompt, SessionID: "s", Native: true, MCPConfig: "/tmp/mcp.json", SubmitOnly: true})
 	if err != nil {
 		t.Fatal(err)
 	}

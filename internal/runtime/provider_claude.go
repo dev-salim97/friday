@@ -119,8 +119,7 @@ func isolateClaudeFlags(args []string, systemPromptPath string) []string {
 		}
 		rest = append(rest, arg)
 	}
-	// Claude Code does not accept CodeBuddy's synthetic `none` value. Select
-	// only host user settings while excluding repository project/local settings.
+	// Select only host user settings while excluding repository project/local settings.
 	rest = append(rest, "--setting-sources", "user", "--system-prompt-file", systemPromptPath)
 	return append(head, rest...)
 }

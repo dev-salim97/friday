@@ -11,7 +11,6 @@ import (
 // can apply. An empty level uses the CLI default.
 var ExecutorEffortLevels = map[string][]string{
 	"claude-code": {"low", "medium", "high", "xhigh", "max", "ultracode"},
-	"codebuddy":   {"low", "medium", "high", "xhigh", "max", "ultracode"},
 	"codex":       {"low", "medium", "high", "xhigh", "max", "ultra"},
 	"opencode":    {"low", "medium", "high"},
 	"cursor":      {"none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"},
@@ -22,7 +21,7 @@ var ExecutorEffortLevels = map[string][]string{
 	"zcode":       {"low", "high", "max"},
 }
 
-// AgentCLIExecutorKinds are the agent CLIs beyond CodeBuddy / Codex / Claude
+// AgentCLIExecutorKinds are the agent CLIs beyond Codex / Claude
 // Code. Their model and MCP configuration lives in a private HOME, so they
 // only run with the responsible user's personal credentials.
 var AgentCLIExecutorKinds = []string{"opencode", "cursor", "agy", "kimi", "pi", "dsh", "zcode"}
@@ -97,7 +96,7 @@ type AgentDefinition struct {
 }
 
 // AgentHook is a role-scoped lifecycle script. The runtime compiles the common
-// subset into the native hook configuration of Claude Code, Codex, or CodeBuddy
+// subset into the native hook configuration of Claude Code or Codex
 // only for invocations of this Agent.
 type AgentHook struct {
 	ID         string `json:"id"`
@@ -138,7 +137,7 @@ type ExecutorDefinition struct {
 	ID        string   `json:"id"`
 	Name      string   `json:"name"`
 	ProjectID string   `json:"projectId,omitempty"`
-	Kind      string   `json:"kind"` // mock, claude-code, codex, codebuddy
+	Kind      string   `json:"kind"` // mock, claude-code, codex
 	Binary    string   `json:"binary"`
 	Args      []string `json:"args"`
 	Protocol  string   `json:"protocol"`

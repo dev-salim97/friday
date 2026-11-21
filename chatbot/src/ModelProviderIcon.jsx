@@ -32,7 +32,7 @@ const modelBrands = [
   [/^(?:zai|z\.ai)(?:$|[-_.\s:\d])/i, "zai"],
 ];
 const fallbackBrands = new Set([
-  "codebuddy", "cursor", "opencode", "openrouter", "siliconflow", "trae",
+  "cursor", "opencode", "openrouter", "siliconflow", "trae",
   "github", "gitlab",
 ]);
 const colorBrands = new Set([

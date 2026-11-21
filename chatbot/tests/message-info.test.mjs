@@ -29,7 +29,7 @@ test("new replies show model, elapsed time and token totals", () => {
     [
       ["时间", "2026-10-31 04:04"],
       ["Agent", "主 Bot"],
-      ["编码工具", "CodeBuddy"],
+      ["编码工具", "Friday"],
       ["模型", "claude-opus-4-5"],
       ["用时", "1分钟27秒"],
     ],
@@ -80,7 +80,7 @@ test("short replies and malformed values stay readable", () => {
     messageInfo()
       .rows.map((r) => r.value)
       .slice(1, 3),
-    ["主 Bot", "CodeBuddy"],
+    ["主 Bot", "Friday"],
   );
 });
 

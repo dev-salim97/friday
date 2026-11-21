@@ -27,7 +27,7 @@ type executorEffortOption struct {
 
 // executorModelCatalog is the per-CLI model and effort catalog used by the
 // agent wizard. CustomModel marks CLIs that accept free-form model IDs
-// (custom base URLs); Credits is only surfaced for CodeBuddy.
+// (custom base URLs); Credits is only surfaced when a catalog reports it.
 type executorModelCatalog struct {
 	Source      string                 `json:"source,omitempty"`
 	Default     string                 `json:"default,omitempty"`
@@ -126,20 +126,9 @@ func effortOptions(levels []string) []executorEffortOption {
 	return options
 }
 
-// executorModelCatalogs returns the fixed per-CLI catalog. The CodeBuddy list
-// reuses the assistant catalog so the wizard, AI 助手 and 澄清 stay in sync.
+// executorModelCatalogs returns the fixed per-CLI catalog.
 func executorModelCatalogs(kimiBaseURL string) map[string]executorModelCatalog {
-	codebuddyModels := make([]executorModelInfo, 0)
-	known := assistantKnownCatalog()
-	for _, model := range selectableCodeBuddyModels(known.Models) {
-		codebuddyModels = append(codebuddyModels, executorModelInfo{ID: model.ID, Name: model.Name, Credits: model.Credits})
-	}
 	catalogs := map[string]executorModelCatalog{
-		"codebuddy": {
-			Default: known.Default,
-			Models:  codebuddyModels,
-			Efforts: effortOptions(domain.ExecutorEffortLevels["codebuddy"]),
-		},
 		"codex": {
 			CustomModel: true,
 			Efforts:     effortOptions(domain.ExecutorEffortLevels["codex"]),
@@ -191,9 +180,7 @@ func executorModelCatalogs(kimiBaseURL string) map[string]executorModelCatalog {
 		for i := range catalog.Models {
 			id := catalog.Models[i].ID
 			catalog.Models[i].Family = assistantModelFamily(id, modelEngine)
-			if modelEngine != assistantEngineCodeBuddy {
-				id = modelEngine + ":" + id
-			}
+			id = modelEngine + ":" + id
 			catalog.Models[i].Efforts = effortOptions(assistantModelEffortsForBaseURL(id, nil, kimiBaseURL))
 		}
 		catalogs[engine] = catalog
@@ -221,7 +208,6 @@ func (h *catalogHandlers) executorModels(c *gin.Context) {
 	if current, ok := h.requestUser(c.Request, true); ok {
 		if stored, found := h.repo.User(current.ID); found {
 			user = stored
-			refreshCLIModels(c.Request.Context(), user.CodeBuddyInternetEnvironment, user.CodeBuddyAPIKey)
 		}
 	}
 	_, kimiBaseURL := assistantEngineCredential(user, runtime.AgentCLIKimi)
@@ -231,7 +217,7 @@ func (h *catalogHandlers) executorModels(c *gin.Context) {
 		catalog.Models = []executorModelInfo{}
 		catalogs[runtime.AgentCLIAntigravity] = catalog
 	}
-	for _, engine := range append([]string{assistantEngineCodeBuddy}, assistantCLIEngines()...) {
+	for _, engine := range assistantCLIEngines() {
 		models, _ := assistantDiscoveredModelsFor(c.Request.Context(), user, engine)
 		if len(models) == 0 {
 			continue
@@ -245,17 +231,14 @@ func (h *catalogHandlers) executorModels(c *gin.Context) {
 		catalog.Models = make([]executorModelInfo, 0, len(models))
 		personal := cliModelsOf(models)
 		for _, model := range models {
-			if model.ID == assistantDefaultModel || (engine == assistantEngineCodeBuddy && codeBuddyIsDefaultModel(model.ID)) {
+			if assistantIsDefaultModel(model.ID) {
 				continue
 			}
 			name := strings.TrimSpace(model.Name)
 			if name == "" {
 				name = model.ID
 			}
-			modelID := model.ID
-			if engine != assistantEngineCodeBuddy {
-				modelID = engine + ":" + modelID
-			}
+			modelID := engine + ":" + model.ID
 			catalog.Models = append(catalog.Models, executorModelInfo{
 				ID:      model.ID,
 				Name:    name,

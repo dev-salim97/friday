@@ -31,7 +31,7 @@ func TestAwaitRunnerTaskBridgesDurableEventsFromAnotherProcess(t *testing.T) {
 		t.Fatal(err)
 	}
 	task := domain.RunnerTask{
-		ID: "rt-cross-process", RunnerID: "runner-1", Provider: "codebuddy",
+		ID: "rt-cross-process", RunnerID: "runner-1", Provider: "claude-code",
 		Status: domain.RunnerTaskRunning, LeaseOwner: "runner-1", MaxAttempts: 1, RunID: run.ID, NodeID: "work",
 	}
 	if err := s.PutRunnerTask(task); err != nil {
@@ -53,7 +53,7 @@ func TestAwaitRunnerTaskBridgesDurableEventsFromAnotherProcess(t *testing.T) {
 	usage := domain.TokenUsage{InputTokens: 12, OutputTokens: 5, TotalTokens: 17}
 	raw, err := json.Marshal(domain.TelemetryEvent{
 		Category: "usage", Name: "usage.final", Phase: "finish", Usage: &usage,
-		Source: domain.TelemetrySource{Layer: "executor", Adapter: "codebuddy-stream-json-v1"},
+		Source: domain.TelemetrySource{Layer: "executor", Adapter: "claude-code-stream-json-v1"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -82,7 +82,7 @@ func TestAwaitRunnerTaskBridgesDurableEventsFromAnotherProcess(t *testing.T) {
 			usageEvent = &copy
 		}
 	}
-	if usageEvent == nil || usageEvent.Usage == nil || usageEvent.Usage.TotalTokens != 17 || usageEvent.Source.Adapter != "codebuddy-stream-json-v1" {
+	if usageEvent == nil || usageEvent.Usage == nil || usageEvent.Usage.TotalTokens != 17 || usageEvent.Source.Adapter != "claude-code-stream-json-v1" {
 		t.Fatalf("durable runner observation was not bridged correctly: %+v", usageEvent)
 	}
 	persisted, ok := s.Run(run.ID)
@@ -91,7 +91,7 @@ func TestAwaitRunnerTaskBridgesDurableEventsFromAnotherProcess(t *testing.T) {
 	}
 	found := false
 	for _, event := range persisted.Telemetry {
-		if event.Name == "usage.final" && event.Source.Adapter == "codebuddy-stream-json-v1" {
+		if event.Name == "usage.final" && event.Source.Adapter == "claude-code-stream-json-v1" {
 			found = true
 		}
 	}

@@ -81,8 +81,8 @@ func TestRunnerHeartbeatPreservesRuntimeAuthMode(t *testing.T) {
 	if runner.SessionExpiresAt == nil || !runner.SessionExpiresAt.After(now.Add(29*24*time.Hour)) {
 		t.Fatalf("runner session was not renewed: %v", runner.SessionExpiresAt)
 	}
-	if err := s.SetRunnerRuntimeAuthMode("runner-auth", "codebuddy", domain.RuntimeAuthLocal, now); err == nil {
-		t.Fatal("CodeBuddy local auth should be rejected")
+	if err := s.SetRunnerRuntimeAuthMode("runner-auth", "opencode", domain.RuntimeAuthLocal, now); err == nil {
+		t.Fatal("agent CLI local auth should be rejected")
 	}
 }
 

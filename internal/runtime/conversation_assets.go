@@ -74,7 +74,6 @@ var conversationManagedFiles = []string{
 // Only platform-generated inputs travel to the execution host. Native
 // transcripts, session maps, locks and provider credentials never do.
 var conversationAssetTrees = []string{
-	"home/.codebuddy/skills", "home/.codebuddy/agents",
 	"home/.claude/skills", "home/.claude/agents",
 	"home/.codex/skills", "home/.agents/skills", "home/.pi/agent/skills",
 	"home/.gemini/config/skills",

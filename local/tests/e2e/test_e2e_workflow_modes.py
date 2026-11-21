@@ -25,7 +25,7 @@ def completed_stages(project):
 class WorkflowModesE2E(unittest.TestCase):
     def install(self, host):
         project = h.new_project(self)
-        h.loopforge("skills", "install", host, "--project-root", project)
+        h.friday("skills", "install", host, "--project-root", project)
         return project
 
     def assert_code_fixed(self, project):
@@ -34,10 +34,10 @@ class WorkflowModesE2E(unittest.TestCase):
             capture_output=True, text=True,
         )
         self.assertEqual(0, verify.returncode, verify.stderr)
-        self.assertIn("OK", h.loopforge_validate(project))
+        self.assertIn("OK", h.friday_validate(project))
 
     def test_small_task_uses_single_solo_agent(self):
-        for host in ("claude", "codebuddy"):
+        for host in ("claude",):
             with self.subTest(host=host):
                 project = self.install(host)
                 h.fake_agent(host, project, "--size", "small", check_rc=0)

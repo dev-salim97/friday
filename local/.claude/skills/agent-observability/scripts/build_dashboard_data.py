@@ -101,7 +101,7 @@ def day_of(ts: float) -> str:
 def tool_call_failed(raw_response: Any) -> bool:
     """判断一次工具调用是否失败。
 
-    真实 CodeBuddy CLI 的 transcript（`function_call_result.providerData.toolResult.
+    真实 Codex CLI 的 transcript（`function_call_result.providerData.toolResult.
     rawResponse`）里从来没有 `is_error` 这个布尔字段——实际信号是 `exitCode`（非 0
     即失败）和/或 `tool_error_code`（非 "0"/空即失败）。之前只认 `is_error`，导致
     失败统计在这个宿主上永远是 0，不管命令是否真的失败（复合命令比如
@@ -384,7 +384,7 @@ def build_skills(state: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict
 
 
 
-# "team-lead" 是 CodeBuddy 原生 team 基础设施里 lead/orchestrator session 自己的
+# "team-lead" 是 Codex 原生 team 基础设施里 lead/orchestrator session 自己的
 # mailbox 名字，语义上就是 main（core/agent_identity.py::normalize_role_name 把它
 # 和 "main" 归为同一类）；不是一个真实存在的子 agent，不应出现在"派发目标"里。
 _DISPATCH_EXCLUDE_AGENTS = {"main", "team-lead"}
@@ -416,7 +416,7 @@ def build_dispatch(state: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def build_auto_dispatch_stats(project_root: Path) -> dict[str, int]:
-    log_path = project_root / ".codebuddy" / "hooks" / "logs" / "auto-dispatch.log"
+    log_path = project_root / ".codex" / "hooks" / "logs" / "auto-dispatch.log"
     stats = {"auto_dispatch": 0, "fallback_to_main": 0, "passthrough": 0}
     if not log_path.is_file():
         return stats
@@ -567,7 +567,7 @@ def resolve_input_paths(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--project-root", default=".", help="devflow 项目根目录（含 .codebuddy/ 和 artifacts/）")
+    parser.add_argument("--project-root", default=".", help="devflow 项目根目录（含 .codex/ 和 artifacts/）")
     parser.add_argument("--out", default=None, help="输出路径，默认 <skill_root>/scripts/dashboard/dashboard-data.json")
     parser.add_argument("--metrics-path", default=None, help="覆盖 metrics.ndjson 的读取路径（默认 <skill_root>/logs/metrics.ndjson，支持 ~ 展开）")
     parser.add_argument("--state-path", default=None, help="覆盖 .state.json 的读取路径（默认 <skill_root>/logs/.state.json，支持 ~ 展开）")

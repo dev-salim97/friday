@@ -4,7 +4,6 @@ import { loadApp, settle } from '../lib/load-app.mjs';
 
 const levels = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
 const catalogs = {
-  codebuddy: { models: [], efforts: levels.map(value => ({ value, label: value })) },
   codex: { models: [], efforts: levels.map(value => ({ value, label: value })) },
   claude: { models: [], efforts: levels.map(value => ({ value, label: value })) },
   cursor: { models: [], efforts: levels.map(value => ({ value, label: value })) },

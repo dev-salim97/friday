@@ -1,12 +1,12 @@
 name: Bug report
-description: Report a reproducible LoopForge problem
+description: Report a reproducible Friday problem
 title: "[Bug]: "
 labels: ["bug", "needs-triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve LoopForge. Remove credentials, private endpoints, internal logs, and personal data before submitting.
+        Thanks for helping improve Friday. Remove credentials, private endpoints, internal logs, and personal data before submitting.
   - type: dropdown
     id: host
     attributes:
@@ -15,7 +15,6 @@ body:
         - Platform — web / API
         - Platform — runner / sandbox
         - Platform — deployment
-        - Local — CodeBuddy
         - Local — Codex
         - Local — Cursor
         - Local — Claude Code
@@ -36,7 +35,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: LoopForge version
+      label: Friday version
       placeholder: "Platform commit SHA or Local package version"
     validations:
       required: true
@@ -62,7 +61,7 @@ body:
     id: diagnostics
     attributes:
       label: Sanitized diagnostics
-      description: Include browser errors, deployment steps, or Local `loopforge doctor` output, with secrets removed.
+      description: Include browser errors, deployment steps, or Local `friday doctor` output, with secrets removed.
       render: shell
   - type: checkboxes
     id: checks

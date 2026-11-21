@@ -58,8 +58,8 @@ func TestQueryRunTelemetryFiltersAdapter(t *testing.T) {
 	t.Cleanup(func() { s.Close() })
 	run := domain.Run{ID: "run-tel", Status: "succeeded", Nodes: map[string]*domain.NodeRun{}, TelemetrySequence: 3, Telemetry: []domain.TelemetryEvent{
 		{Sequence: 1, NodeID: "fix", Message: "live", Source: domain.TelemetrySource{Adapter: "anthropic-stream-v1"}},
-		{Sequence: 2, NodeID: "fix", Message: "hook", Source: domain.TelemetrySource{Adapter: "codebuddy-hooks-v1"}},
-		{Sequence: 3, NodeID: "fix", Message: "otel", Source: domain.TelemetrySource{Adapter: "codebuddy-otel-v1"}},
+		{Sequence: 2, NodeID: "fix", Message: "hook", Source: domain.TelemetrySource{Adapter: "agent-hooks-v1"}},
+		{Sequence: 3, NodeID: "fix", Message: "otel", Source: domain.TelemetrySource{Adapter: "agent-otel-v1"}},
 	}}
 	if err := s.PutRun(run); err != nil {
 		t.Fatal(err)
@@ -78,13 +78,13 @@ func TestQueryRunTelemetryFiltersAdapter(t *testing.T) {
 	}
 }
 
-func TestAdapterSQLKeepsLegacyAndCrossCLIHookEventsVisible(t *testing.T) {
+func TestAdapterSQLFilters(t *testing.T) {
 	hooks := adapterSQLFilter("hooks")
-	if hooks.clause != " AND adapter IN (?, ?)" || len(hooks.args) != 2 {
+	if hooks.clause != " AND adapter=?" || len(hooks.args) != 1 {
 		t.Fatalf("hooks SQL filter = %+v", hooks)
 	}
 	live := adapterSQLFilter("live")
-	if live.clause != " AND adapter NOT IN (?, ?, ?)" || len(live.args) != 3 {
+	if live.clause != " AND adapter NOT IN (?, ?)" || len(live.args) != 2 {
 		t.Fatalf("live SQL filter = %+v", live)
 	}
 }

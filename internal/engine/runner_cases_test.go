@@ -230,7 +230,7 @@ func TestRunnerQueueAwaitEventsAndArtifacts(t *testing.T) {
 
 func TestRunnerDispatchEarlyAndCanceledPaths(t *testing.T) {
 	e, _ := cvEEngine(t)
-	r := cvERunner(t, e, "dispatch", domain.RunnerStatusOnline, "terminal", "codex", "claude-code", "codebuddy")
+	r := cvERunner(t, e, "dispatch", domain.RunnerStatusOnline, "terminal", "codex", "claude-code")
 	for i := range r.Runtimes {
 		r.Runtimes[i].AuthMode = domain.RuntimeAuthPersonal
 	}
@@ -240,7 +240,7 @@ func TestRunnerDispatchEarlyAndCanceledPaths(t *testing.T) {
 	run := cvERunnerRun("dispatch-run", r.ID)
 	node := domain.WorkflowNode{ID: "agent", Type: "agent"}
 	sb := &runEnvironment{}
-	for _, kind := range []string{"codex", "claude-code", "codebuddy"} {
+	for _, kind := range []string{"codex", "claude-code"} {
 		_, err := e.dispatchRunnerTask(context.Background(), r.ID, run, node, sb, "workspace", domain.ExecutorDefinition{ID: kind, Kind: kind}, domain.AgentDefinition{ID: "a"}, domain.AgentAssetBundle{}, "prompt", "inv", runtime.InvocationOptions{}, nil)
 		if err == nil {
 			t.Fatalf("%s missing personal credential accepted", kind)

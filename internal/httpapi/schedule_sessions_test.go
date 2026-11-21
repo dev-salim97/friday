@@ -16,7 +16,7 @@ import (
 func scheduleSessionFixture(t *testing.T) (*assistantHandlers, domain.User, domain.ScheduleJob) {
 	t.Helper()
 	st := cvAStore(t)
-	if err := st.PutUser(domain.User{LoginName: "sess-owner", CodeBuddyAPIKey: "secret"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "sess-owner", ClaudeCodeAPIKey: "secret"}); err != nil {
 		t.Fatal(err)
 	}
 	owner, _ := st.UserByLoginName("sess-owner")
@@ -130,7 +130,7 @@ func TestScheduleJobSaveKeepsSessionModeServerManaged(t *testing.T) {
 	t.Setenv("AGENTFLOW_SESSION_SECRET", "schedule-session-test-secret")
 	h, _ := workbenchFixture(t)
 	st := h.repo
-	if err := st.PutUser(domain.User{LoginName: "mode-owner", CodeBuddyAPIKey: "k"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "mode-owner", ClaudeCodeAPIKey: "k"}); err != nil {
 		t.Fatal(err)
 	}
 	owner, _ := st.UserByLoginName("mode-owner")
@@ -222,7 +222,7 @@ func TestScheduleJobSaveValidatesSessionKeep(t *testing.T) {
 	t.Setenv("AGENTFLOW_SESSION_SECRET", "schedule-keep-test-secret")
 	h, _ := workbenchFixture(t)
 	st := h.repo
-	if err := st.PutUser(domain.User{LoginName: "keep-owner", CodeBuddyAPIKey: "k"}); err != nil {
+	if err := st.PutUser(domain.User{LoginName: "keep-owner", ClaudeCodeAPIKey: "k"}); err != nil {
 		t.Fatal(err)
 	}
 	owner, _ := st.UserByLoginName("keep-owner")

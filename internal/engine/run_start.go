@@ -54,6 +54,20 @@ func (e *Engine) StartWithRepositoriesContext(workflowID, input string, reposito
 	return e.startWorkflow(workflowID, input, repositories, executionContext, false)
 }
 
+// StartWithExecutor is StartWithRepositoriesContext with a run-level 执行 CLI:
+// a non-empty executorID replaces the SOP's own ExecutorID for this run only
+// (it is frozen into the run snapshot). The catalog SOP is never modified.
+func (e *Engine) StartWithExecutor(workflowID, input string, repositories []domain.RepositoryContext, executionContext domain.TelemetryContext, executorID string) (domain.Run, error) {
+	wf, ok := e.repo.Workflow(workflowID)
+	if !ok {
+		return domain.Run{}, fmt.Errorf("workflow not found")
+	}
+	if executorID = strings.TrimSpace(executorID); executorID != "" {
+		wf.ExecutorID = executorID
+	}
+	return e.startWorkflowDefinition(wf, input, repositories, executionContext, false)
+}
+
 func (e *Engine) startWorkflow(workflowID, input string, repositories []domain.RepositoryContext, executionContext domain.TelemetryContext, workspace bool) (domain.Run, error) {
 	wf, ok := e.repo.Workflow(workflowID)
 	if !ok {

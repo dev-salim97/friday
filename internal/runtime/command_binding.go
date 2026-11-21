@@ -44,8 +44,6 @@ func bindCommand(ctx context.Context, sandbox Sandbox, workspace string, command
 	}
 	// Known host credentials are cleared for every child by default. A provider
 	// receives them only by explicitly requesting a controlled binding.
-	bound.environment["CODEBUDDY_API_KEY"] = ""
-	bound.environment["CODEBUDDY_INTERNET_ENVIRONMENT"] = ""
 	bound.environment["AGENTFLOW_GIT_TOKEN"] = ""
 	bound.environment["GH_TOKEN"] = ""
 	bound.environment["GITHUB_TOKEN"] = ""
@@ -67,12 +65,6 @@ func bindCommand(ctx context.Context, sandbox Sandbox, workspace string, command
 	}
 	for _, key := range []string{"OPENAI_API_KEY", "CODEX_API_KEY", "OPENAI_BASE_URL", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY"} {
 		bound.environment[key] = ""
-	}
-	if command.Provider == "codebuddy" {
-		// Every conversation and workspace gets its own CLI home, and CodeBuddy
-		// downloads its built-in plugin marketplaces (about 71 MB) into each one.
-		// LoopForge writes skills and agents itself and installs no plugins.
-		bound.environment["CODEBUDDY_SKIP_BUILTIN_MARKETPLACE"] = "1"
 	}
 	// Validate every private-home component before any credential binding can
 	// write configuration. The sandbox may have replaced a parent with a symlink.
@@ -106,14 +98,6 @@ func bindCommand(ctx context.Context, sandbox Sandbox, workspace string, command
 	}
 	for _, binding := range command.CredentialBindings {
 		switch binding {
-		case BindCodeBuddy:
-			// Empty values are intentional: a responsible user without credentials must
-			// not inherit either variable from the AgentFlow host process.
-			bound.environment["CODEBUDDY_API_KEY"] = strings.TrimSpace(credentials.CodeBuddy.APIKey)
-			if bound.environment["CODEBUDDY_API_KEY"] == "" {
-				return CommandSpec{}, fmt.Errorf("需求责任人未配置 CodeBuddy API Key，请在个人配置中配置")
-			}
-			bound.environment["CODEBUDDY_INTERNET_ENVIRONMENT"] = strings.TrimSpace(credentials.CodeBuddy.InternetEnvironment)
 		case BindGit:
 			if err := bindWorkspaceGitEnvironment(ctx, sandbox, workspace, bound.environment, credentials); err != nil {
 				return CommandSpec{}, err
@@ -199,13 +183,12 @@ func bindTelemetryEnvironment(env map[string]string, telemetry *InvocationOption
 	runID, nodeID := telemetry.RunID, telemetry.NodeID
 	env["AGENTFLOW_RUN_ID"] = runID
 	env["AGENTFLOW_NODE_ID"] = nodeID
-	env["CODEBUDDY_CODE_ENABLE_TELEMETRY"] = "1"
 	env["CLAUDE_CODE_ENABLE_TELEMETRY"] = "1"
 	env["OTEL_TRACES_EXPORTER"] = "otlp"
 	env["OTEL_EXPORTER_OTLP_PROTOCOL"] = "http/protobuf"
 	env["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] = observability.CollectorTracesURL()
 	env["OTEL_LOG_TOOL_DETAILS"] = "1"
-	env["OTEL_RESOURCE_ATTRIBUTES"] = fmt.Sprintf("agentflow.run_id=%s,agentflow.node_id=%s,service.name=agentflow-codebuddy", runID, nodeID)
+	env["OTEL_RESOURCE_ATTRIBUTES"] = fmt.Sprintf("agentflow.run_id=%s,agentflow.node_id=%s,service.name=agentflow-agent", runID, nodeID)
 }
 
 // CodexUserProviderArgv inserts a dedicated "agentflow_user" model provider

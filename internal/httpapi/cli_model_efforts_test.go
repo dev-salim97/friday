@@ -20,7 +20,6 @@ import (
 
 func TestModelEffortsSurviveProbeSaveAndSelection(t *testing.T) {
 	h, owner := workbenchFixture(t)
-	stubCLIModelDiscovery(t)
 	service := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/models" || r.Header.Get("Authorization") != "Bearer fixture-key" {
 			t.Errorf("unexpected discovery request: %s", r.URL.Path)

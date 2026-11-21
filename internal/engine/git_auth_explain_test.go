@@ -22,7 +22,7 @@ func TestExplainGitAuthFailure(t *testing.T) {
 	}
 	for _, other := range []error{
 		errors.New("repository checkout: git clone: exit status 128 (fatal: repository not found)"),
-		errors.New("CodeBuddy Authentication failed: invalid api key"),
+		errors.New("Claude Authentication failed: invalid api key"),
 		nil,
 	} {
 		if got := explainGitAuthFailure(other, false); got != other {

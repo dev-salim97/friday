@@ -17,7 +17,7 @@ import (
 
 var (
 	errAssistantNativeBusy     = errors.New("共享会话正在另一进程中生成，请稍后重试")
-	errAssistantSessionMissing = errors.New("CodeBuddy session transcript is missing")
+	errAssistantSessionMissing = errors.New("CLI session transcript is missing")
 )
 
 // This is a local continuation cache, not the authoritative chat transcript.

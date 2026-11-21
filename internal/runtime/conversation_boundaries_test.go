@@ -39,8 +39,8 @@ func TestConversationAssetFilesAndRewrites(t *testing.T) {
 		{"attachments/a/source.pdf", true, false},
 		{"current-mcp.json", true, true},
 		{"home/.zcode/cli/config.json", true, true},
-		{"codebuddy-system.md", true, true},
-		{"nested/codebuddy-system.md", false, false},
+		{"claude-system.md", true, true},
+		{"nested/claude-system.md", false, false},
 		{"home/.claude/skills", false, false},
 		{"home/.claude/projects/journal.jsonl", false, false},
 		{"home/.zcode/cli/credentials.json", false, false},
@@ -67,9 +67,9 @@ func TestConversationDockerAccessRejectsUnsafeOverrides(t *testing.T) {
 		}
 	}
 	t.Setenv("AGENTFLOW_CONVERSATION_RELAY_HOST", " relay.internal ")
-	t.Setenv("AGENTFLOW_CONVERSATION_DOCKER_NETWORK", " loopforge ")
+	t.Setenv("AGENTFLOW_CONVERSATION_DOCKER_NETWORK", " friday ")
 	host, network, err := conversationDockerAccess(context.Background())
-	if err != nil || host != "relay.internal" || network != "loopforge" {
+	if err != nil || host != "relay.internal" || network != "friday" {
 		t.Fatalf("explicit overrides = %q %q %v", host, network, err)
 	}
 }
@@ -86,10 +86,10 @@ func TestConversationSetupOutputKeepsTail(t *testing.T) {
 }
 
 func TestConversationCommandForCarriesCommandSpec(t *testing.T) {
-	command := CommandSpec{Argv: []string{"cli", "--model", "m"}, Provider: "codebuddy", AgentCLI: AgentCLIOptions{Model: "m"}}
+	command := CommandSpec{Argv: []string{"cli", "--model", "m"}, Provider: "claude-code", AgentCLI: AgentCLIOptions{Model: "m"}}
 	credentials := RunCredentials{}
 	wire := ConversationCommandFor(command, credentials)
-	if strings.Join(wire.Argv, " ") != "cli --model m" || wire.Provider != "codebuddy" || wire.AgentCLI.Model != "m" || wire.Interactive {
+	if strings.Join(wire.Argv, " ") != "cli --model m" || wire.Provider != "claude-code" || wire.AgentCLI.Model != "m" || wire.Interactive {
 		t.Fatalf("wire command = %+v", wire)
 	}
 	command.Stdin = strings.NewReader("prompt")
