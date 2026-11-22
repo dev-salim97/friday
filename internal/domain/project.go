@@ -64,6 +64,9 @@ const RepositoryProviderSSH = "ssh"
 // RepositoryProviderHTTPS uses Git transport without a hosting API adapter.
 const RepositoryProviderHTTPS = "https"
 
+// RepositoryProviderSVN checks out a Subversion source URL.
+const RepositoryProviderSVN = "svn"
+
 func GitOnlyRepositoryProvider(provider string) bool {
 	return provider == RepositoryProviderSSH || provider == RepositoryProviderHTTPS
 }
